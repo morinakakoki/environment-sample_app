@@ -1,0 +1,15 @@
+current directory: /Users/morinakaakane/environment/sample_app/vendor/bundle/ruby/2.7.0/gems/bootsnap-1.4.4/ext/bootsnap
+/Users/morinakaakane/.rbenv/versions/2.7.0-dev/bin/ruby -I /Users/morinakaakane/.rbenv/versions/2.7.0-dev/lib/ruby/2.7.0 -r ./siteconf20190510-72104-1188cqr.rb extconf.rb
+creating Makefile
+
+current directory: /Users/morinakaakane/environment/sample_app/vendor/bundle/ruby/2.7.0/gems/bootsnap-1.4.4/ext/bootsnap
+make "DESTDIR=" clean
+
+current directory: /Users/morinakaakane/environment/sample_app/vendor/bundle/ruby/2.7.0/gems/bootsnap-1.4.4/ext/bootsnap
+make "DESTDIR="
+compiling bootsnap.c
+linking shared-object bootsnap/bootsnap.bundle
+
+current directory: /Users/morinakaakane/environment/sample_app/vendor/bundle/ruby/2.7.0/gems/bootsnap-1.4.4/ext/bootsnap
+make "DESTDIR=" install
+/usr/bin/install -c -m 0755 bootsnap.bundle ./.gem.20190510-72104-1e8d1se/bootsnap
