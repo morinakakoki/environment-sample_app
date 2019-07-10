@@ -1,6 +1,13 @@
 <% provide(:title, 'All users') %>
 <h1>All users</h1>
 
+<!--  検索拡張機能  -->
+<p>user search</p>
+<%= form_tag users_path, :method => 'get' do %>
+  <%= text_field_tag :search %>
+  <%= submit_tag 'Search', :name => nil %>
+<% end %>
+
 <ul class="users">
    <%= render @users %>
 </ul>

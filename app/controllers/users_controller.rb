@@ -7,7 +7,7 @@ class UsersController < ApplicationController
   end
 
   def index
-    @users = User.all
+   @users = User.where(activated: true).search(params[:search])
  end
 
   def show
@@ -58,6 +58,7 @@ def following
    @users = @user.followers.all
    render 'show_follow'
  end
+
 
   private
 
