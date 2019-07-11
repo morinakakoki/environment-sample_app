@@ -9,8 +9,8 @@ gem 'faker',          '1.7.3'
 gem 'carrierwave'
 gem 'mini_magick'
 gem 'sass-rails', '>= 3.2'
-gem 'bootstrap-sass', '3.3.7'
-gem 'bootstrap', '~> 4.1.1'
+gem "bootstrap-sass", ">= 3.4.1"
+gem "bootstrap", ">= 4.3.1"
 gem 'puma',         '3.9.1'
 gem 'bootsnap', require: false
 gem 'uglifier',     '3.2.0'
