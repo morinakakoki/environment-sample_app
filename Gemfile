@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 
+gem 'kaminari'
 gem 'will_paginate'
 gem 'bootstrap-will_paginate'
 gem 'rails',          '>= 5.1.6'
