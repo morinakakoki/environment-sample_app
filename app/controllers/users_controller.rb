@@ -13,6 +13,8 @@ class UsersController < ApplicationController
   def show
    @user = User.find(params[:id])
    @microposts = @user.microposts.paginate(page: params[:page])
+   @likes = Like.where(micropost_id: params[:micropost_id])
+ 
  end
  def create
     @user = User.new(user_params)

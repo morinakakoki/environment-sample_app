@@ -6,6 +6,10 @@ class Micropost < ApplicationRecord
   validates :content, presence: true, length: { maximum: 140 }
   validate  :picture_size
 
+  def like_user(user_id)
+     Like.find_by(user_id: user_id)
+    end
+
   private
 
     # アップロードされた画像のサイズをバリデーションする
