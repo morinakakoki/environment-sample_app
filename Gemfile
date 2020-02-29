@@ -11,7 +11,7 @@ gem "mini_magick", ">= 4.9.4"
 gem 'sass-rails', '>= 3.2'
 gem "bootstrap-sass", ">= 3.4.1"
 gem "bootstrap", ">= 4.3.1"
-gem 'puma',         '3.9.1'
+gem 'puma',         '3.12.3'
 gem 'bootsnap', require: false
 gem 'uglifier',     '3.2.0'
 gem 'coffee-rails', '4.2.2'
