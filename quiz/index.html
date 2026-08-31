@@ -504,8 +504,8 @@ python3 -m http.server 8000
       <div id="qVerdict" class="hidden" role="status" aria-live="polite"></div>
       <div id="qNextWrap" class="hidden">
         <button class="btn btn-primary" id="nextBtn" type="button" style="margin-top:12px">次の問題へ</button>
-        <p class="hint"><kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ</p>
       </div>
+      <p class="hint" id="qHint"><kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ</p>
     </div>
   </section>
 
@@ -676,11 +676,19 @@ function loadState(){
     if(!raw) return blankState();
     var p = JSON.parse(raw);
     if(!p || typeof p !== 'object') return blankState();
-    return {
-      version : 1,
-      stats   : (p.stats && typeof p.stats === 'object') ? p.stats : {},
-      sessions: Array.isArray(p.sessions) ? p.sessions : []
-    };
+    /* 中身まで検査する。1件でも壊れていると起動時に落ち、
+       リセットボタンにも辿り着けなくなるため。 */
+    var sessions = Array.isArray(p.sessions) ? p.sessions.filter(function(x){
+      return x && typeof x === 'object' && typeof x.at === 'string' && x.at;
+    }) : [];
+    var stats = {};
+    if(p.stats && typeof p.stats === 'object'){
+      Object.keys(p.stats).forEach(function(k){
+        var v = p.stats[k];
+        if(v && typeof v === 'object') stats[k] = v;
+      });
+    }
+    return { version:1, stats:stats, sessions:sessions };
   }catch(e){
     storageOK = false;
     try{ console.warn('[quiz] 履歴の読み込みに失敗しました:', e); }catch(_){}
@@ -935,20 +943,49 @@ function compareId(a, b){
   return a < b ? -1 : (a > b ? 1 : 0);
 }
 
+/* 「最近追加された問題」の並び。
+   追加日の新しい順。同じ日の中では【未挑戦 → 間違い → 正解済み】の順にする。
+
+   ここだけ他のモードと順序が違う。このモードの役目は「今日足した分を解く」
+   ことなので、未挑戦を先に出さないと、間違えた問題が10問の枠を埋めてしまい、
+   同じ日に11問以上足したとき新しい問題が一度も出てこない。 */
 function poolRecent(){
-  return QUESTIONS.slice().sort(function(a,b){
-    if(a.addedAt !== b.addedAt) return a.addedAt < b.addedAt ? 1 : -1;  // 降順・空文字は最後
-    return compareId(b.id, a.id);                                       // 同日なら id の新しい順
+  var groups = {}, days = [];
+  QUESTIONS.forEach(function(q){
+    if(!groups[q.addedAt]){ groups[q.addedAt] = []; days.push(q.addedAt); }
+    groups[q.addedAt].push(q);
   });
+  days.sort(function(a, b){ return a < b ? 1 : (a > b ? -1 : 0); });   // 降順・空文字は最後
+
+  var out = [];
+  days.forEach(function(d){
+    var fresh = [], wrong = [], done = [];
+    groups[d].forEach(function(q){
+      var st = statusOf(q.id);
+      if(st === 'new') fresh.push(q);
+      else if(st === 'wrong') wrong.push(q);
+      else done.push(q);
+    });
+    done = shuffle(done).sort(function(a, b){ return accuracyOf(a.id) - accuracyOf(b.id); });
+    out = out.concat(shuffle(fresh), shuffle(wrong), done);
+  });
+  return out;
 }
 
 /* 今の最大 id（数値のもののみ）。追加時の採番に使う。 */
+/* 採番に使う「これまでの最大 id」。今ある問題だけでなく、学習記録に残っている
+   id も見る。消した問題の番号を再利用すると、新しい問題がその成績を
+   引き継いでしまうため。 */
 function maxNumericId(){
   var m = 0;
-  QUESTIONS.forEach(function(q){
-    var n = Number(q.id);
+  var bump = function(v){
+    var n = Number(v);
     if(!isNaN(n) && n > m) m = n;
-  });
+  };
+  QUESTIONS.forEach(function(q){ bump(q.id); });
+  try{
+    Object.keys(state.stats || {}).forEach(bump);
+  }catch(e){ /* 記録が読めなくても採番は続ける */ }
   return m;
 }
 
@@ -1370,6 +1407,10 @@ function finish(){
 
   var rwBtn = $('retryWrongBtn');
   rwBtn.disabled = (poolWrong().length === 0);
+  /* 同じモードで出題できるものが残っているときだけ押せるようにする */
+  var again = $('againBtn');
+  again.disabled = (buildSession(session.mode, session.chapter).list.length === 0);
+  again.textContent = again.disabled ? 'このモードで解ける問題はありません' : '同じモードでもう一度';
 
   goto('screenResult');
 }
@@ -1854,14 +1895,34 @@ function addCheck(){
   /* id が無いものには、今の最大 id の続きを振る。
      Claude に「id は何番から」と毎回伝えなくても貼れるようにするため。 */
   var nextId = maxNumericId();
+  var today = new Date().toISOString().slice(0, 10);
   incoming = incoming.map(function(r){
     if(!r || typeof r !== 'object') return r;
-    if(r.id === 0 || r.id) return r;
+    var needsId   = !(r.id === 0 || r.id);
+    var needsDate = typeof r.addedAt !== 'string' || !r.addedAt;
+    if(!needsId && !needsDate) return r;
     var copy = {}, k;
     for(k in r){ if(Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k]; }
-    copy.id = ++nextId;
+    if(needsId)   copy.id = ++nextId;
+    /* addedAt が無いと「最近追加された問題」に一度も出てこないので、今日を入れる */
+    if(needsDate) copy.addedAt = today;
     return copy;
   });
+
+  /* 形式が壊れている行は、保存データに混ぜない。
+     読み込み時に弾かれるだけとはいえ、残しておくと毎回警告が出続ける。 */
+  var before = incoming.length;
+  incoming = incoming.filter(function(r){
+    try{ return parseData([r]).list.length === 1; }
+    catch(e){ return false; }
+  });
+  var malformed = before - incoming.length;
+  if(!incoming.length){
+    addMsg('ng', '取り込める問題がありませんでした。',
+      [before + '件すべてが形式エラーです。',
+       'options が4つあるか、answer が選択肢を指しているか確認してください。']);
+    return;
+  }
 
   var candidate = mergeRaw(RAW_DATA, incoming, newChapters);
   var res;
@@ -1900,8 +1961,9 @@ function addCheck(){
     if(hit) lines.push('⚠ id ' + q.id + ' は id ' + hit + ' と問題文がほぼ同じです');
   });
 
-  var skipped = incoming.length - fresh.length;
-  if(skipped > 0) lines.push('⚠ ' + skipped + '件は取り込まれません（id の重複か形式エラー）');
+  if(malformed > 0) lines.push('⚠ ' + malformed + '件は形式エラーのため除きました');
+  var dupes = incoming.length - fresh.length;
+  if(dupes > 0) lines.push('⚠ ' + dupes + '件は id が既存とかぶるため取り込まれません');
   res.warnings.forEach(function(w){ lines.push('⚠ ' + w); });
 
   addMsg('ok', fresh.length + '問を追加します（このアプリに埋め込む分が ' + res.list.length + '問'
@@ -2078,6 +2140,8 @@ function wire(){
   $('againBtn').addEventListener('click', function(){
     if(session) startSession(session.mode, session.chapter);
   });
+  /* 「間違いのみ」を全問正解したあとは、同じモードで解き直せない */
+  $('againBtn').disabled = false;
   $('retryWrongBtn').addEventListener('click', function(){ startSession('wrong'); });
   $('toHomeBtn').addEventListener('click', function(){ session = null; renderHome(); goto('screenHome'); });
 
