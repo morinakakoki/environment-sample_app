@@ -635,7 +635,8 @@ var LOG = {
   cols   : { title:'記録', date:'日時', mode:'モード', total:'出題数',
              correct:'正解数', rate:'正答率', detail:'明細' },
   maxDetail : 1800,   // Notion のテキスト欄に収まる範囲で打ち切る
-  maxPush   : 10      // 1回の起動でまとめて送る上限
+  maxPush   : 10,     // 1回の起動でまとめて送る上限
+  maxPages  : 20      // 1ページ100件。ここを未定義にすると1ページしか読まない
 };
 
 /* 本文は #bodyTpl から描き起こす。こうしておくと、画面を操作したあとの状態が
@@ -730,12 +731,13 @@ function normAnswer(a, options){
   var i, t, n;
   if(typeof a === 'number' && a >= 0 && a < options.length && a === Math.floor(a)) return a;
   if(typeof a === 'string'){
+    /* 空欄は先に弾く。あとに置くと、選択肢にも空文字が混じっていたときに
+       indexOf('') が一致してしまい、正解未設定の問題が通ってしまう。
+       Number('') が 0 になる件もここで防いでいる。 */
+    t = a.trim();
+    if(t === '') return -1;
     i = options.indexOf(a);
     if(i >= 0) return i;
-    t = a.trim();
-    /* 空欄を弾く。Number('') は 0 なので、これが無いと
-       「正解が未設定の問題」が黙って A を正解にしてしまう。 */
-    if(t === '') return -1;
     if(/^[A-Fa-f]$/.test(t)){
       i = LETTERS.indexOf(t.toUpperCase());
       if(i >= 0 && i < options.length) return i;
@@ -1375,7 +1377,10 @@ function finish(){
 /* ============================================================
    9.3 学習記録を Notion と同期する
    ============================================================ */
-var logState = { status:'idle', msg:'', fix:'', pulled:0, pushed:0, pending:0 };
+var logState = { status:'idle', msg:'', fix:'', pulled:0, pushed:0, pending:0,
+                 truncated:false, inflight:null };
+/* リセットしたら番号を進める。走っている同期の結果はその時点で無効になる。 */
+var syncEpoch = 0;
 
 /* id に : や , が入っても壊れないようにする。
    notion:<hex> は長いので n~<hex> に縮める（テキスト欄の字数を節約）。 */
@@ -1530,17 +1535,27 @@ function pushSessions(mcp, remoteKeys){
 
 function syncLog(){
   if(!(window.claude && typeof window.claude.use === 'function')) return;
-  logState.status = 'syncing';
-  renderSyncLine();
+  /* 起動時と解き終わりの両方から呼ばれる。走っている最中にもう1本走ると、
+     どちらも「まだ送っていない」と判断して同じセッションを2回書いてしまう。 */
+  if(logState.inflight) return logState.inflight;
 
-  window.claude.use('mcp').then(function(mcp){
+  logState.status = 'syncing';
+  logState.truncated = false;
+  renderSyncLine();
+  var epoch = ++syncEpoch;
+
+  logState.inflight = window.claude.use('mcp').then(function(mcp){
     if(!mcp){ logState.status = 'idle'; renderSyncLine(); return; }
     return readLogPages(mcp, undefined, [], 0).then(function(rows){
+      if(epoch !== syncEpoch) return;   // 履歴リセットが挟まった。結果を捨てる
       var keys = mergeRemoteLog(rows);
       logState.pulled = rows.length;
       logState.status = 'ok';
       if($('screenQuiz').classList.contains('hidden')) renderHome();
       renderSyncLine();
+      /* 全部読めていないと「Notion に既にあるか」を判断できない。
+         この状態で送ると同じセッションを重ねて書いてしまうので送らない。 */
+      if(logState.truncated) return;
       return pushSessions(mcp, keys);
     });
   }).catch(function(err){
@@ -1549,7 +1564,13 @@ function syncLog(){
     logState.msg = f.msg;
     logState.fix = f.fix;
     renderSyncLine();
+  }).then(function(){
+    logState.inflight = null;
+  }, function(){
+    logState.inflight = null;
   });
+
+  return logState.inflight;
 }
 
 function readLogPages(mcp, cursor, acc, page){
@@ -1562,6 +1583,7 @@ function readLogPages(mcp, cursor, acc, page){
     if(p.has_more && p.next_cursor && page + 1 < LOG.maxPages){
       return readLogPages(mcp, p.next_cursor, acc, page + 1);
     }
+    logState.truncated = !!p.has_more;   // 全部は読めていない
     return acc;
   });
 }
@@ -1588,6 +1610,7 @@ function renderSyncLine(){
   if(logState.pulled)  bits.push('Notion から ' + logState.pulled + '件 取り込み');
   if(logState.pushed)  bits.push(logState.pushed + '件 送信');
   if(logState.pending) bits.push('未送信 ' + logState.pending + '件');
+  if(logState.truncated) bits.push('記録が多いため一部のみ読み込み（今回は送信を見送りました）');
   box.appendChild(el('b', null, bits.length ? ('学習記録を同期しました（' + bits.join('・') + '）') : '学習記録は同期済みです'));
   box.appendChild(el('span', 'muted', '端末をまたいで引き継がれます。'));
 }
@@ -1955,8 +1978,12 @@ function addSave(){
   }).then(function(){
     addMsg('ok', '保存しました。新しい問題を読み込みます…');
     btn.textContent = '保存しました';
-    /* 通常は全ビューが自動で読み込み直されるが、そうならなかったときの保険 */
-    window.setTimeout(function(){ try{ location.reload(); }catch(e){} }, 4000);
+    /* 通常は全ビューが自動で読み込み直されるが、そうならなかったときの保険。
+       ただし解き始めていたら巻き戻さない（次に開いたときに反映される）。 */
+    window.setTimeout(function(){
+      if(!$('screenQuiz').classList.contains('hidden')) return;
+      try{ location.reload(); }catch(e){}
+    }, 4000);
   }).catch(function(e){
     var code = (e && (e.code || e.message)) || '';
     btn.disabled = false; btn.textContent = 'この内容で保存';
@@ -2072,8 +2099,13 @@ function wire(){
     if(!window.confirm('この端末の学習履歴を消します。\n\nNotion の「復習クイズ 学習記録」は消えないので、'
       + '次に開いたときにそこから戻ってきます。完全に消すには Notion 側の行も削除してください。\n\nよろしいですか？')) return;
     state = blankState();
+    syncEpoch++;                 // 走っている同期の結果を無効にする
+    logState.inflight = null;
+    logState.status = 'idle';
+    logState.pulled = logState.pushed = logState.pending = 0;
     try{ localStorage.removeItem(LS_KEY); }catch(e){ /* 消せなくてもメモリ上はリセット済み */ }
     saveState();
+    renderSyncLine();
     renderHome();
   });
 
