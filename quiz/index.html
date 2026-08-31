@@ -221,6 +221,7 @@ h1,h2,h3{line-height:1.4;margin:0}
   background:var(--accent-soft);color:var(--accent);border:1px solid transparent;
 }
 .chip.tag{background:transparent;color:var(--muted);border-color:var(--line-strong)}
+.chip.method{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}
 .chip.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
 .chip.ng{background:var(--ng-bg);color:var(--ng);border-color:var(--ng-line)}
 
@@ -460,7 +461,17 @@ python3 -m http.server 8000
     </div>
 
     <div class="card">
+      <h2>方式別に解く</h2>
+      <p class="hint" style="text-align:left;margin:-4px 0 12px">
+        方式設計書の区分です。<b>新しい方式や機能を作ったら、その方式の問題を足していきます。</b>
+        問題数が少ない方式は、まだ言葉にできていないところです。
+      </p>
+      <div id="methodBtns" style="display:flex;flex-direction:column;gap:9px"></div>
+    </div>
+
+    <div class="card">
       <h2>章別に解く</h2>
+      <p class="hint" style="text-align:left;margin:-4px 0 12px">基礎知識ノートの章です。</p>
       <div id="chapBtns" style="display:flex;flex-direction:column;gap:9px"></div>
     </div>
 
@@ -498,6 +509,7 @@ python3 -m http.server 8000
       <div class="chips">
         <span class="chip" id="qChapter"></span>
         <span class="chip tag" id="qTag"></span>
+        <span class="chip method" id="qMethod"></span>
       </div>
       <h1 class="qtext" id="qText"></h1>
       <div class="opts" id="qOpts" role="group" aria-label="選択肢"></div>
@@ -620,7 +632,7 @@ var NOTION = {
   tool   : 'notion-query-data-sources',
   view   : 'view://9229e102-0aaf-4b45-99e8-4d256abc8d1d',
   cols   : { q:'問題', chapter:'章', tag:'タグ', answer:'正解', explanation:'解説',
-             source:'出典', options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
+             source:'出典', method:'方式', options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
   maxPages: 5   // 1ページ100件。取り切れないときは画面に出す
 };
 
@@ -822,6 +834,8 @@ function parseData(raw){
       answer    : ans,
       explanation: (typeof r.explanation === 'string') ? r.explanation : '',
       source    : (typeof r.source === 'string') ? r.source.trim() : '',
+      /* 方式設計書のどの方式か。機能を作るたびに、その方式の問題が増えていく軸。 */
+      method    : (typeof r.method === 'string') ? r.method.trim() : '',
       addedAt   : (typeof r.addedAt === 'string') ? r.addedAt : ''
     });
   }
@@ -927,12 +941,24 @@ function withShuffledOptions(q){
     id:q.id, chapter:q.chapter, tag:q.tag, q:q.q,
     options: order.map(function(i){ return q.options[i]; }),
     answer: order.indexOf(q.answer),
-    explanation:q.explanation, source:q.source, addedAt:q.addedAt
+    explanation:q.explanation, source:q.source, method:q.method, addedAt:q.addedAt
   };
 }
 
 function poolAll(){ return QUESTIONS; }
 function poolChapter(n){ return QUESTIONS.filter(function(q){ return q.chapter === n; }); }
+function poolMethod(m){ return QUESTIONS.filter(function(q){ return q.method === m; }); }
+
+/* 出てくる方式の一覧。方式設計書の順に並べ、そこに無いものは後ろに回す。
+   問題データに新しい方式が現れれば、そのまま増える。 */
+var METHOD_ORDER = ['構成・前提','処理方式','データ方式','認証・権限方式',
+                    '運用・監視方式','コスト方式','IaC方式','設計判断'];
+function methodList(){
+  var seen = {}, out = [];
+  QUESTIONS.forEach(function(q){ if(q.method) seen[q.method] = true; });
+  METHOD_ORDER.forEach(function(m){ if(seen[m]){ out.push(m); delete seen[m]; } });
+  return out.concat(Object.keys(seen).sort());
+}
 function poolWrong(){ return QUESTIONS.filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
 /* id は文字列で持っているので、そのまま比べると "9" > "38" になってしまう。
    数字どうしは数値で、そうでなければ文字列で比べる。 */
@@ -1000,6 +1026,9 @@ function buildSession(mode, chapter){
   }else if(mode === 'wrong'){
     list  = prioritize(poolWrong()).slice(0, SESS_MAX);
     label = '間違いのみ';
+  }else if(mode === 'method'){
+    list  = prioritize(poolMethod(chapter)).slice(0, SESS_MAX);   // chapter に方式名が入る
+    label = String(chapter);
   }else if(mode === 'recent'){
     list  = poolRecent().slice(0, PICK_N);
     label = '最近追加された問題';
@@ -1065,6 +1094,35 @@ function renderHome(){
   $('cntWrong').textContent  = nWrong + '問';
   $('cntRecent').textContent = Math.min(PICK_N, total) + '問';
   $('modeWrong').disabled = (nWrong === 0);
+
+  // 方式別ボタン（方式設計書の軸）
+  var mb = $('methodBtns');
+  clear(mb);
+  var methods = methodList();
+  methods.forEach(function(m){
+    var pool = poolMethod(m);
+    var w = pool.filter(function(q){ return statusOf(q.id) === 'wrong'; }).length;
+    var seen = 0, corr = 0;
+    pool.forEach(function(q){
+      var st = statusOf(q.id);
+      if(st !== 'new'){ seen++; if(st === 'ok') corr++; }
+    });
+    var b = el('button', 'btn');
+    b.type = 'button';
+    var ico = el('span', 'ico', '⚙'); ico.setAttribute('aria-hidden','true');
+    b.appendChild(ico);
+    var body = el('span', 'bodytxt');
+    body.appendChild(el('span', 'ttl', m));
+    body.appendChild(el('span', 'sub',
+      seen ? ('正答率 ' + Math.round(corr / seen * 100) + '%') : 'まだ解いていません'));
+    body.appendChild(el('span', 'cnt', pool.length + '問' + (w ? '　要復習 ' + w : '')));
+    b.appendChild(body);
+    b.addEventListener('click', function(){ startSession('method', m); });
+    mb.appendChild(b);
+  });
+  if(!methods.length){
+    mb.appendChild(el('div', 'empty', '方式が設定された問題がまだありません。'));
+  }
 
   // 章別ボタン
   var cb = $('chapBtns');
@@ -1168,6 +1226,8 @@ function renderQuestion(){
   chapChip.textContent = chapterFull(q.chapter);
   var tagChip = $('qTag');
   if(q.tag){ tagChip.textContent = '理解度表 ' + q.tag; show(tagChip); } else { hide(tagChip); }
+  var mChip = $('qMethod');
+  if(q.method){ mChip.textContent = q.method; show(mChip); } else { hide(mChip); }
 
   $('qText').textContent = q.q;
 
@@ -1386,6 +1446,7 @@ function finish(){
       var chips = el('div', 'chips');
       chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
       if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+      if(q.method) chips.appendChild(el('span', 'chip method', q.method));
       box.appendChild(chips);
       box.appendChild(el('div', 'rq', q.q));
       var ans = el('div', 'ans');
@@ -1693,6 +1754,7 @@ function rowToQuestion(row){
     answer    : ans,
     explanation: String(row[c.explanation] == null ? '' : row[c.explanation]).trim(),
     source    : String(row[c.source] == null ? '' : row[c.source]).trim(),
+    method    : String(row[c.method] == null ? '' : row[c.method]).trim(),
     addedAt   : String(row[c.date] || '').slice(0, 10)
   };
 }
