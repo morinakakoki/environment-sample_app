@@ -17,6 +17,14 @@ const dir  = path.dirname(new URL(import.meta.url).pathname);
 const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
 const data = JSON.parse(fs.readFileSync(path.join(dir, 'quiz-data.json'), 'utf8'));
 
+/* quiz-data.json は配列でも {chapters, questions} 形式でもよい（アプリと同じ扱い）。
+   検査用に問題の配列だけ取り出しておく。 */
+const questions = Array.isArray(data) ? data : data.questions;
+if (!Array.isArray(questions)) {
+  throw new Error('quiz-data.json は配列、または {"chapters":{...},"questions":[...]} である必要があります');
+}
+if (questions.length === 0) throw new Error('問題が1問もありません');
+
 const pick = (re, label) => {
   const m = html.match(re);
   if (!m) throw new Error(`index.html から ${label} を取り出せませんでした`);
@@ -38,13 +46,22 @@ const out = [
   '',
 ].join('\n');
 
-const dest = path.join(dir, 'artifact.html');
-fs.writeFileSync(dest, out);
-
-console.log(`artifact.html を書き出しました`);
-console.log(`  問題数   : ${data.length}`);
-console.log(`  サイズ   : ${(out.length / 1024).toFixed(1)} KB`);
-console.log(`  章       : ${[...new Set(data.map(q => q.chapter))].sort((a,b)=>a-b).join(', ')}`);
+// --- 検査は書き出しの前に。壊れた artifact.html を残さないため ---
 // 器のタグが混じっていないか（<header> に誤反応しないよう境界を見る）
 const stray = out.match(/<!DOCTYPE|<\/?(html|head|body)[\s>]/i);
 if (stray) throw new Error(`器のタグが混入しています: ${stray[0]}`);
+if (!out.includes('window.QUIZ_DATA')) throw new Error('問題データが埋め込まれていません');
+
+const dest = path.join(dir, 'artifact.html');
+fs.writeFileSync(dest, out);
+
+const chapters = [...new Set(questions.map(q => q.chapter))].sort((a, b) => a - b);
+const titles = Array.isArray(data) ? null : (data.chapters || {});
+console.log(`artifact.html を書き出しました`);
+console.log(`  問題数   : ${questions.length}`);
+console.log(`  サイズ   : ${(out.length / 1024).toFixed(1)} KB`);
+console.log(`  章       : ${chapters.map(c => c + (titles && titles[c] ? ` ${titles[c]}` : '')).join(' / ')}`);
+if (titles) {
+  const noName = chapters.filter(c => !titles[c]);
+  if (noName.length) console.log(`  ⚠ 章名がない章: ${noName.join(', ')}（「第N章」とだけ表示されます）`);
+}
