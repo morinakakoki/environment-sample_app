@@ -155,6 +155,7 @@ Notion が読めないとき（接続切れ・未許可など）は、原因ご�
 - JSON 配列のみを返す（前後の説明文・```json のフェンスは不要、そのまま追記できる形で）
 - 1件の形:
   {"id":<数値>,"chapter":<1-7>,"tag":"#<番号> または語","q":"問題文",
+   "source":"https://cloud.google.com/...",
    "options":["選択肢A","選択肢B","選択肢C","選択肢D"],
    "answer":<0-3のインデックス>,"explanation":"解説",
    "addedAt":"YYYY-MM-DD"}
@@ -164,6 +165,8 @@ Notion が読めないとき（接続切れ・未許可など）は、原因ご�
   "as-of" のような語でもよい（下の「章と理解度表」を参照）
 - 解説の中で選択肢を指すときは「選択肢2が誤り」のような位置ではなく
   「〜という記述は誤り」と内容で書く（出題時に選択肢がシャッフルされるため）
+- **source に根拠の公式ドキュメント URL を入れる**（cloud.google.com、
+  HashiCorp 公式など）。確認できなかった問題は出さないこと
 - options は必ず4つ。正解は明確に1つだけ。他3つは「もっともらしいが誤り」にする
 - 「すべて正しい」「上記のいずれでもない」のような選択肢は使わない
 - 正解肢だけ極端に長い / 丁寧、といった答えの透ける書き方をしない
@@ -235,6 +238,7 @@ python3 -m json.tool quiz-data.json > /dev/null && echo "JSON OK"
 | `options` | string[] | ○ | 選択肢。**4つ**が基本（2〜6 まで動きます） |
 | `answer` | number | ○ | 正解の**0始まりインデックス**。`0` が A、`3` が D |
 | `explanation` | string | ○ | 解説。解答後に chapter / tag と一緒に表示されます |
+| `source` | string | 任意 | 根拠にした**公式ドキュメントの URL**。解説の下にリンクとして出ます |
 | `addedAt` | string | ○ | 追加日 `"YYYY-MM-DD"`。「最近追加された問題」の並び順に使います |
 
 **`answer` の書き方は 3 通り受け付けます**（他所から移植しやすくするため）:
@@ -302,7 +306,23 @@ python3 -m json.tool quiz-data.json > /dev/null && echo "JSON OK"
 これから追記する問題に当日の日付を入れれば、「最近追加された問題」モードで
 新しいものから順に出るようになります。
 
-## 8. 学習履歴（localStorage と Notion）
+## 7.5 出典について
+
+**問題の内容は、必ず公式ドキュメントで裏を取ってください。** GCP は仕様がよく変わるため、
+AI の記憶だけで作った問題は古い可能性があります。間違った内容を覚え直すのは、
+覚えていないことより損です。
+
+`source` に URL を入れると、解説の下にリンクが出ます。根拠の優先順位は次のとおりです。
+
+1. Google Cloud 公式ドキュメント（`cloud.google.com` / `docs.cloud.google.com`）
+2. HashiCorp 公式（Terraform）、Apache 公式（Airflow など）
+3. Google Cloud 公式ブログ
+
+個人ブログ・Qiita・Medium・Stack Overflow は根拠にしないでください（当たりを付けるのには使えます）。
+
+`http://` `https://` 以外の URL はリンクにせず、文字列として表示するだけにしています。
+
+
 
 学習記録は **localStorage が「正」**で、**Notion の「復習クイズ 学習記録」が同期先**です。
 

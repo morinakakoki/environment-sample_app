@@ -332,6 +332,18 @@ code,kbd{
 .filepick input{display:block;margin-top:7px;font-size:13px;max-width:100%}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
+/* 出典 */
+.srcline{
+  margin-top:9px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  font-size:12px;line-height:1.6;
+}
+.srcline .lbl{
+  flex:none;font-size:10.5px;font-weight:800;letter-spacing:.06em;
+  color:var(--muted);border:1px solid var(--line-strong);border-radius:99px;padding:1px 7px;
+}
+.srcline a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+@media (hover:hover){ .srcline a:hover{text-decoration-thickness:2px} }
+
 /* Notion の読み込み状況 */
 .notionline{
   margin-top:12px;padding:10px 12px;border-radius:var(--r-sm);
@@ -608,7 +620,7 @@ var NOTION = {
   tool   : 'notion-query-data-sources',
   view   : 'view://9229e102-0aaf-4b45-99e8-4d256abc8d1d',
   cols   : { q:'問題', chapter:'章', tag:'タグ', answer:'正解', explanation:'解説',
-             options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
+             source:'出典', options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
   maxPages: 5   // 1ページ100件。取り切れないときは画面に出す
 };
 
@@ -799,6 +811,7 @@ function parseData(raw){
       options   : options,
       answer    : ans,
       explanation: (typeof r.explanation === 'string') ? r.explanation : '',
+      source    : (typeof r.source === 'string') ? r.source.trim() : '',
       addedAt   : (typeof r.addedAt === 'string') ? r.addedAt : ''
     });
   }
@@ -904,7 +917,7 @@ function withShuffledOptions(q){
     id:q.id, chapter:q.chapter, tag:q.tag, q:q.q,
     options: order.map(function(i){ return q.options[i]; }),
     answer: order.indexOf(q.answer),
-    explanation:q.explanation, addedAt:q.addedAt
+    explanation:q.explanation, source:q.source, addedAt:q.addedAt
   };
 }
 
@@ -1176,6 +1189,8 @@ function answer(i){
 
   if(q.explanation) v.appendChild(el('div', 'exp', q.explanation));
 
+  if(q.source) v.appendChild(sourceLink(q.source));
+
   var back = el('div', 'backto');
   back.appendChild(el('span', null, '戻る先：'));
   back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
@@ -1191,6 +1206,25 @@ function answer(i){
 
   $('nextBtn').focus({ preventScroll:true });
   try{ v.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(e){ /* 古いブラウザは無視 */ }
+}
+
+/* 出典リンク。http/https 以外は表示しない（javascript: などを踏ませないため） */
+function sourceLink(url){
+  var wrap = el('div', 'srcline');
+  wrap.appendChild(el('span', 'lbl', '出典'));
+  if(/^https?:\/\//i.test(url)){
+    var a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    var host = url.replace(/^https?:\/\//i, '').split('/')[0];
+    a.textContent = host;
+    a.title = url;
+    wrap.appendChild(a);
+  }else{
+    wrap.appendChild(el('span', 'muted', url));
+  }
+  return wrap;
 }
 
 function next(){
@@ -1325,6 +1359,7 @@ function finish(){
       ans.appendChild(el('span', 'cor', LETTERS[q.answer] + '. ' + q.options[q.answer]));
       box.appendChild(ans);
       if(q.explanation) box.appendChild(el('div', 'rexp', q.explanation));
+      if(q.source) box.appendChild(sourceLink(q.source));
       rv.appendChild(box);
     });
   }
@@ -1593,6 +1628,7 @@ function rowToQuestion(row){
     options   : options,
     answer    : ans,
     explanation: String(row[c.explanation] == null ? '' : row[c.explanation]).trim(),
+    source    : String(row[c.source] == null ? '' : row[c.source]).trim(),
     addedAt   : String(row[c.date] || '').slice(0, 10)
   };
 }
