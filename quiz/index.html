@@ -1226,7 +1226,7 @@ function finish(){
   var rec = { at:nowIso, mode:session.mode, label:session.label, total:total, correct:corr,
               detail: encodeDetail(nowIso, session.answers) };
   state.sessions.unshift(rec);
-  if(state.sessions.length > HIST_MAX) state.sessions.length = HIST_MAX;
+  trimSessions(null);
   saveState();
 
   // スコア
@@ -1360,16 +1360,24 @@ function encodeDetail(at, answers){
   var head = '@' + at + '|';
   if(head.length + body.length > LOG.maxDetail){
     body = body.slice(0, LOG.maxDetail - head.length - 1);
-    body = body.slice(0, body.lastIndexOf(',')) + '+';   // 途中で切れた印
+    var cut = body.lastIndexOf(',');
+    body = (cut > 0 ? body.slice(0, cut) : '') + '+';   // 途中で切れた印
   }
   return head + body;
 }
 
+/* 明細を解く。アプリが書いた "@<日時>|..." 形式のものだけを信用する。
+   手で書かれた行や書式の違う行から正誤を取り込むと、実在する id と
+   たまたま一致したときに架空の解答履歴が混ざってしまうため。
+   その場合も出題数・正解数の列は使えるので、履歴としては残る。 */
 function parseDetail(text){
-  var out = { at:'', pairs:[], truncated:false };
+  var out = { at:'', pairs:[], truncated:false, trusted:false };
   if(!text) return out;
   var bar = text.indexOf('|');
-  if(text.charAt(0) === '@' && bar > 0){ out.at = text.slice(1, bar); text = text.slice(bar + 1); }
+  if(text.charAt(0) !== '@' || bar <= 0) return out;   // アプリが書いたものではない
+  out.trusted = true;
+  out.at = text.slice(1, bar);
+  text = text.slice(bar + 1);
   if(text.charAt(text.length - 1) === '+'){ out.truncated = true; text = text.slice(0, -1); }
   text.split(',').forEach(function(t){
     if(!t) return;
@@ -1382,6 +1390,17 @@ function parseDetail(text){
 
 /* Notion 側の記録を取り込む。
    直近の正誤は「新しい方」を採り、回数は多い方を採る（減らさない）。 */
+/* 履歴を HIST_MAX 件に切り詰める。ただし未送信ぶんは必ず残す。 */
+function trimSessions(remoteKeys){
+  if(state.sessions.length <= HIST_MAX) return;
+  var keep = [], overflow = [];
+  state.sessions.forEach(function(x, i){
+    var unsent = x.detail && !(remoteKeys && remoteKeys[x.at]);
+    if(i < HIST_MAX || unsent) keep.push(x); else overflow.push(x);
+  });
+  state.sessions = keep;
+}
+
 function mergeRemoteLog(rows){
   var remoteKeys = {}, remoteSessions = [], tmp = {};
 
@@ -1428,7 +1447,11 @@ function mergeRemoteLog(rows){
   state.sessions.forEach(function(x){ have[x.at] = true; });
   remoteSessions.forEach(function(x){ if(!have[x.at]){ state.sessions.push(x); have[x.at] = true; changed = true; } });
   state.sessions.sort(function(a, b){ return a.at < b.at ? 1 : (a.at > b.at ? -1 : 0); });
-  if(state.sessions.length > HIST_MAX) state.sessions.length = HIST_MAX;
+
+  /* 打ち切りで「まだ送っていないセッション」を捨てない。
+     Notion 側に古い記録がたまっていると、オフラインで解いたぶんが
+     送る前に押し出されて永久に消えてしまうため。 */
+  trimSessions(remoteKeys);
 
   if(changed) saveState();
   return remoteKeys;
@@ -1436,11 +1459,10 @@ function mergeRemoteLog(rows){
 
 /* まだ Notion に無いローカルのセッションを送る */
 function pushSessions(mcp, remoteKeys){
-  var todo = state.sessions.filter(function(x){
-    return x.detail && !remoteKeys[x.at];
-  }).slice(0, LOG.maxPush);
+  var all = state.sessions.filter(function(x){ return x.detail && !remoteKeys[x.at]; });
+  var todo = all.slice(0, LOG.maxPush);
+  if(all.length > todo.length) logState.pending = all.length - todo.length;
 
-  logState.pending = todo.length;
   if(!todo.length){ renderSyncLine(); return Promise.resolve(); }
 
   var pages = todo.map(function(x){
@@ -1461,8 +1483,13 @@ function pushSessions(mcp, remoteKeys){
     pages : pages
   }).then(function(){
     logState.pushed = todo.length;
-    logState.pending = 0;
+    var sent = {};
+    todo.forEach(function(x){ sent[x.at] = true; remoteKeys[x.at] = true; });
+    trimSessions(remoteKeys);   // 送信済みになったので、あふれたぶんは切ってよい
+    saveState();
     renderSyncLine();
+    /* まだ残っているならもう一巡（積み上がったぶんを取りこぼさない） */
+    if(logState.pending > 0) return pushSessions(mcp, remoteKeys);
   });
 }
 
@@ -1525,6 +1552,7 @@ function renderSyncLine(){
   var bits = [];
   if(logState.pulled)  bits.push('Notion から ' + logState.pulled + '件 取り込み');
   if(logState.pushed)  bits.push(logState.pushed + '件 送信');
+  if(logState.pending) bits.push('未送信 ' + logState.pending + '件');
   box.appendChild(el('b', null, bits.length ? ('学習記録を同期しました（' + bits.join('・') + '）') : '学習記録は同期済みです'));
   box.appendChild(el('span', 'muted', '端末をまたいで引き継がれます。'));
 }
