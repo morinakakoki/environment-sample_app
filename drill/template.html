@@ -1,0 +1,940 @@
+<title>インフラ判断ドリル</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #E7E8E1;
+    --card: #FAFAF7;
+    --card-2: #F1F2EC;
+    --ink: #1B232E;
+    --ink-2: #4B5561;
+    --ink-3: #7B8590;
+    --rule: #C7C9C0;
+    --rule-2: #DDDED6;
+    --ai: #23477E;
+    --ai-soft: #E3E9F3;
+    --shu: #B8402B;
+    --shu-soft: #F4E3DE;
+    --midori: #2B6A4D;
+    --midori-soft: #E0EDE4;
+    --shadow: 0 1px 0 rgba(27,35,46,.06), 0 6px 18px -12px rgba(27,35,46,.35);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #11151B;
+      --card: #191F27;
+      --card-2: #1F262F;
+      --ink: #E7E9E4;
+      --ink-2: #ADB5BD;
+      --ink-3: #79828C;
+      --rule: #2F3843;
+      --rule-2: #232B34;
+      --ai: #8FB1E9;
+      --ai-soft: #1C2635;
+      --shu: #E5765D;
+      --shu-soft: #31201C;
+      --midori: #6DBF92;
+      --midori-soft: #16271E;
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 20px -14px rgba(0,0,0,.9);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #11151B;
+    --card: #191F27;
+    --card-2: #1F262F;
+    --ink: #E7E9E4;
+    --ink-2: #ADB5BD;
+    --ink-3: #79828C;
+    --rule: #2F3843;
+    --rule-2: #232B34;
+    --ai: #8FB1E9;
+    --ai-soft: #1C2635;
+    --shu: #E5765D;
+    --shu-soft: #31201C;
+    --midori: #6DBF92;
+    --midori-soft: #16271E;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 20px -14px rgba(0,0,0,.9);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.85;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 33rem;
+    margin: 0 auto;
+    padding: 0 1.05rem 5rem;
+  }
+
+  /* ---------- shared type ---------- */
+  .mincho { font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif; font-weight: 600; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .label {
+    font-size: .68rem;
+    letter-spacing: .18em;
+    font-weight: 700;
+    color: var(--ink-3);
+    line-height: 1;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    padding: 2.4rem 0 1.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: .35rem;
+  }
+  .masthead h1 {
+    margin: .5rem 0 0;
+    font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+    font-weight: 700;
+    font-size: 1.85rem;
+    line-height: 1.4;
+    letter-spacing: .04em;
+    text-wrap: balance;
+  }
+  .masthead .sub {
+    margin: .7rem 0 0;
+    font-size: .84rem;
+    line-height: 1.75;
+    color: var(--ink-2);
+  }
+  .rule-thin { border-bottom: 1px solid var(--ink); height: 3px; margin-bottom: 1.6rem; }
+
+  /* ---------- random card ---------- */
+  .random {
+    width: 100%;
+    display: block;
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--shu);
+    border-left: 4px solid var(--shu);
+    border-radius: 2px;
+    padding: 1rem 1.1rem;
+    margin: 0 0 2rem;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    box-shadow: var(--shadow);
+    transition: transform .12s ease, background .12s ease;
+  }
+  .random:hover { background: var(--shu-soft); }
+  .random:active { transform: translateY(1px); }
+  .random .big {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.18rem;
+    color: var(--shu);
+    letter-spacing: .05em;
+  }
+  .random .cap { display: block; font-size: .78rem; color: var(--ink-2); margin-top: .15rem; line-height: 1.6; }
+
+  /* ---------- field sections ---------- */
+  .field-head {
+    display: flex;
+    align-items: baseline;
+    gap: .6rem;
+    margin: 2rem 0 .55rem;
+    padding-bottom: .35rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .field-head .name {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: .1em;
+  }
+  .field-head .count { font-size: .72rem; color: var(--ink-3); letter-spacing: .08em; }
+
+  .case-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
+
+  .case {
+    display: grid;
+    grid-template-columns: 2.3rem 1fr;
+    gap: .8rem;
+    width: 100%;
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--rule-2);
+    border-radius: 2px;
+    padding: .85rem .9rem;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .case:hover { border-color: var(--ai); background: var(--ai-soft); }
+  .case:active { transform: translateY(1px); }
+  .case .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--ai);
+    border: 1px solid var(--ai);
+    border-radius: 2px;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    margin-top: .18rem;
+  }
+  .case .t { font-weight: 700; font-size: 1rem; line-height: 1.55; letter-spacing: .01em; }
+  .case .aim { font-size: .8rem; color: var(--ink-2); line-height: 1.65; margin-top: .1rem; }
+  .case .done {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 0 .4rem;
+    margin-left: .4rem;
+    vertical-align: .12em;
+    color: var(--ink-2);
+    background: var(--card-2);
+  }
+
+  /* ---------- session log ---------- */
+  .logbox {
+    margin-top: 2.4rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--card-2);
+    padding: 1rem;
+  }
+  .logbox h2 { margin: 0 0 .6rem; font-size: .95rem; font-weight: 700; letter-spacing: .04em; }
+  .logrows { overflow-x: auto; }
+  .logrows pre {
+    margin: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    line-height: 1.9;
+    white-space: pre;
+    color: var(--ink-2);
+  }
+
+  /* ---------- question view ---------- */
+  .qbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .8rem;
+    padding: 1.15rem 0 .8rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 1.3rem;
+  }
+  .backlink {
+    background: none; border: none; padding: 0; font: inherit; cursor: pointer;
+    color: var(--ink-3); font-size: .8rem; letter-spacing: .04em;
+  }
+  .backlink:hover { color: var(--shu); }
+  .steps { display: flex; gap: .3rem; }
+  .steps span {
+    width: 1.45rem; height: 1.45rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    display: grid; place-items: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    color: var(--ink-3);
+    background: var(--card);
+  }
+  .steps span.done { border-color: var(--ai); color: var(--ai); }
+  .steps span.now { border-color: var(--ai); background: var(--ai); color: var(--card); font-weight: 500; }
+
+  .case-title {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.45rem;
+    line-height: 1.45;
+    letter-spacing: .02em;
+    margin: 0 0 .2rem;
+    text-wrap: balance;
+  }
+  .case-meta { font-size: .76rem; color: var(--ink-3); letter-spacing: .1em; margin-bottom: 1.2rem; }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--rule-2);
+    border-radius: 2px;
+    padding: 1rem 1.05rem;
+    margin-bottom: 1.1rem;
+  }
+  .panel .label { display: block; margin-bottom: .5rem; }
+  .panel p { margin: 0; font-size: .935rem; line-height: 1.95; letter-spacing: .01em; }
+
+  .panel.lead { border-left: 3px solid var(--shu); background: var(--shu-soft); border-color: var(--shu-soft); }
+  .panel.lead .label { color: var(--shu); }
+
+  .prompt {
+    font-weight: 700;
+    font-size: 1.06rem;
+    line-height: 1.8;
+    margin: 1.5rem 0 1rem;
+    padding-left: .8rem;
+    border-left: 3px solid var(--ink);
+    text-wrap: pretty;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: .6rem; }
+  .choice {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: .75rem;
+    align-items: start;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: .95rem .9rem;
+    cursor: pointer;
+    line-height: 1.8;
+    font-size: .92rem;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .choice:hover { border-color: var(--ai); }
+  .choice .sym {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: .88rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    height: 1.9rem;
+    display: grid; place-items: center;
+    color: var(--ink-2);
+    background: var(--card-2);
+  }
+  .choice[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); }
+  .choice[aria-pressed="true"] .sym { background: var(--ai); border-color: var(--ai); color: var(--card); }
+
+  /* ---------- reason ---------- */
+  .reason { margin-top: 1.4rem; border-top: 1px dashed var(--rule); padding-top: 1.2rem; }
+  .reason .label { display: block; margin-bottom: .1rem; }
+  .reason .hint { font-size: .78rem; color: var(--ink-2); margin: .45rem 0 .6rem; line-height: 1.7; }
+  textarea {
+    width: 100%;
+    min-height: 5.2rem;
+    resize: vertical;
+    font: inherit;
+    font-size: .93rem;
+    line-height: 1.8;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: .7rem .8rem;
+  }
+  textarea:focus { outline: 2px solid var(--ai); outline-offset: 1px; border-color: var(--ai); }
+  .counter {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    color: var(--ink-3);
+    margin-top: .4rem;
+  }
+  .counter .ok { color: var(--midori); }
+
+  .next {
+    width: 100%;
+    margin-top: 1.1rem;
+    padding: 1rem;
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: .08em;
+    color: var(--card);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .next[disabled] { background: transparent; color: var(--ink-3); border-color: var(--rule); cursor: not-allowed; }
+  .next:not([disabled]):active { transform: translateY(1px); }
+
+  /* ---------- review ---------- */
+  .score {
+    text-align: center;
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    background: var(--card);
+    padding: 1.5rem 1rem 1.3rem;
+    margin-bottom: 1.8rem;
+  }
+  .score .mark {
+    font-family: "Shippori Mincho", serif;
+    font-size: 3.6rem;
+    line-height: 1;
+    font-weight: 700;
+    display: block;
+  }
+  .score .n { font-family: "IBM Plex Mono", monospace; font-size: .82rem; color: var(--ink-2); margin-top: .7rem; letter-spacing: .06em; }
+  .score .verdict { font-size: .9rem; color: var(--ink-2); margin-top: .55rem; line-height: 1.75; }
+
+  .qreview { margin-bottom: 2.2rem; }
+  .qreview > h3 {
+    margin: 0 0 .8rem;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--ink);
+    display: flex; justify-content: space-between; align-items: baseline; gap: .5rem;
+  }
+  .qreview > h3 .tag { font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 400; color: var(--ink-3); }
+  .qreview .qtext { font-size: .9rem; color: var(--ink-2); line-height: 1.8; margin: 0 0 .9rem; }
+
+  .opt {
+    border: 1px solid var(--rule-2);
+    border-left: 3px solid var(--rule);
+    border-radius: 2px;
+    background: var(--card);
+    padding: .8rem .85rem;
+    margin-bottom: .55rem;
+  }
+  .opt .head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .4rem; }
+  .opt .sym {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: .82rem;
+    width: 1.6rem; height: 1.6rem;
+    display: grid; place-items: center;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    color: var(--ink-2);
+    flex: none;
+  }
+  .chip {
+    font-size: .68rem; letter-spacing: .08em; font-weight: 700;
+    border-radius: 2px; padding: .1rem .42rem; line-height: 1.7;
+  }
+  .chip.c { color: var(--midori); border: 1px solid var(--midori); background: var(--midori-soft); }
+  .chip.y { color: var(--shu); border: 1px solid var(--shu); background: var(--shu-soft); }
+  .opt .body { font-size: .89rem; line-height: 1.8; color: var(--ink); }
+  .opt .why { font-size: .855rem; line-height: 1.85; color: var(--ink-2); margin-top: .55rem; padding-top: .55rem; border-top: 1px dotted var(--rule); }
+  .opt.correct { border-left-color: var(--midori); background: var(--midori-soft); border-color: var(--midori-soft); }
+  .opt.correct .sym { border-color: var(--midori); color: var(--midori); border-radius: 50%; }
+  .opt.correct .why { color: var(--ink); }
+  .opt.yours { border-left-color: var(--shu); }
+  .opt.yours .sym { border-color: var(--shu); color: var(--shu); }
+
+  .myreason {
+    border-left: 3px solid var(--ink-3);
+    padding: .1rem 0 .1rem .8rem;
+    margin: .9rem 0 1rem;
+  }
+  .myreason .label { display: block; margin-bottom: .25rem; }
+  .myreason p { margin: 0; font-size: .89rem; line-height: 1.8; color: var(--ink-2); }
+
+  .box {
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--card);
+    padding: 1.05rem 1.05rem 1.1rem;
+    margin-bottom: 1.1rem;
+  }
+  .box > .label { display: block; margin-bottom: .55rem; }
+  .box h4 {
+    margin: 0 0 .55rem;
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    letter-spacing: .02em;
+  }
+  .box p { margin: 0; font-size: .89rem; line-height: 1.9; color: var(--ink-2); }
+  .lines { list-style: none; margin: 0; padding: 0; counter-reset: ln; }
+  .lines li {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: .55rem;
+    font-size: .9rem;
+    line-height: 1.85;
+    padding: .5rem 0;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .lines li:last-child { border-bottom: none; }
+  .lines li::before {
+    counter-increment: ln;
+    content: counter(ln);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    color: var(--ai);
+    border: 1px solid var(--ai);
+    border-radius: 2px;
+    height: 1.35rem;
+    display: grid; place-items: center;
+    margin-top: .3rem;
+  }
+
+  .principle {
+    border: none;
+    border-top: 2px solid var(--shu);
+    border-bottom: 2px solid var(--shu);
+    background: transparent;
+    padding: 1.15rem 0 1.25rem;
+    margin: 1.8rem 0;
+    text-align: center;
+  }
+  .principle .label { color: var(--shu); display: block; margin-bottom: .6rem; }
+  .principle p {
+    margin: 0;
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.18rem;
+    line-height: 1.75;
+    letter-spacing: .03em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .copyrow {
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--card-2);
+    border: 1px dashed var(--rule);
+    border-radius: 2px;
+    padding: .8rem .85rem;
+    cursor: pointer;
+    overflow-x: auto;
+  }
+  .copyrow:hover { border-color: var(--ai); border-style: solid; }
+  .copyrow code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    line-height: 1.9;
+    white-space: pre;
+    color: var(--ink);
+  }
+  .taphint { font-size: .74rem; color: var(--ink-3); margin-top: .4rem; letter-spacing: .04em; }
+
+  .actions { display: flex; flex-direction: column; gap: .55rem; margin-top: 2rem; }
+  .btn {
+    width: 100%;
+    padding: .95rem;
+    font: inherit;
+    font-weight: 700;
+    font-size: .95rem;
+    letter-spacing: .06em;
+    border-radius: 2px;
+    cursor: pointer;
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+  }
+  .btn.primary { background: var(--ink); color: var(--card); }
+  .btn:active { transform: translateY(1px); }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%) translateY(1.5rem);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: .82rem;
+    letter-spacing: .06em;
+    padding: .6rem 1.1rem;
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 20;
+  }
+  .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .foot { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: .74rem; line-height: 1.85; color: var(--ink-3); }
+
+  :focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+  .view { animation: rise .22s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .view { animation: none; }
+    * { transition-duration: .01ms !important; }
+  }
+</style>
+
+<div class="app" id="app"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const CASES = __CASES_JSON__;
+
+const SYM = ["ア", "イ", "ウ", "エ"];
+const FIELD_ORDER = ["障害対応", "基本設計", "詳細設計", "テスト", "導入設計"];
+const FIELD_NOTE = {
+  "障害対応": "壊れている最中に、何を先にやるか",
+  "基本設計": "決められない条件の中で、どう決めさせるか",
+  "詳細設計": "根拠のない数字を、どう扱うか",
+  "テスト": "都合の悪い事実を、どう扱うか",
+  "導入設計": "戻れなくなる前に、何を決めておくか"
+};
+
+const state = {
+  view: "home",
+  caseId: null,
+  qIndex: 0,
+  picks: [],
+  pick: null,
+  reason: "",
+  results: new Map(),
+  logs: []
+};
+
+const app = document.getElementById("app");
+const toastEl = document.getElementById("toast");
+let toastTimer = null;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { toastEl.classList.remove("on"); }, 1800);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+function today() {
+  const d = new Date();
+  const p = function (n) { return String(n).padStart(2, "0"); };
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+function getCase(id) {
+  for (let i = 0; i < CASES.length; i++) if (CASES[i].id === id) return CASES[i];
+  return null;
+}
+
+function copyText(text) {
+  const done = function () { toast("コピーしました"); };
+  const fallback = function () {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) { done(); } else { toast("長押しで選択してコピーしてください"); }
+    } catch (e) {
+      toast("長押しで選択してコピーしてください");
+    }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+/* ---------------- home ---------------- */
+
+function renderHome() {
+  const undone = CASES.filter(function (c) { return !state.results.has(c.id); });
+  let html = '<div class="view">';
+
+  html += '<header class="masthead">' +
+    '<div class="label">CASE DRILL / 全12ケース・連問3問</div>' +
+    '<h1>インフラ判断ドリル</h1>' +
+    '<p class="sub">同じ知識量でも差がつくのは、優先順位と前提の置き方と手続きの踏み方である。' +
+    '選ぶだけでなく、選んだ理由を毎回1行で言語化する。' +
+    '記録は残らないので、終わったらログ行をコピーして持ち出すこと。</p>' +
+    '</header><div class="rule-thin"></div>';
+
+  html += '<button class="random" id="btn-random">' +
+    '<span class="big">ランダムに1問</span>' +
+    '<span class="cap">' + (undone.length > 0
+      ? "まだ解いていない " + undone.length + " ケースから1つ選びます"
+      : "全ケース終了。全12ケースから選び直します") + '</span></button>';
+
+  FIELD_ORDER.forEach(function (field) {
+    const list = CASES.filter(function (c) { return c.field === field; });
+    if (!list.length) return;
+    html += '<div class="field-head"><span class="name">' + esc(field) + '</span>' +
+      '<span class="count mono">' + list.length + " CASES</span></div>";
+    html += '<div class="label" style="letter-spacing:.06em;font-weight:400;font-size:.76rem;color:var(--ink-2);line-height:1.7">' +
+      esc(FIELD_NOTE[field] || "") + "</div>";
+    html += '<div class="case-list">';
+    list.forEach(function (c) {
+      const r = state.results.get(c.id);
+      html += '<button class="case" data-case="' + c.id + '">' +
+        '<span class="num">' + String(c.id).padStart(2, "0") + "</span>" +
+        "<span><span class=\"t\">" + esc(c.title) +
+        (r ? '<span class="done">' + r.mark + "</span>" : "") + "</span>" +
+        '<span class="aim">' + esc(c.aim) + "</span></span></button>";
+    });
+    html += "</div>";
+  });
+
+  if (state.logs.length) {
+    html += '<div class="logbox"><h2>今回のログ（' + state.logs.length + "件）</h2>" +
+      '<div class="logrows"><pre>' + esc(state.logs.join("\n")) + "</pre></div>" +
+      '<div class="actions" style="margin-top:.9rem"><button class="btn" id="btn-copyall">まとめてコピー</button></div></div>';
+  }
+
+  html += '<div class="foot">解答も理由も端末には保存されない。ページを閉じると消える。' +
+    "判断原則と評価は、ログ行をコピーして自分の記録に貼ること。</div>";
+
+  html += "</div>";
+  app.innerHTML = html;
+
+  document.getElementById("btn-random").onclick = function () {
+    const pool = undone.length ? undone : CASES;
+    startCase(pool[Math.floor(Math.random() * pool.length)].id);
+  };
+  Array.prototype.forEach.call(app.querySelectorAll("[data-case]"), function (b) {
+    b.onclick = function () { startCase(parseInt(b.dataset.case, 10)); };
+  });
+  const ca = document.getElementById("btn-copyall");
+  if (ca) {
+    ca.onclick = function () {
+      copyText("| 日付 | 分野 | 判断原則 | 評価 |\n| --- | --- | --- | --- |\n" + state.logs.join("\n"));
+    };
+  }
+  window.scrollTo(0, 0);
+}
+
+/* ---------------- question ---------------- */
+
+function startCase(id) {
+  state.view = "q";
+  state.caseId = id;
+  state.qIndex = 0;
+  state.picks = [];
+  state.pick = null;
+  state.reason = "";
+  render();
+}
+
+function renderQuestion() {
+  const c = getCase(state.caseId);
+  const q = c.questions[state.qIndex];
+  let html = '<div class="view">';
+
+  html += '<div class="qbar"><button class="backlink" id="btn-back">← ケース一覧</button><div class="steps">';
+  for (let i = 0; i < 3; i++) {
+    const cls = i === state.qIndex ? "now" : (i < state.qIndex ? "done" : "");
+    html += "<span" + (cls ? ' class="' + cls + '"' : "") + ">" + (i + 1) + "</span>";
+  }
+  html += "</div></div>";
+
+  html += '<h2 class="case-title">' + esc(c.title) + "</h2>";
+  html += '<div class="case-meta mono">' + esc(c.field) + " ／ CASE " + String(c.id).padStart(2, "0") +
+    " ／ 設問" + (state.qIndex + 1) + "</div>";
+
+  if (state.qIndex === 0) {
+    html += '<div class="panel"><span class="label">状況</span><p>' + esc(c.scenario) + "</p></div>";
+  } else {
+    html += '<div class="panel" style="background:var(--card-2)"><span class="label">状況（再掲）</span><p style="font-size:.86rem;color:var(--ink-2)">' +
+      esc(c.scenario) + "</p></div>";
+  }
+
+  if (q.lead && q.lead.trim()) {
+    html += '<div class="panel lead"><span class="label">前提の変化</span><p>' + esc(q.lead) + "</p></div>";
+  }
+
+  html += '<div class="prompt">設問' + (state.qIndex + 1) + "　" + esc(q.prompt) + "</div>";
+
+  html += '<div class="choices" role="group" aria-label="選択肢">';
+  q.choices.forEach(function (t, i) {
+    html += '<button class="choice" data-i="' + i + '" aria-pressed="' + (state.pick === i) + '">' +
+      '<span class="sym">' + SYM[i] + "</span><span>" + esc(t) + "</span></button>";
+  });
+  html += "</div>";
+
+  html += '<div class="reason" id="reason-block"' + (state.pick === null ? ' style="display:none"' : "") + ">" +
+    '<span class="label">なぜそれを選んだか（1行）</span>' +
+    '<p class="hint">面接で口に出す練習である。15字以上で次へ進める。うまく書けないなら、まだ選んだ理由が自分でも分かっていない。</p>' +
+    '<textarea id="reason-input" rows="3" placeholder="例：まず影響範囲を確定しないと、対処の大きさが決められないから。">' +
+    esc(state.reason) + "</textarea>" +
+    '<div class="counter"><span id="counter-txt">0 / 15字</span><span>' +
+    (state.qIndex === 2 ? "次で講評" : "残り " + (2 - state.qIndex) + "問") + "</span></div>" +
+    '<button class="next" id="btn-next" disabled>' + (state.qIndex === 2 ? "講評を見る" : "次の設問へ") + "</button></div>";
+
+  html += "</div>";
+  app.innerHTML = html;
+
+  document.getElementById("btn-back").onclick = function () {
+    state.view = "home";
+    render();
+  };
+
+  Array.prototype.forEach.call(app.querySelectorAll(".choice"), function (b) {
+    b.onclick = function () {
+      state.pick = parseInt(b.dataset.i, 10);
+      Array.prototype.forEach.call(app.querySelectorAll(".choice"), function (o) {
+        o.setAttribute("aria-pressed", String(parseInt(o.dataset.i, 10) === state.pick));
+      });
+      const rb = document.getElementById("reason-block");
+      rb.style.display = "";
+      updateCounter();
+      rb.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+  });
+
+  const ta = document.getElementById("reason-input");
+  ta.oninput = function () {
+    state.reason = ta.value;
+    updateCounter();
+  };
+  document.getElementById("btn-next").onclick = function () {
+    if (state.reason.trim().length < 15 || state.pick === null) return;
+    state.picks.push({ choice: state.pick, reason: state.reason.trim() });
+    state.pick = null;
+    state.reason = "";
+    if (state.qIndex === 2) {
+      finishCase();
+    } else {
+      state.qIndex += 1;
+      render();
+    }
+  };
+  updateCounter();
+  window.scrollTo(0, 0);
+}
+
+function updateCounter() {
+  const el = document.getElementById("counter-txt");
+  const btn = document.getElementById("btn-next");
+  if (!el || !btn) return;
+  const n = state.reason.trim().length;
+  el.textContent = n + " / 15字";
+  el.className = n >= 15 ? "ok" : "";
+  btn.disabled = !(n >= 15 && state.pick !== null);
+}
+
+/* ---------------- review ---------------- */
+
+function finishCase() {
+  const c = getCase(state.caseId);
+  let correct = 0;
+  state.picks.forEach(function (p, i) {
+    if (p.choice === c.questions[i].answer) correct += 1;
+  });
+  const mark = ["✗", "△", "○", "◎"][correct];
+  const line = "| " + today() + " | " + c.field + " | " + c.principle + " | " + mark + " |";
+  state.results.set(c.id, { mark: mark, correct: correct });
+  state.logs = state.logs.filter(function (l) { return l.indexOf("| " + c.principle + " |") === -1; });
+  state.logs.push(line);
+  state.view = "review";
+  render();
+}
+
+const VERDICT = {
+  3: "3問とも通った。前提が変わっても軸がぶれていない。",
+  2: "軸は立っている。外した1問で、何を優先したかを見直すこと。",
+  1: "方向は合っているが、優先順位か手続きのどちらかが抜けている。",
+  0: "選択そのものより、判断の順番を組み直したほうが早い。"
+};
+
+function renderReview() {
+  const c = getCase(state.caseId);
+  const res = state.results.get(c.id);
+  const line = "| " + today() + " | " + c.field + " | " + c.principle + " | " + res.mark + " |";
+
+  let html = '<div class="view">';
+  html += '<div class="qbar"><button class="backlink" id="btn-back">← ケース一覧</button>' +
+    '<div class="case-meta mono" style="margin:0">' + esc(c.field) + " ／ CASE " + String(c.id).padStart(2, "0") + "</div></div>";
+  html += '<h2 class="case-title">' + esc(c.title) + "</h2>";
+  html += '<div class="case-meta mono">講評</div>';
+
+  html += '<div class="score"><span class="mark">' + res.mark + "</span>" +
+    '<div class="n">3問中 ' + res.correct + " 問正解</div>" +
+    '<div class="verdict">' + esc(VERDICT[res.correct]) + "</div></div>";
+
+  c.questions.forEach(function (q, qi) {
+    const p = state.picks[qi];
+    const hit = p.choice === q.answer;
+    html += '<section class="qreview"><h3><span>設問' + (qi + 1) + "</span>" +
+      '<span class="tag">' + (hit ? "正解" : "不正解") + " ／ あなた " + SYM[p.choice] + " ・ 正解 " + SYM[q.answer] + "</span></h3>";
+    html += '<p class="qtext">' + esc(q.prompt) + "</p>";
+
+    html += '<div class="myreason"><span class="label">あなたが書いた理由</span><p>' + esc(p.reason) + "</p></div>";
+
+    q.choices.forEach(function (t, ci) {
+      const isC = ci === q.answer;
+      const isY = ci === p.choice;
+      const cls = "opt" + (isC ? " correct" : "") + (isY && !isC ? " yours" : "");
+      html += '<div class="' + cls + '"><div class="head"><span class="sym">' + SYM[ci] + "</span>" +
+        (isC ? '<span class="chip c">正解</span>' : "") +
+        (isY ? '<span class="chip y">あなたの選択</span>' : "") + "</div>" +
+        '<div class="body">' + esc(t) + "</div>";
+      if (isC) {
+        html += '<div class="why">' + esc(q.explain) + "</div>";
+      } else {
+        const o = (q.others || []).filter(function (x) { return x.i === ci; })[0];
+        if (o) html += '<div class="why">' + esc(o.text) + "</div>";
+      }
+      html += "</div>";
+    });
+    html += "</section>";
+  });
+
+  html += '<div class="box"><span class="label">使うべき判断フレーム</span>' +
+    "<h4>" + esc(c.frame.name) + "</h4><p>" + esc(c.frame.howto) + "</p></div>";
+
+  html += '<div class="box"><span class="label">面接でそのまま使える3行</span>' +
+    '<ul class="lines">' + c.interview.map(function (l) { return "<li><span>" + esc(l) + "</span></li>"; }).join("") +
+    "</ul></div>";
+
+  html += '<div class="principle"><span class="label">今日の判断原則</span><p>' + esc(c.principle) + "</p></div>";
+
+  html += '<div class="box"><span class="label">記録用ログ行</span>' +
+    '<button class="copyrow" id="btn-copy"><code>' + esc(line) + "</code></button>" +
+    '<div class="taphint">タップでコピー。閉じると消えるので、自分の記録に貼ること。</div></div>';
+
+  html += '<div class="actions">' +
+    '<button class="btn primary" id="btn-retry">このケースをもう一度</button>' +
+    '<button class="btn" id="btn-next-case">次のケースへ（ランダム）</button>' +
+    '<button class="btn" id="btn-home">ケース一覧に戻る</button></div>';
+
+  html += "</div>";
+  app.innerHTML = html;
+
+  document.getElementById("btn-copy").onclick = function () { copyText(line); };
+  document.getElementById("btn-back").onclick = document.getElementById("btn-home").onclick = function () {
+    state.view = "home";
+    render();
+  };
+  document.getElementById("btn-retry").onclick = function () { startCase(c.id); };
+  document.getElementById("btn-next-case").onclick = function () {
+    const undone = CASES.filter(function (x) { return !state.results.has(x.id); });
+    const pool = undone.length ? undone : CASES.filter(function (x) { return x.id !== c.id; });
+    startCase(pool[Math.floor(Math.random() * pool.length)].id);
+  };
+  window.scrollTo(0, 0);
+}
+
+/* ---------------- router ---------------- */
+
+function render() {
+  if (state.view === "home") renderHome();
+  else if (state.view === "q") renderQuestion();
+  else renderReview();
+}
+
+render();
+</script>
