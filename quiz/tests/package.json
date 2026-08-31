@@ -1,0 +1,12 @@
+{
+  "name": "quiz-tests",
+  "private": true,
+  "type": "module",
+  "description": "データ基盤 復習クイズ のテスト。sh runall.sh で全部走る。",
+  "scripts": {
+    "test": "sh runall.sh"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

@@ -526,17 +526,17 @@ python3 -m http.server 8000
     <div class="card">
       <h2>問題を追加</h2>
       <p style="font-size:13.5px;margin:0 0 10px;line-height:1.75">
-        Claude に「<b>今日の🎯はこれ。quiz-data.json 形式で3問作って</b>」と頼んで、
-        返ってきた JSON をそのまま貼り付けてください。1問だけの <code>{…}</code> でも、
-        複数問の <code>[…]</code> でも取り込めます。
+        Claude に「<b>データ方式に as-of ジョインを実装した。quiz-data.json 形式で3問作って</b>」
+        のように、<b>どの方式に何を足したか</b>を伝えて頼み、返ってきた JSON をそのまま
+        貼り付けてください。1問だけの <code>{…}</code> でも、複数問の <code>[…]</code> でも取り込めます。
       </p>
       <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.7">
         Notion の「復習クイズ 問題ストック」に行を足す方法もあります。そちらは貼り付け不要で、
-        次にこのアプリを開いたときに自動で増えます。
+        次にこのアプリを開いたときに自動で増えます（アーティファクトとして開いているときだけ）。
       </p>
       <label class="sr" for="addTa">追加する問題の JSON</label>
       <textarea class="ta" id="addTa" spellcheck="false" autocapitalize="off" autocorrect="off"
-        placeholder='[{"id":39,"chapter":3,"tag":"#14","q":"…","options":["…","…","…","…"],"answer":0,"explanation":"…","addedAt":"2026-09-01"}]'></textarea>
+        placeholder='[{"id":49,"chapter":3,"tag":"#14","method":"処理方式","q":"…","options":["…","…","…","…"],"answer":0,"explanation":"…","source":"https://cloud.google.com/…","addedAt":"2026-09-01"}]'></textarea>
       <button class="btn btn-primary" id="addCheckBtn" type="button" style="margin-top:11px">内容を確認</button>
       <div id="addResult"></div>
       <div id="addSaveWrap" class="hidden">
@@ -558,7 +558,9 @@ python3 -m http.server 8000
         <li><code>id</code> は既存とかぶらない値に。かぶった問題は取り込まれません</li>
         <li><code>chapter</code> は基礎知識ノートの章番号。新しい章の番号でもそのまま増えます</li>
         <li><code>tag</code> は <code>#14</code> でも <code>as-of</code> のような語でも構いません</li>
+        <li><code>method</code> に方式設計書の方式名を入れてください。<b>入れないと「方式別に解く」に出てきません</b>（構成・前提 / 処理方式 / データ方式 / 認証・権限方式 / 運用・監視方式 / コスト方式 / IaC方式 / 設計判断）</li>
         <li>解説で選択肢を指すときは「選択肢2が誤り」ではなく<b>内容で</b>書いてください。出題ごとに選択肢の並びが変わります</li>
+        <li>4つの選択肢は<b>長さをそろえて</b>ください。正解だけ長いと、中身を知らなくても当てられます</li>
       </ul>
     </div>
   </section>
@@ -804,6 +806,12 @@ function parseData(raw){
       continue;
     }
     var options = r.options.slice(0, LETTERS.length).map(function(o){ return String(o); });
+    /* 空の選択肢を通すと、それが正解に指定されたとき「空のボタンが正解」になる。
+       Notion 経路と同じく弾く。 */
+    if(options.some(function(o){ return !o.trim(); })){
+      warnings.push((i+1) + '件目: 空の選択肢があります（' + qtext.slice(0,18) + '…）');
+      continue;
+    }
 
     var ans = normAnswer(r.answer, options);
     if(ans < 0){
@@ -1603,7 +1611,9 @@ function mergeRemoteLog(rows){
 function pushSessions(mcp, remoteKeys){
   var all = state.sessions.filter(function(x){ return x.detail && !remoteKeys[x.at]; });
   var todo = all.slice(0, LOG.maxPush);
-  if(all.length > todo.length) logState.pending = all.length - todo.length;
+  /* 条件付きにすると、あふれなくなった最終巡で前回の値が残り、
+     全部送り終わったのに「未送信 N件」と出続ける。毎回上書きする。 */
+  logState.pending = all.length - todo.length;
 
   if(!todo.length){ renderSyncLine(); return Promise.resolve(); }
 
@@ -1624,7 +1634,7 @@ function pushSessions(mcp, remoteKeys){
     parent: { type:'data_source_id', data_source_id: LOG.source },
     pages : pages
   }).then(function(){
-    logState.pushed = todo.length;
+    logState.pushed += todo.length;   // 10件ずつ再帰するので加算
     var sent = {};
     todo.forEach(function(x){ sent[x.at] = true; remoteKeys[x.at] = true; });
     trimSessions(remoteKeys);   // 送信済みになったので、あふれたぶんは切ってよい
@@ -1643,6 +1653,7 @@ function syncLog(){
 
   logState.status = 'syncing';
   logState.truncated = false;
+  logState.pushed = 0;   // 加算するので、同期を始めるたびに戻す
   renderSyncLine();
   var epoch = ++syncEpoch;
 
@@ -1680,7 +1691,10 @@ function readLogPages(mcp, cursor, acc, page){
   if(cursor) input.data.start_cursor = cursor;
   return mcp.callTool(LOG.server, LOG.read, input).then(function(res){
     var p = res && res.payload;
-    if(!p || !Array.isArray(p.results)) return acc;
+    /* ここで「0件だった」と扱ってはいけない。リモートに何があるか分からないまま
+       未送信と判断して、送信済みのセッションを送り直してしまう。失敗として投げる。 */
+    if(!p || !Array.isArray(p.results)) throw Object.assign(new Error('unexpected_payload'),
+      { code:'tool_error', message:'学習記録の応答が想定と違いました。データベースの列名やビューを確認してください。' });
     acc = acc.concat(p.results);
     if(p.has_more && p.next_cursor && page + 1 < LOG.maxPages){
       return readLogPages(mcp, p.next_cursor, acc, page + 1);
@@ -1972,17 +1986,33 @@ function addCheck(){
   });
 
   /* 形式が壊れている行は、保存データに混ぜない。
-     読み込み時に弾かれるだけとはいえ、残しておくと毎回警告が出続ける。 */
+     読み込み時に弾かれるだけとはいえ、残しておくと毎回警告が出続ける。
+     id の重複も同じ。1件ずつ見ると重複しようがないので、既出の id を持ち回る。
+     （アーティファクト版はデータが埋め込みで、あとから消す手段が無い） */
   var before = incoming.length;
+  var seenIds = {}, dupes = 0;
+  QUESTIONS.forEach(function(q){ seenIds[String(q.id)] = true; });
   incoming = incoming.filter(function(r){
-    try{ return parseData([r]).list.length === 1; }
-    catch(e){ return false; }
+    var p;
+    try{ p = parseData([r]); }catch(e){ return false; }
+    if(p.list.length !== 1) return false;
+    var id = String(p.list[0].id);
+    if(seenIds[id]){ dupes++; return false; }
+    seenIds[id] = true;
+    return true;
   });
-  var malformed = before - incoming.length;
+  var malformed = before - incoming.length - dupes;
   if(!incoming.length){
-    addMsg('ng', '取り込める問題がありませんでした。',
-      [before + '件すべてが形式エラーです。',
-       'options が4つあるか、answer が選択肢を指しているか確認してください。']);
+    if(dupes && !malformed){
+      addMsg('ng', '新しく追加される問題がありませんでした。',
+        ['id が既存とかぶっています（かぶった問題は取り込まれません）。',
+         '今の最大 id は ' + maxNumericId() + ' です（id を省けば自動で続きを振ります）。']);
+    } else {
+      addMsg('ng', '取り込める問題がありませんでした。',
+        [before + '件のうち ' + malformed + '件が形式エラー'
+          + (dupes ? '、' + dupes + '件が id の重複' : '') + 'です。',
+         'options が4つあるか、answer が選択肢を指しているか確認してください。']);
+    }
     return;
   }
 
@@ -2060,7 +2090,11 @@ function buildDocument(rawData){
   if(!st || !tp || !ap) return null;
   var C  = '<' + '/script>';
   var SO = '<' + 'script';
-  var json = JSON.stringify(rawData).replace(/<\//g, '<\\/');
+  /* "<" を全部 < に逃がす。閉じタグだけを潰すのでは足りない: コメント開始の
+     あとに script 開始タグが現れると HTML のトークナイザが double escaped state に
+     入り、閉じタグが要素を閉じなくなる。そのまま発行すると自分自身を白画面の版で
+     上書きしてしまう（アプリ内から復旧できない）。 */
+  var json = JSON.stringify(rawData).replace(/</g, '\\u003c');
   return [
     '<!doctype html>',
     '<html lang="ja">',
@@ -2226,7 +2260,8 @@ function wire(){
       + '次に開いたときにそこから戻ってきます。完全に消すには Notion 側の行も削除してください。\n\nよろしいですか？')) return;
     state = blankState();
     syncEpoch++;                 // 走っている同期の結果を無効にする
-    logState.inflight = null;
+    /* inflight は落とさない。落とすと二重起動の歯止めが外れ、走っている同期の
+       終端が後から始まった同期の登録まで消してしまう。無効化は syncEpoch で足りる。 */
     logState.status = 'idle';
     logState.pulled = logState.pushed = logState.pending = 0;
     try{ localStorage.removeItem(LS_KEY); }catch(e){ /* 消せなくてもメモリ上はリセット済み */ }

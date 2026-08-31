@@ -18,8 +18,10 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const dir  = path.dirname(new URL(import.meta.url).pathname);
+// URL.pathname はパーセントエンコードのままなので、空白や日本語を含むパスで落ちる
+const dir  = path.dirname(fileURLToPath(import.meta.url));
 const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
 const data = JSON.parse(fs.readFileSync(path.join(dir, 'quiz-data.json'), 'utf8'));
 
@@ -53,7 +55,12 @@ for (const [name, text] of [['本文マークアップ', markup], ['アプリ本
 
 const C  = '</' + 'script>';
 const SO = '<' + 'script';
-const json = JSON.stringify(data).replace(/<\//g, '<\\/');
+/* "<" を全部 < に逃がす。"</script" だけを潰すのでは足りない:
+   HTML のトークナイザは script の中身を状態機械で読むので、"<!--" のあとに "<script"
+   が現れると double escaped state に入り、そこでは "</script>" が要素を閉じない。
+   結果、後ろの bodyTpl まで飲み込まれてアーティファクトが白画面になる。
+   < は JSON の正当なエスケープなので JSON.parse はそのまま通る。 */
+const json = JSON.stringify(data).replace(/</g, '\\u003c');
 
 const out = [
   `<title id="appTitle">${title}</title>`,
@@ -75,7 +82,8 @@ for (const id of ['appTitle', 'appStyle', 'quizData', 'bodyTpl', 'appScript', 'r
   if (!out.includes(`id="${id}"`)) throw new Error(`id="${id}" が出力にありません`);
 }
 if (!out.includes('function buildDocument')) throw new Error('自己保存のコードが含まれていません');
-if (JSON.parse(json.replace(/<\\\//g, '</')) === undefined) throw new Error('埋め込みJSONが壊れています');
+if (JSON.parse(json) === undefined) throw new Error('埋め込みJSONが壊れています');
+if (json.includes(C) || json.includes(SO) || json.includes('<!--')) throw new Error('埋め込みJSONに生のタグが残っています');
 
 fs.writeFileSync(path.join(dir, 'artifact.html'), out);
 
