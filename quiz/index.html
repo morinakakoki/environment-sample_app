@@ -505,13 +505,13 @@ var SESS_MAX   = 60;          // 1セッションの最大出題数（章別が�
    そちらが優先される。未知の章番号は「第N章」と表示するので、
    章を増やしてもコード変更は不要。 */
 var DEFAULT_CHAPTER_TITLES = {
-  1:'GCP基礎・プロジェクト構成・IAM',
-  2:'データ収集・取り込み',
-  3:'BigQuery基礎',
-  4:'データ変換・モデリング',
-  5:'ワークフロー / オーケストレーション',
-  6:'可視化・データ品質',
-  7:'運用・セキュリティ・コスト・IaC'
+  1:'GCP の骨格',
+  2:'BigQuery',
+  3:'動かす側',
+  4:'Terraform',
+  5:'データ基盤の考え方',
+  6:'コストの3層',
+  7:'このポートフォリオに当てはめると'
 };
 
 var LETTERS = ['A','B','C','D','E','F'];
@@ -658,8 +658,9 @@ function normalize(raw){
     var ch = parseInt(r.chapter, 10);
     if(isNaN(ch)) ch = 0;
 
+    /* 数字だけの tag（"12"）には # を補う。"as-of" のような語のタグはそのまま扱う。 */
     var tag = (r.tag === 0 || r.tag) ? String(r.tag).trim() : '';
-    if(tag && tag.charAt(0) !== '#') tag = '#' + tag;
+    if(tag && tag.charAt(0) !== '#' && /^[0-9]+$/.test(tag)) tag = '#' + tag;
 
     list.push({
       id        : id,
@@ -757,6 +758,19 @@ function prioritize(list){
   return shuffle(wrong).concat(shuffle(fresh), done);
 }
 
+/* 選択肢を毎回シャッフルして返す（元の問題オブジェクトは書き換えない）。
+   元データは正解が特定の位置に偏りがちで、「迷ったらB」で当たってしまうため。
+   解説が選択肢を位置で参照していると壊れるので、解説は内容で指す書き方にすること。 */
+function withShuffledOptions(q){
+  var order = shuffle(q.options.map(function(_, i){ return i; }));
+  return {
+    id:q.id, chapter:q.chapter, tag:q.tag, q:q.q,
+    options: order.map(function(i){ return q.options[i]; }),
+    answer: order.indexOf(q.answer),
+    explanation:q.explanation, addedAt:q.addedAt
+  };
+}
+
 function poolAll(){ return QUESTIONS; }
 function poolChapter(n){ return QUESTIONS.filter(function(q){ return q.chapter === n; }); }
 function poolWrong(){ return QUESTIONS.filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
@@ -784,7 +798,8 @@ function buildSession(mode, chapter){
   }else{
     list = []; label = '';
   }
-  return { mode:mode, chapter:(chapter === undefined ? null : chapter), label:label, list:list, idx:0, answers:[] };
+  return { mode:mode, chapter:(chapter === undefined ? null : chapter), label:label,
+           list:list.map(withShuffledOptions), idx:0, answers:[] };
 }
 
 /* ============================================================
