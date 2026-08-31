@@ -56,7 +56,7 @@ const SO = '<' + 'script';
 const json = JSON.stringify(data).replace(/<\//g, '<\\/');
 
 const out = [
-  `<title>${title}</title>`,
+  `<title id="appTitle">${title}</title>`,
   `<style id="appStyle">${style}</style>`,
   `${SO} type="application/json" id="quizData">${json}${C}`,
   `${SO} type="text/plain" id="bodyTpl">${markup}${C}`,
@@ -71,7 +71,7 @@ const out = [
 // 文字列として正しく含まれているため。
 const stray = markup.match(/<!DOCTYPE|<\/?(html|head|body)[\s>]/i);
 if (stray) throw new Error(`本文マークアップに器のタグが混入しています: ${stray[0]}`);
-for (const id of ['appStyle', 'quizData', 'bodyTpl', 'appScript', 'root']) {
+for (const id of ['appTitle', 'appStyle', 'quizData', 'bodyTpl', 'appScript', 'root']) {
   if (!out.includes(`id="${id}"`)) throw new Error(`id="${id}" が出力にありません`);
 }
 if (!out.includes('function buildDocument')) throw new Error('自己保存のコードが含まれていません');

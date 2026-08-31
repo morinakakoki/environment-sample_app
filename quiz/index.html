@@ -858,11 +858,30 @@ function withShuffledOptions(q){
 function poolAll(){ return QUESTIONS; }
 function poolChapter(n){ return QUESTIONS.filter(function(q){ return q.chapter === n; }); }
 function poolWrong(){ return QUESTIONS.filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
+/* id は文字列で持っているので、そのまま比べると "9" > "38" になってしまう。
+   数字どうしは数値で、そうでなければ文字列で比べる。 */
+function compareId(a, b){
+  var na = Number(a), nb = Number(b);
+  var bothNum = a !== '' && b !== '' && !isNaN(na) && !isNaN(nb);
+  if(bothNum) return na - nb;
+  return a < b ? -1 : (a > b ? 1 : 0);
+}
+
 function poolRecent(){
   return QUESTIONS.slice().sort(function(a,b){
     if(a.addedAt !== b.addedAt) return a.addedAt < b.addedAt ? 1 : -1;  // 降順・空文字は最後
-    return a.id < b.id ? 1 : (a.id > b.id ? -1 : 0);
+    return compareId(b.id, a.id);                                       // 同日なら id の新しい順
   });
+}
+
+/* 今の最大 id（数値のもののみ）。追加時の採番に使う。 */
+function maxNumericId(){
+  var m = 0;
+  QUESTIONS.forEach(function(q){
+    var n = Number(q.id);
+    if(!isNaN(n) && n > m) m = n;
+  });
+  return m;
 }
 
 function buildSession(mode, chapter){
@@ -1299,7 +1318,7 @@ function formatData(raw){
 function addMsg(kind, title, lines){
   var box = $('addResult');
   clear(box);
-  box.className = 'result ' + kind;
+  box.className = kind ? ('result ' + kind) : 'result';
   box.appendChild(el('b', null, title));
   if(lines && lines.length){
     var ul = el('ul');
@@ -1324,6 +1343,18 @@ function addCheck(){
   var newChapters = (parsed && !Array.isArray(parsed) && parsed.chapters) ? parsed.chapters : null;
   if(!incoming.length){ addMsg('ng', '追加する問題が入っていません。'); return; }
 
+  /* id が無いものには、今の最大 id の続きを振る。
+     Claude に「id は何番から」と毎回伝えなくても貼れるようにするため。 */
+  var nextId = maxNumericId();
+  incoming = incoming.map(function(r){
+    if(!r || typeof r !== 'object') return r;
+    if(r.id === 0 || r.id) return r;
+    var copy = {}, k;
+    for(k in r){ if(Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k]; }
+    copy.id = ++nextId;
+    return copy;
+  });
+
   var candidate = mergeRaw(RAW_DATA, incoming, newChapters);
   var res;
   try{ res = parseData(candidate); }
@@ -1336,8 +1367,7 @@ function addCheck(){
   if(!fresh.length){
     addMsg('ng', '新しく追加される問題がありませんでした。', 
       ['id が既存とかぶっている可能性があります（かぶった問題は取り込まれません）。',
-       '今の最大 id は ' + QUESTIONS.map(function(q){ return Number(q.id) || 0; })
-         .reduce(function(a, b){ return a > b ? a : b; }, 0) + ' です。']);
+       '今の最大 id は ' + maxNumericId() + ' です（id を省けば自動で続きを振ります）。']);
     return;
   }
 
@@ -1352,6 +1382,15 @@ function addCheck(){
   var tags = [];
   fresh.forEach(function(q){ if(q.tag && tags.indexOf(q.tag) < 0) tags.push(q.tag); });
   if(tags.length) lines.push('タグ: ' + tags.join(' '));
+
+  /* id は違うが問題文が既存と同じ、というのは作り直しのときに起きやすい */
+  var norm = function(t){ return t.replace(/\s+/g, '').replace(/[。、．，]/g, ''); };
+  var existingText = {};
+  QUESTIONS.forEach(function(q){ existingText[norm(q.q)] = q.id; });
+  fresh.forEach(function(q){
+    var hit = existingText[norm(q.q)];
+    if(hit) lines.push('⚠ id ' + q.id + ' は id ' + hit + ' と問題文がほぼ同じです');
+  });
 
   var skipped = incoming.length - fresh.length;
   if(skipped > 0) lines.push('⚠ ' + skipped + '件は取り込まれません（id の重複か形式エラー）');
@@ -1373,6 +1412,13 @@ function canPublish(){
 
 /* 保存する版のHTMLを組み立てる。画面の今の状態ではなく、
    「元のマークアップ＋新しいデータ」から必ず作り直す。 */
+/* document.title は、埋め込み先（ホスト）のタイトルを拾ってしまうことがある。
+   自分の <title id="appTitle"> を直接読む。 */
+function appTitle(){
+  var t = document.getElementById('appTitle');
+  return (t && t.textContent.trim()) || document.title;
+}
+
 function buildDocument(rawData){
   var st = document.getElementById('appStyle');
   var tp = document.getElementById('bodyTpl');
@@ -1388,7 +1434,7 @@ function buildDocument(rawData){
     '<meta charset="UTF-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
     '<meta name="color-scheme" content="light dark">',
-    '<title>' + document.title + '<' + '/title>',
+    '<title id="appTitle">' + appTitle() + '<' + '/title>',
     '<style id="appStyle">' + st.textContent + '<' + '/style>',
     '</head>',
     '<body>',
@@ -1422,6 +1468,8 @@ function addSave(){
   }).then(function(){
     addMsg('ok', '保存しました。新しい問題を読み込みます…');
     btn.textContent = '保存しました';
+    /* 通常は全ビューが自動で読み込み直されるが、そうならなかったときの保険 */
+    window.setTimeout(function(){ try{ location.reload(); }catch(e){} }, 4000);
   }).catch(function(e){
     var code = (e && (e.code || e.message)) || '';
     btn.disabled = false; btn.textContent = 'この内容で保存';
@@ -1522,6 +1570,14 @@ function wire(){
   $('addBtn').addEventListener('click', openAdd);
   $('addBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
   $('addCheckBtn').addEventListener('click', addCheck);
+  /* 確認したあとに本文を書き換えたら、確認結果を捨てる。
+     画面と違う内容が保存されるのを防ぐ。 */
+  $('addTa').addEventListener('input', function(){
+    if(!addPending) return;
+    addPending = null;
+    hide($('addSaveWrap')); hide($('addManual'));
+    addMsg('', '内容が変わりました。もう一度「内容を確認」を押してください。');
+  });
   $('addSaveBtn').addEventListener('click', addSave);
   $('addCopyBtn').addEventListener('click', addCopy);
 
