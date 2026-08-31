@@ -426,6 +426,7 @@ python3 -m http.server 8000
       </div>
       <div id="dataWarn" class="notice hidden"></div>
       <div id="notionLine" class="notionline hidden"></div>
+      <div id="syncLine" class="notionline hidden"></div>
     </div>
 
     <div class="card">
@@ -609,6 +610,20 @@ var NOTION = {
   cols   : { q:'問題', chapter:'章', tag:'タグ', answer:'正解', explanation:'解説',
              options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
   maxPages: 5   // 1ページ100件。取り切れないときは画面に出す
+};
+
+/* 学習記録の同期先。localStorage を「正」とし、こちらは同期先として使う。
+   1セッション＝1行。読み書き両方するので、書き込みツールも宣言に要る。 */
+var LOG = {
+  server : 'Notion',
+  read   : 'notion-query-data-sources',
+  write  : 'notion-create-pages',
+  view   : 'view://c68a3cb4-303b-439c-a61b-bee2aeac2563',
+  source : 'a43ef579-8955-4f76-a2e2-4ca1fc6836f8',
+  cols   : { title:'記録', date:'日時', mode:'モード', total:'出題数',
+             correct:'正解数', rate:'正答率', detail:'明細' },
+  maxDetail : 1800,   // Notion のテキスト欄に収まる範囲で打ち切る
+  maxPush   : 10      // 1回の起動でまとめて送る上限
 };
 
 /* 本文は #bodyTpl から描き起こす。こうしておくと、画面を操作したあとの状態が
@@ -1207,7 +1222,9 @@ function finish(){
   });
 
   // 履歴に保存
-  var rec = { at:new Date().toISOString(), mode:session.mode, label:session.label, total:total, correct:corr };
+  var nowIso = new Date().toISOString();
+  var rec = { at:nowIso, mode:session.mode, label:session.label, total:total, correct:corr,
+              detail: encodeDetail(nowIso, session.answers) };
   state.sessions.unshift(rec);
   if(state.sessions.length > HIST_MAX) state.sessions.length = HIST_MAX;
   saveState();
@@ -1312,10 +1329,204 @@ function finish(){
     });
   }
 
+  syncLog();   // 非同期。失敗しても次に開いたときに送り直す
+
   var rwBtn = $('retryWrongBtn');
   rwBtn.disabled = (poolWrong().length === 0);
 
   goto('screenResult');
+}
+
+/* ============================================================
+   9.3 学習記録を Notion と同期する
+   ============================================================ */
+var logState = { status:'idle', msg:'', fix:'', pulled:0, pushed:0, pending:0 };
+
+/* id に : や , が入っても壊れないようにする。
+   notion:<hex> は長いので n~<hex> に縮める（テキスト欄の字数を節約）。 */
+function encId(id){
+  return encodeURIComponent(id.indexOf('notion:') === 0 ? ('n~' + id.slice(7)) : id);
+}
+function decId(t){
+  var d;
+  try{ d = decodeURIComponent(t); }catch(e){ d = t; }
+  return d.indexOf('n~') === 0 ? ('notion:' + d.slice(2)) : d;
+}
+
+/* "@<正確な日時>|id:1,id:0,..." の形。日時を入れておくと、
+   Notion 側が秒を丸めても、送信済みかどうかを取り違えない。 */
+function encodeDetail(at, answers){
+  var body = answers.map(function(a){ return encId(a.id) + ':' + (a.ok ? 1 : 0); }).join(',');
+  var head = '@' + at + '|';
+  if(head.length + body.length > LOG.maxDetail){
+    body = body.slice(0, LOG.maxDetail - head.length - 1);
+    body = body.slice(0, body.lastIndexOf(',')) + '+';   // 途中で切れた印
+  }
+  return head + body;
+}
+
+function parseDetail(text){
+  var out = { at:'', pairs:[], truncated:false };
+  if(!text) return out;
+  var bar = text.indexOf('|');
+  if(text.charAt(0) === '@' && bar > 0){ out.at = text.slice(1, bar); text = text.slice(bar + 1); }
+  if(text.charAt(text.length - 1) === '+'){ out.truncated = true; text = text.slice(0, -1); }
+  text.split(',').forEach(function(t){
+    if(!t) return;
+    var i = t.lastIndexOf(':');
+    if(i <= 0) return;
+    out.pairs.push({ id:decId(t.slice(0, i)), ok:t.slice(i + 1) === '1' });
+  });
+  return out;
+}
+
+/* Notion 側の記録を取り込む。
+   直近の正誤は「新しい方」を採り、回数は多い方を採る（減らさない）。 */
+function mergeRemoteLog(rows){
+  var remoteKeys = {}, remoteSessions = [], tmp = {};
+
+  rows.forEach(function(r){
+    var d = parseDetail(r[LOG.cols.detail] || '');
+    var at = d.at || String(r['date:' + LOG.cols.date + ':start'] || '');
+    if(!at) return;
+    remoteKeys[at] = true;
+    remoteSessions.push({
+      at: at,
+      mode: '',
+      label: String(r[LOG.cols.mode] || ''),
+      total: Number(r[LOG.cols.total]) || 0,
+      correct: Number(r[LOG.cols.correct]) || 0
+    });
+    d.pairs.forEach(function(pr){
+      var t = tmp[pr.id] || (tmp[pr.id] = { seen:0, correct:0, wrong:0, last:null, lastAt:null });
+      t.seen++;
+      if(pr.ok) t.correct++; else t.wrong++;
+      if(!t.lastAt || at > t.lastAt){ t.lastAt = at; t.last = pr.ok ? 'correct' : 'wrong'; }
+    });
+  });
+
+  var changed = false;
+  Object.keys(tmp).forEach(function(id){
+    var r = tmp[id];
+    var l = state.stats[id];
+    if(!l){ state.stats[id] = r; changed = true; return; }
+    var merged = {
+      seen   : Math.max(l.seen | 0, r.seen),
+      correct: Math.max(l.correct | 0, r.correct),
+      wrong  : Math.max(l.wrong | 0, r.wrong),
+      last   : l.last,
+      lastAt : l.lastAt
+    };
+    if(!l.lastAt || (r.lastAt && r.lastAt > l.lastAt)){ merged.last = r.last; merged.lastAt = r.lastAt; }
+    if(merged.seen !== (l.seen|0) || merged.correct !== (l.correct|0) ||
+       merged.wrong !== (l.wrong|0) || merged.last !== l.last){ changed = true; }
+    state.stats[id] = merged;
+  });
+
+  /* セッション履歴も混ぜて、新しい順に並べ直す */
+  var have = {};
+  state.sessions.forEach(function(x){ have[x.at] = true; });
+  remoteSessions.forEach(function(x){ if(!have[x.at]){ state.sessions.push(x); have[x.at] = true; changed = true; } });
+  state.sessions.sort(function(a, b){ return a.at < b.at ? 1 : (a.at > b.at ? -1 : 0); });
+  if(state.sessions.length > HIST_MAX) state.sessions.length = HIST_MAX;
+
+  if(changed) saveState();
+  return remoteKeys;
+}
+
+/* まだ Notion に無いローカルのセッションを送る */
+function pushSessions(mcp, remoteKeys){
+  var todo = state.sessions.filter(function(x){
+    return x.detail && !remoteKeys[x.at];
+  }).slice(0, LOG.maxPush);
+
+  logState.pending = todo.length;
+  if(!todo.length){ renderSyncLine(); return Promise.resolve(); }
+
+  var pages = todo.map(function(x){
+    var props = {};
+    props[LOG.cols.title]  = fmtWhen(x.at) + ' ' + (x.label || '') + ' ' + x.correct + '/' + x.total + '正解';
+    props['date:' + LOG.cols.date + ':start'] = x.at;
+    props['date:' + LOG.cols.date + ':is_datetime'] = 1;
+    props[LOG.cols.mode]    = x.label || '';
+    props[LOG.cols.total]   = x.total;
+    props[LOG.cols.correct] = x.correct;
+    props[LOG.cols.rate]    = x.total ? Math.round(x.correct / x.total * 100) / 100 : 0;
+    props[LOG.cols.detail]  = x.detail;
+    return { properties: props };
+  });
+
+  return mcp.callTool(LOG.server, LOG.write, {
+    parent: { type:'data_source_id', data_source_id: LOG.source },
+    pages : pages
+  }).then(function(){
+    logState.pushed = todo.length;
+    logState.pending = 0;
+    renderSyncLine();
+  });
+}
+
+function syncLog(){
+  if(!(window.claude && typeof window.claude.use === 'function')) return;
+  logState.status = 'syncing';
+  renderSyncLine();
+
+  window.claude.use('mcp').then(function(mcp){
+    if(!mcp){ logState.status = 'idle'; renderSyncLine(); return; }
+    return readLogPages(mcp, undefined, [], 0).then(function(rows){
+      var keys = mergeRemoteLog(rows);
+      logState.pulled = rows.length;
+      logState.status = 'ok';
+      if($('screenQuiz').classList.contains('hidden')) renderHome();
+      renderSyncLine();
+      return pushSessions(mcp, keys);
+    });
+  }).catch(function(err){
+    var f = notionFailure(err);
+    logState.status = 'error';
+    logState.msg = f.msg;
+    logState.fix = f.fix;
+    renderSyncLine();
+  });
+}
+
+function readLogPages(mcp, cursor, acc, page){
+  var input = { data: { mode:'view', view_url:LOG.view, page_size:100 } };
+  if(cursor) input.data.start_cursor = cursor;
+  return mcp.callTool(LOG.server, LOG.read, input).then(function(res){
+    var p = res && res.payload;
+    if(!p || !Array.isArray(p.results)) return acc;
+    acc = acc.concat(p.results);
+    if(p.has_more && p.next_cursor && page + 1 < LOG.maxPages){
+      return readLogPages(mcp, p.next_cursor, acc, page + 1);
+    }
+    return acc;
+  });
+}
+
+function renderSyncLine(){
+  var box = $('syncLine');
+  if(!box) return;
+  clear(box);
+  box.className = 'notionline';
+  if(logState.status === 'idle'){ hide(box); return; }
+  show(box);
+
+  if(logState.status === 'syncing'){ box.appendChild(el('span', null, '学習記録を同期しています…')); return; }
+
+  if(logState.status === 'error'){
+    box.className = 'notionline ng';
+    box.appendChild(el('b', null, '学習記録を同期できませんでした。'));
+    if(logState.fix) box.appendChild(el('span', null, logState.fix));
+    box.appendChild(el('span', 'muted', 'この端末の記録はそのまま残っています。次に開いたときに送り直します。'));
+    return;
+  }
+  box.className = 'notionline ok';
+  var bits = [];
+  if(logState.pulled)  bits.push('Notion から ' + logState.pulled + '件 取り込み');
+  if(logState.pushed)  bits.push(logState.pushed + '件 送信');
+  box.appendChild(el('b', null, bits.length ? ('学習記録を同期しました（' + bits.join('・') + '）') : '学習記録は同期済みです'));
+  box.appendChild(el('span', 'muted', '端末をまたいで引き継がれます。'));
 }
 
 /* ============================================================
@@ -1794,7 +2005,8 @@ function wire(){
   $('addCopyBtn').addEventListener('click', addCopy);
 
   $('resetBtn').addEventListener('click', function(){
-    if(!window.confirm('学習履歴（正誤・セッション履歴）をすべて消します。よろしいですか？')) return;
+    if(!window.confirm('この端末の学習履歴を消します。\n\nNotion の「復習クイズ 学習記録」は消えないので、'
+      + '次に開いたときにそこから戻ってきます。完全に消すには Notion 側の行も削除してください。\n\nよろしいですか？')) return;
     state = blankState();
     try{ localStorage.removeItem(LS_KEY); }catch(e){ /* 消せなくてもメモリ上はリセット済み */ }
     saveState();
@@ -1868,6 +2080,7 @@ function boot(raw){
   renderHome();
   goto('screenHome');
   loadNotion();   // 非同期。読めなくてもここまでで普通に使える
+  syncLog();      // 学習記録の取り込みと、未送信ぶんの送信
 }
 
 function init(){
