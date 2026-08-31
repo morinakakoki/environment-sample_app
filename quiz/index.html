@@ -332,6 +332,27 @@ code,kbd{
 .filepick input{display:block;margin-top:7px;font-size:13px;max-width:100%}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
+/* 問題を追加する画面 */
+.ta{
+  width:100%;min-height:190px;resize:vertical;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;line-height:1.6;
+  padding:11px;border-radius:var(--r-sm);
+  border:1px solid var(--line-strong);background:var(--card-2);color:var(--fg);
+}
+.ta::placeholder{color:var(--muted);opacity:.8}
+.result{margin-top:12px;padding:12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--card-2);font-size:13.5px;line-height:1.7}
+.result.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+.result.ng{background:var(--ng-bg);border-color:var(--ng-line)}
+.result b{display:block;margin-bottom:5px}
+.result.ok b{color:var(--ok)}
+.result.ng b{color:var(--ng)}
+.result ul{margin:6px 0 0;padding:0 0 0 18px}
+.result li{margin:2px 0}
+.steps{margin:0;padding:0 0 0 20px;font-size:13px;line-height:1.85;color:var(--fg-soft)}
+.steps li{margin:0 0 4px}
+.steps code{font-size:.85em}
+
 @media (max-width:359px){
   body{font-size:15px}
   .stats{grid-template-columns:repeat(2,1fr)}
@@ -428,6 +449,11 @@ python3 -m http.server 8000
 
     <div class="card">
       <h2>データ</h2>
+      <button class="btn" id="addBtn" type="button">
+        <span class="ico" aria-hidden="true">＋</span>
+        <span class="bodytxt"><span class="ttl">問題を追加</span><span class="sub">Claude が作った JSON を貼り付けて取り込む</span></span>
+      </button>
+      <div style="height:10px"></div>
       <button class="btn btn-ghost" id="resetBtn" type="button">学習履歴をリセット</button>
       <p class="hint">問題を追加するときは <code>quiz-data.json</code> に追記するだけ。コードの変更は不要です（README 参照）。</p>
     </div>
@@ -452,6 +478,44 @@ python3 -m http.server 8000
         <button class="btn btn-primary" id="nextBtn" type="button" style="margin-top:12px">次の問題へ</button>
         <p class="hint"><kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ</p>
       </div>
+    </div>
+  </section>
+
+  <!-- 問題を追加 -->
+  <section id="screenAdd" class="hidden">
+    <div class="card">
+      <h2>問題を追加</h2>
+      <p style="font-size:13.5px;margin:0 0 10px;line-height:1.75">
+        Claude に「<b>今日の🎯はこれ。quiz-data.json 形式で3問作って</b>」と頼んで、
+        返ってきた JSON をそのまま貼り付けてください。1問だけの <code>{…}</code> でも、
+        複数問の <code>[…]</code> でも取り込めます。
+      </p>
+      <label class="sr" for="addTa">追加する問題の JSON</label>
+      <textarea class="ta" id="addTa" spellcheck="false" autocapitalize="off" autocorrect="off"
+        placeholder='[{"id":39,"chapter":3,"tag":"#14","q":"…","options":["…","…","…","…"],"answer":0,"explanation":"…","addedAt":"2026-09-01"}]'></textarea>
+      <button class="btn btn-primary" id="addCheckBtn" type="button" style="margin-top:11px">内容を確認</button>
+      <div id="addResult"></div>
+      <div id="addSaveWrap" class="hidden">
+        <button class="btn btn-primary" id="addSaveBtn" type="button" style="margin-top:11px">この内容で保存</button>
+      </div>
+      <div id="addManual" class="hidden">
+        <p style="font-size:13px;color:var(--muted);margin:11px 0 6px;line-height:1.7">
+          この画面では直接保存できません（アプリとして公開されているときだけ保存できます）。
+          下のボタンで <b>追記後の quiz-data.json 全文</b> をコピーして、ファイルに貼り替えてください。
+        </p>
+        <button class="btn btn-ghost" id="addCopyBtn" type="button">追記後の JSON 全文をコピー</button>
+      </div>
+      <button class="btn btn-ghost" id="addBackBtn" type="button" style="margin-top:11px">ホームに戻る</button>
+    </div>
+
+    <div class="card">
+      <h2>取り込みのルール</h2>
+      <ul class="steps">
+        <li><code>id</code> は既存とかぶらない値に。かぶった問題は取り込まれません</li>
+        <li><code>chapter</code> は基礎知識ノートの章番号。新しい章の番号でもそのまま増えます</li>
+        <li><code>tag</code> は <code>#14</code> でも <code>as-of</code> のような語でも構いません</li>
+        <li>解説で選択肢を指すときは「選択肢2が誤り」ではなく<b>内容で</b>書いてください。出題ごとに選択肢の並びが変わります</li>
+      </ul>
     </div>
   </section>
 
@@ -516,6 +580,15 @@ var DEFAULT_CHAPTER_TITLES = {
 
 var LETTERS = ['A','B','C','D','E','F'];
 
+/* アーティファクト版では、本文の元マークアップを #bodyTpl に持たせ、
+   毎回そこから描き直す。こうしておくと、画面を操作したあとの状態が
+   保存される版に混ざり込まない（保存時は必ず「元の形＋新しいデータ」になる）。 */
+(function renderFromTemplate(){
+  var tpl = document.getElementById('bodyTpl');
+  var root = document.getElementById('root');
+  if(tpl && root && !root.firstChild) root.innerHTML = tpl.textContent;
+})();
+
 /* ============================================================
    1. DOM ヘルパ
    ============================================================ */
@@ -578,6 +651,7 @@ function saveTheme(v){
    3. 問題データの読み込みと正規化
    ============================================================ */
 var QUESTIONS = [];          // 正規化済みの全問題
+var RAW_DATA  = null;        // 読み込んだ生データ（問題を追加するときにこれへ足す）
 var CHAPTER_TITLES = {};     // 章番号 -> タイトル
 var CHAPTERS = [];           // 出現する章番号（昇順）
 var loadWarnings = [];
@@ -609,11 +683,13 @@ function normAnswer(a, options){
   return -1;
 }
 
-function normalize(raw){
+/* 貼り付けられたJSONを、いまのデータに触れずに検証するため副作用なしにしてある。
+   グローバルへ反映するのは下の normalize()。 */
+function parseData(raw){
   var list = [];
   var chapTitles = {};
   var seen = {};
-  loadWarnings = [];
+  var warnings = [];
 
   var arr;
   if(Array.isArray(raw)){
@@ -631,26 +707,26 @@ function normalize(raw){
 
   for(var i = 0; i < arr.length; i++){
     var r = arr[i];
-    if(!r || typeof r !== 'object'){ loadWarnings.push((i+1) + '件目: オブジェクトではありません'); continue; }
+    if(!r || typeof r !== 'object'){ warnings.push((i+1) + '件目: オブジェクトではありません'); continue; }
 
     var qtext = (typeof r.q === 'string') ? r.q.trim() : '';
-    if(!qtext){ loadWarnings.push((i+1) + '件目: q（問題文）がありません'); continue; }
+    if(!qtext){ warnings.push((i+1) + '件目: q（問題文）がありません'); continue; }
 
     if(!Array.isArray(r.options) || r.options.length < 2){
-      loadWarnings.push((i+1) + '件目: options が2つ以上の配列ではありません（' + qtext.slice(0,18) + '…）');
+      warnings.push((i+1) + '件目: options が2つ以上の配列ではありません（' + qtext.slice(0,18) + '…）');
       continue;
     }
     var options = r.options.slice(0, LETTERS.length).map(function(o){ return String(o); });
 
     var ans = normAnswer(r.answer, options);
     if(ans < 0){
-      loadWarnings.push((i+1) + '件目: answer が選択肢を指していません（' + qtext.slice(0,18) + '…）');
+      warnings.push((i+1) + '件目: answer が選択肢を指していません（' + qtext.slice(0,18) + '…）');
       continue;
     }
 
     var id = (r.id === 0 || r.id) ? String(r.id) : hashId(qtext);
     if(seen[id]){
-      loadWarnings.push('id "' + id + '" が重複しています。後ろの1件を無視しました。');
+      warnings.push('id "' + id + '" が重複しています。後ろの1件を無視しました。');
       continue;
     }
     seen[id] = true;
@@ -674,19 +750,27 @@ function normalize(raw){
     });
   }
 
-  if(!list.length) throw new Error('有効な問題が1問もありませんでした。quiz-data.json の形式を確認してください。');
+  if(!list.length) throw new Error('有効な問題が1問もありませんでした。データの形式を確認してください。');
 
-  // 章の一覧とタイトルを組み立てる
   var chapSet = {};
   list.forEach(function(q){ chapSet[q.chapter] = true; });
-  CHAPTERS = Object.keys(chapSet).map(Number).sort(function(a,b){ return a - b; });
+  var chapters = Object.keys(chapSet).map(Number).sort(function(a, b){ return a - b; });
 
-  CHAPTER_TITLES = {};
-  CHAPTERS.forEach(function(n){
-    CHAPTER_TITLES[n] = chapTitles[String(n)] || DEFAULT_CHAPTER_TITLES[n] || '';
+  var titles = {};
+  chapters.forEach(function(n){
+    titles[n] = chapTitles[String(n)] || DEFAULT_CHAPTER_TITLES[n] || '';
   });
 
-  return list;
+  return { list:list, warnings:warnings, chapters:chapters, titles:titles };
+}
+
+/* parseData の結果をアプリのグローバルに反映する */
+function normalize(raw){
+  var r = parseData(raw);
+  loadWarnings    = r.warnings;
+  CHAPTERS        = r.chapters;
+  CHAPTER_TITLES  = r.titles;
+  return r.list;
 }
 
 function chapterLabel(n){
@@ -805,14 +889,14 @@ function buildSession(mode, chapter){
 /* ============================================================
    6. 画面遷移
    ============================================================ */
-var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult'];
+var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult','screenAdd'];
 function goto(name){
   SCREENS.forEach(function(s){
     var n = $(s);
     if(!n) return;
     if(s === name) show(n); else hide(n);
   });
-  if(name === 'screenQuiz' || name === 'screenResult') show($('homeBtn')); else hide($('homeBtn'));
+  if(name === 'screenQuiz' || name === 'screenResult' || name === 'screenAdd') show($('homeBtn')); else hide($('homeBtn'));
   $('brandSub').textContent = (name === 'screenQuiz' && session) ? session.label : 'ポートフォリオ復習用';
   window.scrollTo(0, 0);
 }
@@ -1178,6 +1262,219 @@ function finish(){
 }
 
 /* ============================================================
+   9.5 問題の追加（貼り付け → 検証 → 保存）
+   ============================================================ */
+var addPending = null;   // 保存待ちの「追記後の全データ」
+
+/* 生データの形（配列 / {chapters,questions}）を保ったまま問題を足す */
+function mergeRaw(raw, incoming, chapters){
+  var k;
+  if(Array.isArray(raw) && !chapters) return raw.concat(incoming);
+  var copy = {};
+  if(!Array.isArray(raw)){ for(k in raw){ if(Object.prototype.hasOwnProperty.call(raw, k)) copy[k] = raw[k]; } }
+  copy.questions = (Array.isArray(raw) ? raw : (raw.questions || [])).concat(incoming);
+  if(chapters){
+    var merged = {};
+    var cur = Array.isArray(raw) ? {} : (raw.chapters || {});
+    for(k in cur){ if(Object.prototype.hasOwnProperty.call(cur, k)) merged[k] = cur[k]; }
+    for(k in chapters){ if(Object.prototype.hasOwnProperty.call(chapters, k)) merged[k] = String(chapters[k]); }
+    copy.chapters = merged;
+  }
+  return copy;
+}
+
+/* ファイルに貼り戻しやすい形（1問1行）で書き出す */
+function formatData(raw){
+  if(Array.isArray(raw)){
+    return '[\n' + raw.map(function(q){ return '  ' + JSON.stringify(q); }).join(',\n') + '\n]\n';
+  }
+  var qs = (raw.questions || []).map(function(q){ return '    ' + JSON.stringify(q); }).join(',\n');
+  var head = Object.keys(raw)
+    .filter(function(k){ return k !== 'questions'; })
+    .map(function(k){ return '  ' + JSON.stringify(k) + ': ' + JSON.stringify(raw[k], null, 2).replace(/\n/g, '\n  '); })
+    .join(',\n');
+  return '{\n' + (head ? head + ',\n' : '') + '  "questions": [\n' + qs + '\n  ]\n}\n';
+}
+
+function addMsg(kind, title, lines){
+  var box = $('addResult');
+  clear(box);
+  box.className = 'result ' + kind;
+  box.appendChild(el('b', null, title));
+  if(lines && lines.length){
+    var ul = el('ul');
+    lines.forEach(function(t){ ul.appendChild(el('li', null, t)); });
+    box.appendChild(ul);
+  }
+}
+
+function addCheck(){
+  hide($('addSaveWrap')); hide($('addManual'));
+  addPending = null;
+
+  var txt = $('addTa').value.trim();
+  if(!txt){ addMsg('ng', 'JSON を貼り付けてください。'); return; }
+
+  var parsed;
+  try{ parsed = JSON.parse(txt); }
+  catch(e){ addMsg('ng', 'JSON として読めませんでした。', [e.message, 'コードブロックの ```json や前後の説明文が混ざっていないか確認してください。']); return; }
+
+  var incoming = Array.isArray(parsed) ? parsed
+               : (parsed && Array.isArray(parsed.questions) ? parsed.questions : [parsed]);
+  var newChapters = (parsed && !Array.isArray(parsed) && parsed.chapters) ? parsed.chapters : null;
+  if(!incoming.length){ addMsg('ng', '追加する問題が入っていません。'); return; }
+
+  var candidate = mergeRaw(RAW_DATA, incoming, newChapters);
+  var res;
+  try{ res = parseData(candidate); }
+  catch(e){ addMsg('ng', '取り込めませんでした。', [e.message]); return; }
+
+  var have = {};
+  QUESTIONS.forEach(function(q){ have[q.id] = true; });
+  var fresh = res.list.filter(function(q){ return !have[q.id]; });
+
+  if(!fresh.length){
+    addMsg('ng', '新しく追加される問題がありませんでした。', 
+      ['id が既存とかぶっている可能性があります（かぶった問題は取り込まれません）。',
+       '今の最大 id は ' + QUESTIONS.map(function(q){ return Number(q.id) || 0; })
+         .reduce(function(a, b){ return a > b ? a : b; }, 0) + ' です。']);
+    return;
+  }
+
+  var lines = [];
+  var byCh = {};
+  fresh.forEach(function(q){ byCh[q.chapter] = (byCh[q.chapter] || 0) + 1; });
+  Object.keys(byCh).map(Number).sort(function(a, b){ return a - b; }).forEach(function(c){
+    var isNew = CHAPTERS.indexOf(c) < 0;
+    lines.push(chapterLabel(c) + ' ' + (res.titles[c] || '（タイトル未設定）') + ' … ' + byCh[c] + '問'
+      + (isNew ? '  ← 新しい章' : ''));
+  });
+  var tags = [];
+  fresh.forEach(function(q){ if(q.tag && tags.indexOf(q.tag) < 0) tags.push(q.tag); });
+  if(tags.length) lines.push('タグ: ' + tags.join(' '));
+
+  var skipped = incoming.length - fresh.length;
+  if(skipped > 0) lines.push('⚠ ' + skipped + '件は取り込まれません（id の重複か形式エラー）');
+  res.warnings.forEach(function(w){ lines.push('⚠ ' + w); });
+
+  addMsg('ok', fresh.length + '問を追加します（合計 ' + res.list.length + '問になります）', lines);
+  addPending = candidate;
+
+  if(canPublish()) show($('addSaveWrap')); else show($('addManual'));
+}
+
+/* 自分自身を新しいバージョンとして保存できるか */
+function canPublish(){
+  return !!(document.getElementById('appStyle') &&
+            document.getElementById('bodyTpl') &&
+            document.getElementById('appScript') &&
+            window.claude && typeof window.claude.use === 'function');
+}
+
+/* 保存する版のHTMLを組み立てる。画面の今の状態ではなく、
+   「元のマークアップ＋新しいデータ」から必ず作り直す。 */
+function buildDocument(rawData){
+  var st = document.getElementById('appStyle');
+  var tp = document.getElementById('bodyTpl');
+  var ap = document.getElementById('appScript');
+  if(!st || !tp || !ap) return null;
+  var C  = '<' + '/script>';
+  var SO = '<' + 'script';
+  var json = JSON.stringify(rawData).replace(/<\//g, '<\\/');
+  return [
+    '<!doctype html>',
+    '<html lang="ja">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
+    '<meta name="color-scheme" content="light dark">',
+    '<title>' + document.title + '<' + '/title>',
+    '<style id="appStyle">' + st.textContent + '<' + '/style>',
+    '</head>',
+    '<body>',
+    SO + ' type="application/json" id="quizData">' + json + C,
+    SO + ' type="text/plain" id="bodyTpl">' + tp.textContent + C,
+    '<div id="root"></div>',
+    SO + ' id="appScript">' + ap.textContent + C,
+    '</body>',
+    '</html>',
+    ''
+  ].join('\n');
+}
+
+function addSave(){
+  if(!addPending) return;
+  var btn = $('addSaveBtn');
+  btn.disabled = true;
+  btn.textContent = '保存しています…';
+
+  var html = buildDocument(addPending);
+  if(!html){
+    addMsg('ng', 'この画面では保存できません。'); 
+    hide($('addSaveWrap')); show($('addManual'));
+    btn.disabled = false; btn.textContent = 'この内容で保存';
+    return;
+  }
+
+  window.claude.use('artifact').then(function(api){
+    if(!api) throw new Error('not_granted');
+    return api.publish(html);
+  }).then(function(){
+    addMsg('ok', '保存しました。新しい問題を読み込みます…');
+    btn.textContent = '保存しました';
+  }).catch(function(e){
+    var code = (e && (e.code || e.message)) || '';
+    btn.disabled = false; btn.textContent = 'この内容で保存';
+    if(String(code).indexOf('conflict') >= 0){
+      addMsg('ng', '別の端末で先に保存されたようです。', ['画面を読み込み直してから、もう一度貼り付けてください。']);
+    }else if(String(code).indexOf('not_granted') >= 0 || String(code).indexOf('not_writer') >= 0){
+      addMsg('ng', 'このビューには保存する権限がありません。', ['作成者本人として開いてください。']);
+      hide($('addSaveWrap')); show($('addManual'));
+    }else{
+      addMsg('ng', '保存できませんでした。', [String(code)]);
+      show($('addManual'));
+    }
+  });
+}
+
+function addCopy(){
+  if(!addPending) return;
+  var text = formatData(addPending);
+  var btn = $('addCopyBtn');
+  var done = function(okFlag){
+    btn.textContent = okFlag ? 'コピーしました' : 'コピーできませんでした';
+    window.setTimeout(function(){ btn.textContent = '追記後の JSON 全文をコピー'; }, 2000);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ fallbackCopy(text, done); });
+  }else{
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done){
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  var okFlag = false;
+  try{ okFlag = document.execCommand('copy'); }catch(e){ okFlag = false; }
+  document.body.removeChild(ta);
+  done(okFlag);
+}
+
+function openAdd(){
+  $('addTa').value = '';
+  clear($('addResult'));
+  $('addResult').className = '';
+  hide($('addSaveWrap')); hide($('addManual'));
+  addPending = null;
+  goto('screenAdd');
+}
+
+/* ============================================================
    10. テーマ
    ============================================================ */
 /* アーティファクトとして iframe 内で動くときは、テーマは閲覧者の設定に従って
@@ -1221,6 +1518,12 @@ function wire(){
   });
   $('retryWrongBtn').addEventListener('click', function(){ startSession('wrong'); });
   $('toHomeBtn').addEventListener('click', function(){ session = null; renderHome(); goto('screenHome'); });
+
+  $('addBtn').addEventListener('click', openAdd);
+  $('addBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
+  $('addCheckBtn').addEventListener('click', addCheck);
+  $('addSaveBtn').addEventListener('click', addSave);
+  $('addCopyBtn').addEventListener('click', addCopy);
 
   $('resetBtn').addEventListener('click', function(){
     if(!window.confirm('学習履歴（正誤・セッション履歴）をすべて消します。よろしいですか？')) return;
@@ -1269,6 +1572,7 @@ function showError(msg){
 function boot(raw){
   try{
     QUESTIONS = normalize(raw);
+    RAW_DATA  = raw;
   }catch(e){
     showError(e.message);
     return;
@@ -1286,8 +1590,12 @@ function init(){
   wire();
   goto('screenLoading');
 
-  /* アーティファクト版はビルド時に window.QUIZ_DATA を埋め込む。
-     その場合は fetch せず、埋め込みデータをそのまま使う。 */
+  /* アーティファクト版は問題データをページ内に持つ。その場合は fetch しない。 */
+  var embedded = document.getElementById('quizData');
+  if(embedded){
+    try{ boot(JSON.parse(embedded.textContent)); return; }
+    catch(e){ showError('埋め込まれた問題データを読めませんでした: ' + e.message); return; }
+  }
   if(window.QUIZ_DATA){ boot(window.QUIZ_DATA); return; }
 
   fetch(DATA_URL, { cache:'no-cache' })
