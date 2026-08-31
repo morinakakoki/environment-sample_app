@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="GCPデータ基盤ポートフォリオ学習クイズ">
+<title>GCP データ基盤 学習クイズ</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a66d6'/%3E%3Ctext x='32' y='45' font-size='38' font-family='system-ui,sans-serif' font-weight='700' text-anchor='middle' fill='%23fff'%3E%3F%3C/text%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   デザイントークン（ライト）
+   ============================================================ */
+:root{
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --card-2:#f8fafc;
+  --fg:#16191d;
+  --fg-soft:#3c454f;
+  --muted:#68727e;
+  --line:#e1e6ec;
+  --line-strong:#cbd3dd;
+  --accent:#1a66d6;
+  --accent-fg:#ffffff;
+  --accent-soft:#e8f0fd;
+  --ok:#12704a;
+  --ok-bg:#e4f4ec;
+  --ok-line:#9ed3ba;
+  --ng:#b3261e;
+  --ng-bg:#fdeceb;
+  --ng-line:#f0b1ad;
+  --warn:#8a5a00;
+  --warn-bg:#fdf4e3;
+  --warn-line:#e8cf9a;
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 4px 14px rgba(16,24,40,.06);
+  --shadow-sm:0 1px 2px rgba(16,24,40,.07);
+  --r:14px;
+  --r-sm:10px;
+  --tap:48px;
+}
+/* システム設定がダークのとき（手動でライト指定していなければ） */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1318;
+    --card:#171d24;
+    --card-2:#1d242c;
+    --fg:#eef2f6;
+    --fg-soft:#c9d2dc;
+    --muted:#95a1ae;
+    --line:#2a333d;
+    --line-strong:#3a4551;
+    --accent:#6aa6ff;
+    --accent-fg:#0b0f14;
+    --accent-soft:#1a2634;
+    --ok:#65d6a3;
+    --ok-bg:#12291f;
+    --ok-line:#2c5c45;
+    --ng:#ff9a92;
+    --ng-bg:#2c1715;
+    --ng-line:#61302c;
+    --warn:#e8bf72;
+    --warn-bg:#2a2113;
+    --warn-line:#5a4826;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+/* 手動でダーク指定したとき（システム設定より優先） */
+:root[data-theme="dark"]{
+  --bg:#0f1318;
+  --card:#171d24;
+  --card-2:#1d242c;
+  --fg:#eef2f6;
+  --fg-soft:#c9d2dc;
+  --muted:#95a1ae;
+  --line:#2a333d;
+  --line-strong:#3a4551;
+  --accent:#6aa6ff;
+  --accent-fg:#0b0f14;
+  --accent-soft:#1a2634;
+  --ok:#65d6a3;
+  --ok-bg:#12291f;
+  --ok-line:#2c5c45;
+  --ng:#ff9a92;
+  --ng-bg:#2c1715;
+  --ng-line:#61302c;
+  --warn:#e8bf72;
+  --warn-bg:#2a2113;
+  --warn-line:#5a4826;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.35);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  overflow-wrap:anywhere;
+  word-break:normal;
+  line-break:strict;
+}
+button{font:inherit;color:inherit}
+h1,h2,h3{line-height:1.4;margin:0}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ============================================================
+   レイアウト（375px 優先 / 中央寄せ）
+   ============================================================ */
+.wrap{
+  max-width:560px;
+  margin:0 auto;
+  padding:0 14px calc(28px + env(safe-area-inset-bottom));
+}
+.appbar{
+  position:sticky;top:0;z-index:20;
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:saturate(1.6) blur(10px);
+  -webkit-backdrop-filter:saturate(1.6) blur(10px);
+  border-bottom:1px solid var(--line);
+}
+@supports not (backdrop-filter:blur(1px)){ .appbar{background:var(--bg)} }
+.appbar-in{
+  max-width:560px;margin:0 auto;
+  padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  display:flex;align-items:center;gap:10px;
+}
+.brand{font-size:15px;font-weight:700;letter-spacing:.01em;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand small{display:block;font-size:11px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+.iconbtn{
+  flex:none;width:40px;height:40px;border-radius:11px;
+  border:1px solid var(--line);background:var(--card);
+  display:grid;place-items:center;cursor:pointer;font-size:17px;line-height:1;
+  box-shadow:var(--shadow-sm);
+}
+.iconbtn:active{transform:translateY(1px)}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  padding:16px;
+  margin-top:14px;
+}
+.card h2{font-size:14px;letter-spacing:.03em;color:var(--muted);font-weight:700;margin-bottom:12px}
+.hidden{display:none !important}
+
+/* ============================================================
+   ボタン
+   ============================================================ */
+.btn{
+  display:flex;align-items:center;gap:10px;width:100%;
+  min-height:var(--tap);
+  padding:12px 14px;
+  border-radius:var(--r-sm);
+  border:1px solid var(--line-strong);
+  background:var(--card);
+  text-align:left;cursor:pointer;
+  transition:background .12s, border-color .12s, transform .06s;
+}
+.btn:active{transform:translateY(1px)}
+@media (hover:hover){ .btn:hover{background:var(--card-2);border-color:var(--accent)} }
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn[disabled]:active{transform:none}
+.btn-primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700;justify-content:center}
+@media (hover:hover){ .btn-primary:hover{background:var(--accent);filter:brightness(1.08)} }
+.btn-ghost{justify-content:center;font-weight:600}
+.btn .ico{flex:none;width:30px;height:30px;border-radius:9px;background:var(--accent-soft);color:var(--accent);
+  display:grid;place-items:center;font-size:15px}
+.btn .bodytxt{flex:1;min-width:0}
+.btn .ttl{font-weight:700;font-size:15px;display:block}
+.btn .sub{display:block;font-size:12px;color:var(--muted);line-height:1.5;margin-top:1px}
+.btn .cnt{
+  display:inline-block;margin-top:5px;
+  font-size:11px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;
+  background:var(--card-2);border:1px solid var(--line);border-radius:99px;padding:1px 8px;
+}
+.btn .cnt:empty{display:none}
+.btn-row{display:flex;gap:10px;margin-top:12px}
+.btn-row .btn{flex:1}
+
+/* ============================================================
+   ホーム：統計
+   ============================================================ */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 6px;text-align:center}
+.stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums;line-height:1.25}
+.stat span{display:block;font-size:10.5px;color:var(--muted);letter-spacing:.01em;white-space:nowrap}
+.stat.is-ng b{color:var(--ng)}
+.stat.is-ok b{color:var(--ok)}
+
+.chaplist{display:flex;flex-direction:column;gap:2px}
+.chaprow{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--line)}
+.chaprow:first-child{border-top:0}
+.chaprow .no{flex:none;font-size:11px;font-weight:700;color:var(--muted);width:34px;font-variant-numeric:tabular-nums}
+.chaprow .nm{flex:1;min-width:0;font-size:12.5px;color:var(--fg-soft);line-height:1.45}
+.chaprow .pct{flex:none;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);width:38px;text-align:right}
+.meter{flex:none;width:62px;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.meter.good i{background:var(--ok)}
+.meter.bad i{background:var(--ng)}
+
+/* ============================================================
+   クイズ画面
+   ============================================================ */
+.qhead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.qcount{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted);flex:none}
+.bar{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .25s ease}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{
+  font-size:11px;font-weight:700;letter-spacing:.02em;
+  padding:3px 9px;border-radius:99px;
+  background:var(--accent-soft);color:var(--accent);border:1px solid transparent;
+}
+.chip.tag{background:transparent;color:var(--muted);border-color:var(--line-strong)}
+.chip.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+.chip.ng{background:var(--ng-bg);color:var(--ng);border-color:var(--ng-line)}
+
+.qtext{font-size:17.5px;font-weight:700;line-height:1.65;margin:2px 0 14px;letter-spacing:.005em}
+
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{
+  display:flex;align-items:flex-start;gap:11px;width:100%;
+  min-height:var(--tap);
+  padding:12px 13px;
+  border:1.5px solid var(--line-strong);
+  border-radius:var(--r-sm);
+  background:var(--card);
+  text-align:left;cursor:pointer;line-height:1.6;font-size:15px;
+  transition:border-color .12s, background .12s, transform .06s;
+}
+.opt:active{transform:translateY(1px)}
+@media (hover:hover){ .opt:not(:disabled):hover{border-color:var(--accent);background:var(--accent-soft)} }
+.opt .key{
+  flex:none;width:25px;height:25px;border-radius:8px;
+  background:var(--card-2);border:1px solid var(--line-strong);
+  display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--muted);
+  margin-top:1px;
+}
+.opt .txt{flex:1;min-width:0}
+.opt .mark{flex:none;font-size:15px;font-weight:800;margin-top:1px;opacity:0}
+.opt:disabled{cursor:default;opacity:1}
+.opt.is-correct{border-color:var(--ok-line);background:var(--ok-bg)}
+.opt.is-correct .key{background:var(--ok);border-color:var(--ok);color:var(--card)}
+.opt.is-correct .mark{opacity:1;color:var(--ok)}
+.opt.is-wrong{border-color:var(--ng-line);background:var(--ng-bg)}
+.opt.is-wrong .key{background:var(--ng);border-color:var(--ng);color:var(--card)}
+.opt.is-wrong .mark{opacity:1;color:var(--ng)}
+.opt.is-dim{opacity:.5}
+
+.verdict{
+  margin-top:14px;padding:13px;border-radius:var(--r-sm);
+  border:1px solid var(--line);background:var(--card-2);
+}
+.verdict.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+.verdict.ng{background:var(--ng-bg);border-color:var(--ng-line)}
+.verdict .vtop{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;margin-bottom:8px}
+.verdict.ok .vtop{color:var(--ok)}
+.verdict.ng .vtop{color:var(--ng)}
+.verdict .exp{font-size:14.5px;line-height:1.75;color:var(--fg-soft)}
+.backto{
+  margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-strong);
+  font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+}
+
+/* ============================================================
+   結果画面
+   ============================================================ */
+.score{text-align:center;padding:6px 0 2px}
+.score .big{font-size:46px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.score .big em{font-style:normal;font-size:22px;color:var(--muted);font-weight:700}
+.score .pct{font-size:14px;color:var(--muted);margin-top:2px}
+.score .msg{margin-top:10px;font-size:14.5px;font-weight:700}
+
+.backchap{
+  margin-top:14px;padding:13px;
+  border-radius:var(--r-sm);border:1px solid var(--warn-line);background:var(--warn-bg);
+}
+.backchap .lbl{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--warn);margin-bottom:7px}
+.backchap ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.backchap li{font-size:14px;line-height:1.6}
+.backchap .cn{font-weight:800;display:block}
+.backchap .tg{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+
+.revlist{display:flex;flex-direction:column;gap:11px}
+.rev{border:1px solid var(--line);border-left:3px solid var(--ng);border-radius:var(--r-sm);padding:11px 12px;background:var(--card-2)}
+.rev .rq{font-size:14.5px;font-weight:700;line-height:1.6;margin-bottom:7px}
+.rev .ans{font-size:13.5px;line-height:1.65}
+.rev .ans .l{color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.04em;display:block}
+.rev .ans .you{color:var(--ng)}
+.rev .ans .cor{color:var(--ok);font-weight:700}
+.rev .rexp{font-size:13px;color:var(--fg-soft);line-height:1.7;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-strong)}
+
+.hist{display:flex;flex-direction:column;gap:1px}
+.histrow{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 0;border-top:1px solid var(--line);color:var(--fg-soft)}
+.histrow:first-child{border-top:0}
+.histrow .hw{flex:none;color:var(--muted);font-size:11.5px;width:78px;font-variant-numeric:tabular-nums}
+.histrow .hm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.histrow .hs{flex:none;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* ============================================================
+   その他
+   ============================================================ */
+.notice{
+  margin-top:14px;padding:11px 13px;border-radius:var(--r-sm);
+  border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--warn);
+  font-size:12.5px;line-height:1.65;
+}
+.notice b{color:var(--warn)}
+.empty{text-align:center;color:var(--muted);font-size:14px;padding:22px 8px;line-height:1.8}
+.muted{color:var(--muted)}
+.hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.6}
+code,kbd{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  background:var(--card-2);border:1px solid var(--line);border-radius:6px;
+  padding:1px 6px;font-size:.88em;
+}
+.err pre{
+  background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-sm);
+  padding:11px;overflow-x:auto;font-size:12.5px;margin:9px 0;line-height:1.6;
+}
+.err h2{color:var(--ng)}
+.filepick{margin-top:12px;font-size:13px}
+.filepick input{display:block;margin-top:7px;font-size:13px;max-width:100%}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+@media (max-width:359px){
+  body{font-size:15px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .qtext{font-size:16.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <div class="appbar-in">
+    <div class="brand">GCP データ基盤 学習クイズ<small id="brandSub">ポートフォリオ復習用</small></div>
+    <button class="iconbtn" id="themeBtn" type="button" title="テーマ切り替え" aria-label="テーマ切り替え">🌓</button>
+    <button class="iconbtn hidden" id="homeBtn" type="button" title="ホームに戻る" aria-label="ホームに戻る">✕</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 読み込み中 -->
+  <section id="screenLoading" aria-live="polite">
+    <div class="card"><div class="empty">問題データを読み込み中…</div></div>
+  </section>
+
+  <!-- 読み込みエラー -->
+  <section id="screenError" class="hidden">
+    <div class="card err">
+      <h2>quiz-data.json を読み込めませんでした</h2>
+      <p id="errMsg" class="muted" style="font-size:13.5px"></p>
+      <p style="font-size:13.5px">ブラウザで <code>index.html</code> を直接開く（<code>file://</code>）と、セキュリティ制限で <code>fetch</code> が失敗します。<b>このフォルダでローカルサーバを立てて</b>ください。</p>
+      <pre>cd quiz
+python3 -m http.server 8000
+# → http://localhost:8000 を開く</pre>
+      <p style="font-size:13.5px" class="muted">Node があるなら <code>npx serve .</code> や <code>npx http-server .</code> でも同じです。</p>
+      <div class="filepick">
+        <label for="filePick"><b>今すぐ試したいだけなら：</b>quiz-data.json を直接選んで読み込めます（履歴は保存されます）。</label>
+        <input type="file" id="filePick" accept=".json,application/json">
+      </div>
+    </div>
+  </section>
+
+  <!-- ホーム -->
+  <section id="screenHome" class="hidden">
+    <div class="card">
+      <h2>これまでの記録</h2>
+      <div class="stats">
+        <div class="stat"><b id="stTotal">0</b><span>総問題数</span></div>
+        <div class="stat"><b id="stSeen">0</b><span>挑戦済み</span></div>
+        <div class="stat is-ok"><b id="stAcc">–</b><span>正答率</span></div>
+        <div class="stat is-ng"><b id="stWrong">0</b><span>要復習</span></div>
+      </div>
+      <div id="storageWarn" class="notice hidden">
+        <b>履歴を保存できません。</b>ブラウザの localStorage が使えない設定（プライベートモード等）のようです。今回の結果はこのタブを閉じるまで有効です。
+      </div>
+      <div id="dataWarn" class="notice hidden"></div>
+    </div>
+
+    <div class="card">
+      <h2>出題モード</h2>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <button class="btn" id="modeAll" type="button">
+          <span class="ico" aria-hidden="true">🎯</span>
+          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">間違えた問題 → 未挑戦 → 正解済み の順に出題</span><span class="cnt" id="cntAll"></span></span>
+        </button>
+        <button class="btn" id="modeWrong" type="button">
+          <span class="ico" aria-hidden="true">🔁</span>
+          <span class="bodytxt"><span class="ttl">間違いのみ</span><span class="sub">直近で不正解だった問題だけを解き直す</span><span class="cnt" id="cntWrong"></span></span>
+        </button>
+        <button class="btn" id="modeRecent" type="button">
+          <span class="ico" aria-hidden="true">🆕</span>
+          <span class="bodytxt"><span class="ttl">最近追加された問題</span><span class="sub">addedAt の新しい順に 10問（＝今日の学習分）</span><span class="cnt" id="cntRecent"></span></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>章別に解く</h2>
+      <div id="chapBtns" style="display:flex;flex-direction:column;gap:9px"></div>
+    </div>
+
+    <div class="card">
+      <h2>章別の理解度</h2>
+      <div class="chaplist" id="chapStats"></div>
+      <p class="hint">正答率は「各問の直近の正誤」ベース。未挑戦の問題は分母に入りません。</p>
+    </div>
+
+    <div class="card" id="histCard">
+      <h2>最近のセッション</h2>
+      <div class="hist" id="histList"></div>
+    </div>
+
+    <div class="card">
+      <h2>データ</h2>
+      <button class="btn btn-ghost" id="resetBtn" type="button">学習履歴をリセット</button>
+      <p class="hint">問題を追加するときは <code>quiz-data.json</code> に追記するだけ。コードの変更は不要です（README 参照）。</p>
+    </div>
+  </section>
+
+  <!-- クイズ -->
+  <section id="screenQuiz" class="hidden">
+    <div class="card">
+      <div class="qhead">
+        <span class="qcount" id="qCount">1 / 10</span>
+        <span class="bar"><i id="qBar" style="width:0%"></i></span>
+        <span class="qcount" id="qScore">0問正解</span>
+      </div>
+      <div class="chips">
+        <span class="chip" id="qChapter"></span>
+        <span class="chip tag" id="qTag"></span>
+      </div>
+      <h1 class="qtext" id="qText"></h1>
+      <div class="opts" id="qOpts" role="group" aria-label="選択肢"></div>
+      <div id="qVerdict" class="hidden" role="status" aria-live="polite"></div>
+      <div id="qNextWrap" class="hidden">
+        <button class="btn btn-primary" id="nextBtn" type="button" style="margin-top:12px">次の問題へ</button>
+        <p class="hint"><kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 結果 -->
+  <section id="screenResult" class="hidden">
+    <div class="card">
+      <div class="score">
+        <div class="big"><span id="rsCorrect">0</span><em> / <span id="rsTotal">0</span></em></div>
+        <div class="pct" id="rsPct"></div>
+        <div class="msg" id="rsMsg"></div>
+      </div>
+      <div id="rsBackChap"></div>
+    </div>
+
+    <div class="card">
+      <h2>章別スコア</h2>
+      <div class="chaplist" id="rsChapters"></div>
+    </div>
+
+    <div class="card" id="rsReviewCard">
+      <h2>間違えた問題</h2>
+      <div class="revlist" id="rsReview"></div>
+    </div>
+
+    <div class="card">
+      <button class="btn btn-primary" id="againBtn" type="button">同じモードでもう一度</button>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="retryWrongBtn" type="button">間違いだけ解く</button>
+        <button class="btn btn-ghost" id="toHomeBtn" type="button">ホーム</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   0. 定数
+   ============================================================ */
+var DATA_URL   = 'quiz-data.json';
+var LS_KEY     = 'gcpQuiz.v1';
+var LS_THEME   = 'gcpQuiz.theme';
+var PICK_N     = 10;          // 「全範囲」「最近追加」の出題数
+var HIST_MAX   = 20;          // 保存するセッション履歴の件数
+var SESS_MAX   = 60;          // 1セッションの最大出題数（章別が巨大化したときの保険）
+
+/* 章タイトルの既定値。quiz-data.json が {chapters:{...},questions:[...]} 形式なら
+   そちらが優先される。未知の章番号は「第N章」と表示するので、
+   章を増やしてもコード変更は不要。 */
+var DEFAULT_CHAPTER_TITLES = {
+  1:'GCP基礎・プロジェクト構成・IAM',
+  2:'データ収集・取り込み',
+  3:'BigQuery基礎',
+  4:'データ変換・モデリング',
+  5:'ワークフロー / オーケストレーション',
+  6:'可視化・データ品質',
+  7:'運用・セキュリティ・コスト・IaC'
+};
+
+var LETTERS = ['A','B','C','D','E','F'];
+
+/* ============================================================
+   1. DOM ヘルパ
+   ============================================================ */
+function $(id){ return document.getElementById(id); }
+function show(el){ el.classList.remove('hidden'); }
+function hide(el){ el.classList.add('hidden'); }
+function el(tag, cls, txt){
+  var n = document.createElement(tag);
+  if(cls) n.className = cls;
+  if(txt !== undefined && txt !== null) n.textContent = String(txt);
+  return n;
+}
+function clear(node){ while(node.firstChild) node.removeChild(node.firstChild); }
+
+/* ============================================================
+   2. localStorage（すべて try/catch）
+   ============================================================ */
+var storageOK = true;
+
+function blankState(){ return { version:1, stats:{}, sessions:[] }; }
+
+function loadState(){
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(!raw) return blankState();
+    var p = JSON.parse(raw);
+    if(!p || typeof p !== 'object') return blankState();
+    return {
+      version : 1,
+      stats   : (p.stats && typeof p.stats === 'object') ? p.stats : {},
+      sessions: Array.isArray(p.sessions) ? p.sessions : []
+    };
+  }catch(e){
+    storageOK = false;
+    try{ console.warn('[quiz] 履歴の読み込みに失敗しました:', e); }catch(_){}
+    return blankState();
+  }
+}
+
+function saveState(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    if(!storageOK){ storageOK = true; hide($('storageWarn')); }
+  }catch(e){
+    storageOK = false;
+    try{ console.warn('[quiz] 履歴の保存に失敗しました:', e); }catch(_){}
+    var w = $('storageWarn'); if(w) show(w);
+  }
+}
+
+function loadTheme(){
+  try{ return localStorage.getItem(LS_THEME) || 'auto'; }
+  catch(e){ return 'auto'; }
+}
+function saveTheme(v){
+  try{ localStorage.setItem(LS_THEME, v); }catch(e){ /* 保存できなくても動作は継続 */ }
+}
+
+/* ============================================================
+   3. 問題データの読み込みと正規化
+   ============================================================ */
+var QUESTIONS = [];          // 正規化済みの全問題
+var CHAPTER_TITLES = {};     // 章番号 -> タイトル
+var CHAPTERS = [];           // 出現する章番号（昇順）
+var loadWarnings = [];
+
+function hashId(str){
+  var h = 5381, i;
+  for(i = 0; i < str.length; i++){ h = ((h << 5) + h + str.charCodeAt(i)) | 0; }
+  return 'auto-' + (h >>> 0).toString(36);
+}
+
+/* answer は 0 始まりのインデックスが正。
+   移植のしやすさのため、選択肢そのものの文字列 / "A"〜"D" / 数値文字列も受け付ける。 */
+function normAnswer(a, options){
+  var i, t, n;
+  if(typeof a === 'number' && a >= 0 && a < options.length && a === Math.floor(a)) return a;
+  if(typeof a === 'string'){
+    i = options.indexOf(a);
+    if(i >= 0) return i;
+    t = a.trim();
+    if(/^[A-Fa-f]$/.test(t)){
+      i = LETTERS.indexOf(t.toUpperCase());
+      if(i >= 0 && i < options.length) return i;
+    }
+    n = Number(t);
+    if(!isNaN(n) && n === Math.floor(n)){
+      if(n >= 0 && n < options.length) return n;
+    }
+  }
+  return -1;
+}
+
+function normalize(raw){
+  var list = [];
+  var chapTitles = {};
+  var seen = {};
+  loadWarnings = [];
+
+  var arr;
+  if(Array.isArray(raw)){
+    arr = raw;
+  }else if(raw && Array.isArray(raw.questions)){
+    arr = raw.questions;
+    if(raw.chapters && typeof raw.chapters === 'object'){
+      for(var k in raw.chapters){
+        if(Object.prototype.hasOwnProperty.call(raw.chapters, k)) chapTitles[String(k)] = String(raw.chapters[k]);
+      }
+    }
+  }else{
+    throw new Error('quiz-data.json は配列、または {"chapters":{...},"questions":[...]} である必要があります。');
+  }
+
+  for(var i = 0; i < arr.length; i++){
+    var r = arr[i];
+    if(!r || typeof r !== 'object'){ loadWarnings.push((i+1) + '件目: オブジェクトではありません'); continue; }
+
+    var qtext = (typeof r.q === 'string') ? r.q.trim() : '';
+    if(!qtext){ loadWarnings.push((i+1) + '件目: q（問題文）がありません'); continue; }
+
+    if(!Array.isArray(r.options) || r.options.length < 2){
+      loadWarnings.push((i+1) + '件目: options が2つ以上の配列ではありません（' + qtext.slice(0,18) + '…）');
+      continue;
+    }
+    var options = r.options.slice(0, LETTERS.length).map(function(o){ return String(o); });
+
+    var ans = normAnswer(r.answer, options);
+    if(ans < 0){
+      loadWarnings.push((i+1) + '件目: answer が選択肢を指していません（' + qtext.slice(0,18) + '…）');
+      continue;
+    }
+
+    var id = (r.id === 0 || r.id) ? String(r.id) : hashId(qtext);
+    if(seen[id]){
+      loadWarnings.push('id "' + id + '" が重複しています。後ろの1件を無視しました。');
+      continue;
+    }
+    seen[id] = true;
+
+    var ch = parseInt(r.chapter, 10);
+    if(isNaN(ch)) ch = 0;
+
+    var tag = (r.tag === 0 || r.tag) ? String(r.tag).trim() : '';
+    if(tag && tag.charAt(0) !== '#') tag = '#' + tag;
+
+    list.push({
+      id        : id,
+      chapter   : ch,
+      tag       : tag,
+      q         : qtext,
+      options   : options,
+      answer    : ans,
+      explanation: (typeof r.explanation === 'string') ? r.explanation : '',
+      addedAt   : (typeof r.addedAt === 'string') ? r.addedAt : ''
+    });
+  }
+
+  if(!list.length) throw new Error('有効な問題が1問もありませんでした。quiz-data.json の形式を確認してください。');
+
+  // 章の一覧とタイトルを組み立てる
+  var chapSet = {};
+  list.forEach(function(q){ chapSet[q.chapter] = true; });
+  CHAPTERS = Object.keys(chapSet).map(Number).sort(function(a,b){ return a - b; });
+
+  CHAPTER_TITLES = {};
+  CHAPTERS.forEach(function(n){
+    CHAPTER_TITLES[n] = chapTitles[String(n)] || DEFAULT_CHAPTER_TITLES[n] || '';
+  });
+
+  return list;
+}
+
+function chapterLabel(n){
+  if(!n) return '章未設定';
+  return '第' + n + '章';
+}
+function chapterFull(n){
+  var t = CHAPTER_TITLES[n];
+  return t ? (chapterLabel(n) + ' ' + t) : chapterLabel(n);
+}
+
+/* ============================================================
+   4. 状態
+   ============================================================ */
+var state   = blankState();
+var session = null;   // { mode, label, chapter, list, idx, answers:[] }
+
+function statOf(id){
+  var s = state.stats[id];
+  if(!s || typeof s !== 'object') return null;
+  return s;
+}
+/* 'wrong' = 直近で不正解 / 'new' = 未挑戦 / 'ok' = 直近で正解 */
+function statusOf(id){
+  var s = statOf(id);
+  if(!s || !s.seen) return 'new';
+  return s.last === 'wrong' ? 'wrong' : 'ok';
+}
+function accuracyOf(id){
+  var s = statOf(id);
+  if(!s || !s.seen) return -1;
+  return s.correct / s.seen;
+}
+
+function recordAnswer(q, ok){
+  var s = state.stats[q.id];
+  if(!s || typeof s !== 'object') s = { seen:0, correct:0, wrong:0, last:null, lastAt:null };
+  s.seen    = (s.seen | 0) + 1;
+  s.correct = (s.correct | 0) + (ok ? 1 : 0);
+  s.wrong   = (s.wrong | 0) + (ok ? 0 : 1);
+  s.last    = ok ? 'correct' : 'wrong';
+  s.lastAt  = new Date().toISOString();
+  state.stats[q.id] = s;
+  saveState();
+}
+
+/* ============================================================
+   5. 出題ロジック
+   ============================================================ */
+function shuffle(a){
+  var arr = a.slice(), i, j, t;
+  for(i = arr.length - 1; i > 0; i--){
+    j = Math.floor(Math.random() * (i + 1));
+    t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+/* 間違い優先の並び替え：間違い → 未挑戦 → 正解済み（正解済みは正答率の低い順） */
+function prioritize(list){
+  var wrong = [], fresh = [], done = [];
+  list.forEach(function(q){
+    var st = statusOf(q.id);
+    if(st === 'wrong') wrong.push(q);
+    else if(st === 'new') fresh.push(q);
+    else done.push(q);
+  });
+  done = shuffle(done).sort(function(a,b){ return accuracyOf(a.id) - accuracyOf(b.id); });
+  return shuffle(wrong).concat(shuffle(fresh), done);
+}
+
+function poolAll(){ return QUESTIONS; }
+function poolChapter(n){ return QUESTIONS.filter(function(q){ return q.chapter === n; }); }
+function poolWrong(){ return QUESTIONS.filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
+function poolRecent(){
+  return QUESTIONS.slice().sort(function(a,b){
+    if(a.addedAt !== b.addedAt) return a.addedAt < b.addedAt ? 1 : -1;  // 降順・空文字は最後
+    return a.id < b.id ? 1 : (a.id > b.id ? -1 : 0);
+  });
+}
+
+function buildSession(mode, chapter){
+  var list, label;
+  if(mode === 'all'){
+    list  = prioritize(poolAll()).slice(0, PICK_N);
+    label = '全範囲 ' + list.length + '問';
+  }else if(mode === 'chapter'){
+    list  = prioritize(poolChapter(chapter)).slice(0, SESS_MAX);
+    label = chapterLabel(chapter);
+  }else if(mode === 'wrong'){
+    list  = prioritize(poolWrong()).slice(0, SESS_MAX);
+    label = '間違いのみ';
+  }else if(mode === 'recent'){
+    list  = poolRecent().slice(0, PICK_N);
+    label = '最近追加された問題';
+  }else{
+    list = []; label = '';
+  }
+  return { mode:mode, chapter:(chapter === undefined ? null : chapter), label:label, list:list, idx:0, answers:[] };
+}
+
+/* ============================================================
+   6. 画面遷移
+   ============================================================ */
+var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult'];
+function goto(name){
+  SCREENS.forEach(function(s){
+    var n = $(s);
+    if(!n) return;
+    if(s === name) show(n); else hide(n);
+  });
+  if(name === 'screenQuiz' || name === 'screenResult') show($('homeBtn')); else hide($('homeBtn'));
+  $('brandSub').textContent = (name === 'screenQuiz' && session) ? session.label : 'ポートフォリオ復習用';
+  window.scrollTo(0, 0);
+}
+
+/* ============================================================
+   7. ホーム画面の描画
+   ============================================================ */
+function renderHome(){
+  var total = QUESTIONS.length;
+  var seen = 0, corr = 0, wrongNow = 0;
+  QUESTIONS.forEach(function(q){
+    var st = statusOf(q.id);
+    if(st !== 'new'){ seen++; if(st === 'ok') corr++; else wrongNow++; }
+  });
+
+  $('stTotal').textContent = total;
+  $('stSeen').textContent  = seen;
+  $('stAcc').textContent   = seen ? (Math.round(corr / seen * 100) + '%') : '–';
+  $('stWrong').textContent = wrongNow;
+
+  if(!storageOK) show($('storageWarn'));
+
+  // データの警告
+  var dw = $('dataWarn');
+  if(loadWarnings.length){
+    clear(dw);
+    dw.appendChild(el('b', null, '読み込めなかった問題が ' + loadWarnings.length + ' 件あります。'));
+    dw.appendChild(document.createTextNode(' 詳細はブラウザのコンソールに出しています。'));
+    var ul = el('ul'); ul.style.margin = '6px 0 0'; ul.style.padding = '0 0 0 18px';
+    loadWarnings.slice(0, 5).forEach(function(w){ ul.appendChild(el('li', null, w)); });
+    if(loadWarnings.length > 5) ul.appendChild(el('li', null, 'ほか ' + (loadWarnings.length - 5) + ' 件'));
+    dw.appendChild(ul);
+    show(dw);
+  }else{
+    hide(dw);
+  }
+
+  // モードごとの件数
+  var nWrong = poolWrong().length;
+  var nNew   = QUESTIONS.filter(function(q){ return statusOf(q.id) === 'new'; }).length;
+  $('cntAll').textContent    = '間違い ' + nWrong + ' / 未挑戦 ' + nNew;
+  $('cntWrong').textContent  = nWrong + '問';
+  $('cntRecent').textContent = Math.min(PICK_N, total) + '問';
+  $('modeWrong').disabled = (nWrong === 0);
+
+  // 章別ボタン
+  var cb = $('chapBtns');
+  clear(cb);
+  CHAPTERS.forEach(function(n){
+    var pool = poolChapter(n);
+    var w = pool.filter(function(q){ return statusOf(q.id) === 'wrong'; }).length;
+    var b = el('button', 'btn');
+    b.type = 'button';
+    var ico = el('span', 'ico', String(n || '?')); ico.setAttribute('aria-hidden','true');
+    b.appendChild(ico);
+    var body = el('span', 'bodytxt');
+    body.appendChild(el('span', 'ttl', chapterLabel(n)));
+    body.appendChild(el('span', 'sub', CHAPTER_TITLES[n] || '（タイトル未設定）'));
+    body.appendChild(el('span', 'cnt', pool.length + '問' + (w ? '　要復習 ' + w : '')));
+    b.appendChild(body);
+    b.addEventListener('click', function(){ startSession('chapter', n); });
+    cb.appendChild(b);
+  });
+
+  // 章別の理解度
+  var cs = $('chapStats');
+  clear(cs);
+  CHAPTERS.forEach(function(n){
+    var pool = poolChapter(n);
+    var s = 0, c = 0;
+    pool.forEach(function(q){
+      var st = statusOf(q.id);
+      if(st !== 'new'){ s++; if(st === 'ok') c++; }
+    });
+    var pct = s ? Math.round(c / s * 100) : null;
+    var row = el('div', 'chaprow');
+    row.appendChild(el('span', 'no', chapterLabel(n)));
+    row.appendChild(el('span', 'nm', CHAPTER_TITLES[n] || '—'));
+    var m = el('span', 'meter' + (pct === null ? '' : (pct >= 80 ? ' good' : (pct < 50 ? ' bad' : ''))));
+    m.setAttribute('role', 'img');
+    m.setAttribute('aria-label', pct === null ? '未挑戦' : ('正答率 ' + pct + '%'));
+    var fill = el('i'); fill.style.width = (pct === null ? 0 : pct) + '%';
+    m.appendChild(fill);
+    row.appendChild(m);
+    row.appendChild(el('span', 'pct', pct === null ? '–' : pct + '%'));
+    cs.appendChild(row);
+  });
+
+  // セッション履歴
+  var hl = $('histList');
+  clear(hl);
+  if(!state.sessions.length){
+    hide($('histCard'));
+  }else{
+    show($('histCard'));
+    state.sessions.slice(0, HIST_MAX).forEach(function(h){
+      var row = el('div', 'histrow');
+      row.appendChild(el('span', 'hw', fmtWhen(h.at)));
+      row.appendChild(el('span', 'hm', h.label || ''));
+      row.appendChild(el('span', 'hs', h.correct + '/' + h.total));
+      hl.appendChild(row);
+    });
+  }
+}
+
+function fmtWhen(iso){
+  try{
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    var mm = d.getMonth() + 1, dd = d.getDate();
+    var hh = ('0' + d.getHours()).slice(-2), mi = ('0' + d.getMinutes()).slice(-2);
+    return mm + '/' + dd + ' ' + hh + ':' + mi;
+  }catch(e){ return ''; }
+}
+
+/* ============================================================
+   8. クイズ画面
+   ============================================================ */
+var locked = false;
+
+function startSession(mode, chapter){
+  var s = buildSession(mode, chapter);
+  if(!s.list.length){
+    window.alert(mode === 'wrong'
+      ? '間違えた問題はまだありません。まずは全範囲から解いてみてください。'
+      : '出題できる問題がありませんでした。');
+    return;
+  }
+  session = s;
+  goto('screenQuiz');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  locked = false;
+  var q = session.list[session.idx];
+  var n = session.idx + 1, total = session.list.length;
+
+  $('qCount').textContent = n + ' / ' + total;
+  $('qBar').style.width = Math.round((session.idx / total) * 100) + '%';
+  var got = session.answers.filter(function(a){ return a.ok; }).length;
+  $('qScore').textContent = got + '問正解';
+
+  var chapChip = $('qChapter');
+  chapChip.textContent = chapterFull(q.chapter);
+  var tagChip = $('qTag');
+  if(q.tag){ tagChip.textContent = '理解度表 ' + q.tag; show(tagChip); } else { hide(tagChip); }
+
+  $('qText').textContent = q.q;
+
+  var box = $('qOpts');
+  clear(box);
+  q.options.forEach(function(opt, i){
+    var b = el('button', 'opt');
+    b.type = 'button';
+    b.setAttribute('data-i', String(i));
+    b.appendChild(el('span', 'key', LETTERS[i]));
+    b.appendChild(el('span', 'txt', opt));
+    var mark = el('span', 'mark', ''); mark.setAttribute('aria-hidden','true');
+    b.appendChild(mark);
+    b.addEventListener('click', function(){ answer(i); });
+    box.appendChild(b);
+  });
+
+  hide($('qVerdict'));
+  hide($('qNextWrap'));
+  $('nextBtn').textContent = (session.idx === total - 1) ? '結果を見る' : '次の問題へ';
+}
+
+function answer(i){
+  if(locked) return;
+  locked = true;
+
+  var q  = session.list[session.idx];
+  var ok = (i === q.answer);
+
+  session.answers.push({ id:q.id, chapter:q.chapter, tag:q.tag, picked:i, ok:ok });
+  recordAnswer(q, ok);
+
+  // 選択肢の見た目を更新
+  var btns = $('qOpts').querySelectorAll('.opt');
+  Array.prototype.forEach.call(btns, function(b, bi){
+    b.disabled = true;
+    if(bi === q.answer){
+      b.classList.add('is-correct');
+      b.querySelector('.mark').textContent = '✓';
+      b.appendChild(el('span', 'sr', '（これが正解）'));
+    }else if(bi === i){
+      b.classList.add('is-wrong');
+      b.querySelector('.mark').textContent = '✕';
+      b.appendChild(el('span', 'sr', '（あなたの解答・不正解）'));
+    }else{
+      b.classList.add('is-dim');
+    }
+  });
+
+  // 判定 + 解説（chapter と tag を必ず出す）
+  var v = $('qVerdict');
+  clear(v);
+  v.className = 'verdict ' + (ok ? 'ok' : 'ng');
+  var top = el('div', 'vtop');
+  top.appendChild(el('span', null, ok ? '◎ 正解' : '✕ 不正解'));
+  if(!ok) top.appendChild(el('span', 'muted', '正解は ' + LETTERS[q.answer]));
+  v.appendChild(top);
+
+  if(q.explanation) v.appendChild(el('div', 'exp', q.explanation));
+
+  var back = el('div', 'backto');
+  back.appendChild(el('span', null, '戻る先：'));
+  back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+  if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+  v.appendChild(back);
+
+  show(v);
+  show($('qNextWrap'));
+
+  var got = session.answers.filter(function(a){ return a.ok; }).length;
+  $('qScore').textContent = got + '問正解';
+  $('qBar').style.width = Math.round(((session.idx + 1) / session.list.length) * 100) + '%';
+
+  $('nextBtn').focus({ preventScroll:true });
+  try{ v.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(e){ /* 古いブラウザは無視 */ }
+}
+
+function next(){
+  if(!locked) return;
+  if(session.idx < session.list.length - 1){
+    session.idx++;
+    renderQuestion();
+    window.scrollTo(0, 0);
+  }else{
+    finish();
+  }
+}
+
+/* ============================================================
+   9. 結果画面
+   ============================================================ */
+function finish(){
+  var total = session.answers.length;
+  var corr  = session.answers.filter(function(a){ return a.ok; }).length;
+
+  // 章別集計
+  var per = {};
+  session.answers.forEach(function(a){
+    var k = a.chapter;
+    if(!per[k]) per[k] = { total:0, correct:0, wrongTags:[] };
+    per[k].total++;
+    if(a.ok){ per[k].correct++; }
+    else if(a.tag && per[k].wrongTags.indexOf(a.tag) < 0){ per[k].wrongTags.push(a.tag); }
+  });
+
+  // 履歴に保存
+  var rec = { at:new Date().toISOString(), mode:session.mode, label:session.label, total:total, correct:corr };
+  state.sessions.unshift(rec);
+  if(state.sessions.length > HIST_MAX) state.sessions.length = HIST_MAX;
+  saveState();
+
+  // スコア
+  $('rsCorrect').textContent = corr;
+  $('rsTotal').textContent   = total;
+  var pct = total ? Math.round(corr / total * 100) : 0;
+  $('rsPct').textContent = '正答率 ' + pct + '%　（' + session.label + '）';
+  $('rsMsg').textContent =
+    pct === 100 ? '全問正解。次の章に進んでOK。' :
+    pct >= 80   ? 'いい感じ。間違えた分だけ章に戻ろう。' :
+    pct >= 50   ? '半分は取れている。下の「戻る章」を読み直そう。' :
+                  'ここは基礎知識ノートに戻る合図。焦らず読み直そう。';
+
+  // 「戻る章」＝間違いのあった章を、正答率の低い順に
+  var backs = Object.keys(per)
+    .map(function(k){
+      var p = per[k];
+      return { ch:Number(k), total:p.total, correct:p.correct, rate:p.correct / p.total, tags:p.wrongTags };
+    })
+    .filter(function(x){ return x.correct < x.total; })
+    .sort(function(a,b){ return a.rate - b.rate || b.total - a.total; });
+
+  var bc = $('rsBackChap');
+  clear(bc);
+  if(backs.length){
+    var box = el('div', 'backchap');
+    box.appendChild(el('div', 'lbl', '戻る章（基礎知識ノート）'));
+    var ul = el('ul');
+    backs.forEach(function(x){
+      var li = el('li');
+      li.appendChild(el('span', 'cn', chapterFull(x.ch)));
+      li.appendChild(document.createTextNode(
+        x.correct + ' / ' + x.total + '問正解　→ ' + (x.total - x.correct) + '問を復習'));
+      if(x.tags.length){
+        var tg = el('div', 'tg');
+        tg.appendChild(el('span', null, '見直す項目：'));
+        x.tags.forEach(function(t){ tg.appendChild(el('span', 'chip tag', t)); });
+        li.appendChild(tg);
+      }
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    bc.appendChild(box);
+  }else{
+    var okbox = el('div', 'backchap');
+    okbox.style.borderColor = 'var(--ok-line)';
+    okbox.style.background  = 'var(--ok-bg)';
+    var lbl = el('div', 'lbl', '戻る章はありません');
+    lbl.style.color = 'var(--ok)';
+    okbox.appendChild(lbl);
+    okbox.appendChild(el('div', null, 'このセッションは全問正解でした。新しい章へ進みましょう。'));
+    bc.appendChild(okbox);
+  }
+
+  // 章別スコア
+  var cs = $('rsChapters');
+  clear(cs);
+  Object.keys(per).map(Number).sort(function(a,b){ return a - b; }).forEach(function(n){
+    var p = per[n];
+    var rate = Math.round(p.correct / p.total * 100);
+    var row = el('div', 'chaprow');
+    row.appendChild(el('span', 'no', chapterLabel(n)));
+    row.appendChild(el('span', 'nm', CHAPTER_TITLES[n] || '—'));
+    var m = el('span', 'meter' + (rate >= 80 ? ' good' : (rate < 50 ? ' bad' : '')));
+    var f = el('i'); f.style.width = rate + '%'; m.appendChild(f);
+    row.appendChild(m);
+    row.appendChild(el('span', 'pct', p.correct + '/' + p.total));
+    cs.appendChild(row);
+  });
+
+  // 間違えた問題の振り返り
+  var rv = $('rsReview');
+  clear(rv);
+  var wrongs = session.answers.filter(function(a){ return !a.ok; });
+  if(!wrongs.length){
+    hide($('rsReviewCard'));
+  }else{
+    show($('rsReviewCard'));
+    wrongs.forEach(function(a){
+      var q = null, i;
+      for(i = 0; i < session.list.length; i++){ if(session.list[i].id === a.id){ q = session.list[i]; break; } }
+      if(!q) return;
+      var box = el('div', 'rev');
+      var chips = el('div', 'chips');
+      chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+      if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+      box.appendChild(chips);
+      box.appendChild(el('div', 'rq', q.q));
+      var ans = el('div', 'ans');
+      var l1 = el('span', 'l', 'あなたの解答');
+      ans.appendChild(l1);
+      ans.appendChild(el('span', 'you', LETTERS[a.picked] + '. ' + q.options[a.picked]));
+      ans.appendChild(el('br'));
+      var l2 = el('span', 'l', '正解'); l2.style.marginTop = '6px';
+      ans.appendChild(l2);
+      ans.appendChild(el('span', 'cor', LETTERS[q.answer] + '. ' + q.options[q.answer]));
+      box.appendChild(ans);
+      if(q.explanation) box.appendChild(el('div', 'rexp', q.explanation));
+      rv.appendChild(box);
+    });
+  }
+
+  var rwBtn = $('retryWrongBtn');
+  rwBtn.disabled = (poolWrong().length === 0);
+
+  goto('screenResult');
+}
+
+/* ============================================================
+   10. テーマ
+   ============================================================ */
+function applyTheme(v){
+  var root = document.documentElement;
+  if(v === 'light' || v === 'dark') root.setAttribute('data-theme', v);
+  else root.removeAttribute('data-theme');
+  var b = $('themeBtn');
+  b.textContent = v === 'light' ? '☀️' : (v === 'dark' ? '🌙' : '🌓');
+  b.title = '表示テーマ：' + (v === 'light' ? 'ライト' : v === 'dark' ? 'ダーク' : '端末の設定に従う');
+  b.setAttribute('aria-label', b.title + '（切り替え）');
+}
+function cycleTheme(){
+  var cur = loadTheme();
+  var nextV = cur === 'auto' ? 'light' : (cur === 'light' ? 'dark' : 'auto');
+  saveTheme(nextV);
+  applyTheme(nextV);
+}
+
+/* ============================================================
+   11. イベント配線
+   ============================================================ */
+function wire(){
+  $('themeBtn').addEventListener('click', cycleTheme);
+  $('homeBtn').addEventListener('click', function(){ session = null; renderHome(); goto('screenHome'); });
+
+  $('modeAll').addEventListener('click',    function(){ startSession('all'); });
+  $('modeWrong').addEventListener('click',  function(){ startSession('wrong'); });
+  $('modeRecent').addEventListener('click', function(){ startSession('recent'); });
+
+  $('nextBtn').addEventListener('click', next);
+
+  $('againBtn').addEventListener('click', function(){
+    if(session) startSession(session.mode, session.chapter);
+  });
+  $('retryWrongBtn').addEventListener('click', function(){ startSession('wrong'); });
+  $('toHomeBtn').addEventListener('click', function(){ session = null; renderHome(); goto('screenHome'); });
+
+  $('resetBtn').addEventListener('click', function(){
+    if(!window.confirm('学習履歴（正誤・セッション履歴）をすべて消します。よろしいですか？')) return;
+    state = blankState();
+    try{ localStorage.removeItem(LS_KEY); }catch(e){ /* 消せなくてもメモリ上はリセット済み */ }
+    saveState();
+    renderHome();
+  });
+
+  // キーボード操作（PCで速く回す用）
+  document.addEventListener('keydown', function(e){
+    if($('screenQuiz').classList.contains('hidden')) return;
+    if(e.metaKey || e.ctrlKey || e.altKey) return;
+    var t = e.target;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+
+    if(!locked && /^[1-6]$/.test(e.key)){
+      var i = parseInt(e.key, 10) - 1;
+      if(session && i < session.list[session.idx].options.length){ e.preventDefault(); answer(i); }
+      return;
+    }
+    if(locked && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); next(); }
+  });
+
+  $('filePick').addEventListener('change', function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      try{ boot(JSON.parse(String(rd.result))); }
+      catch(err){ showError('選んだファイルを JSON として読めませんでした： ' + err.message); }
+    };
+    rd.onerror = function(){ showError('ファイルの読み込みに失敗しました。'); };
+    rd.readAsText(f, 'utf-8');
+  });
+}
+
+/* ============================================================
+   12. 起動
+   ============================================================ */
+function showError(msg){
+  $('errMsg').textContent = msg;
+  goto('screenError');
+}
+
+function boot(raw){
+  try{
+    QUESTIONS = normalize(raw);
+  }catch(e){
+    showError(e.message);
+    return;
+  }
+  if(loadWarnings.length){
+    try{ console.warn('[quiz] 読み込めなかった問題:\n- ' + loadWarnings.join('\n- ')); }catch(_){}
+  }
+  state = loadState();
+  renderHome();
+  goto('screenHome');
+}
+
+function init(){
+  applyTheme(loadTheme());
+  wire();
+  goto('screenLoading');
+
+  fetch(DATA_URL, { cache:'no-cache' })
+    .then(function(res){
+      if(!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText);
+      return res.json();
+    })
+    .then(boot)
+    .catch(function(e){
+      showError(String(e && e.message ? e.message : e));
+    });
+}
+
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+})();
+</script>
+</body>
+</html>
