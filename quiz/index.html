@@ -332,6 +332,20 @@ code,kbd{
 .filepick input{display:block;margin-top:7px;font-size:13px;max-width:100%}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
+/* Notion の読み込み状況 */
+.notionline{
+  margin-top:12px;padding:10px 12px;border-radius:var(--r-sm);
+  border:1px solid var(--line);background:var(--card-2);
+  font-size:12.5px;line-height:1.65;
+  display:flex;flex-direction:column;gap:2px;
+}
+.notionline b{font-weight:700}
+.notionline.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+.notionline.ok b{color:var(--ok)}
+.notionline.ng{background:var(--warn-bg);border-color:var(--warn-line)}
+.notionline.ng b{color:var(--warn)}
+.notionline .muted{font-size:11.5px}
+
 /* 問題を追加する画面 */
 .ta{
   width:100%;min-height:190px;resize:vertical;
@@ -411,6 +425,7 @@ python3 -m http.server 8000
         <b>履歴を保存できません。</b>ブラウザの localStorage が使えない設定（プライベートモード等）のようです。今回の結果はこのタブを閉じるまで有効です。
       </div>
       <div id="dataWarn" class="notice hidden"></div>
+      <div id="notionLine" class="notionline hidden"></div>
     </div>
 
     <div class="card">
@@ -489,6 +504,10 @@ python3 -m http.server 8000
         Claude に「<b>今日の🎯はこれ。quiz-data.json 形式で3問作って</b>」と頼んで、
         返ってきた JSON をそのまま貼り付けてください。1問だけの <code>{…}</code> でも、
         複数問の <code>[…]</code> でも取り込めます。
+      </p>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.7">
+        Notion の「復習クイズ 問題ストック」に行を足す方法もあります。そちらは貼り付け不要で、
+        次にこのアプリを開いたときに自動で増えます。
       </p>
       <label class="sr" for="addTa">追加する問題の JSON</label>
       <textarea class="ta" id="addTa" spellcheck="false" autocapitalize="off" autocorrect="off"
@@ -580,6 +599,18 @@ var DEFAULT_CHAPTER_TITLES = {
 
 var LETTERS = ['A','B','C','D','E','F'];
 
+/* Notion の「復習クイズ 問題ストック」から追加分を読む設定。
+   ビューモードを使うのは、SQL モードがプランによって使用量制限を受けるため
+   （ビューモードは制限なし）。列名を Notion 側で変えるとここが合わなくなる。 */
+var NOTION = {
+  server : 'Notion',
+  tool   : 'notion-query-data-sources',
+  view   : 'view://9229e102-0aaf-4b45-99e8-4d256abc8d1d',
+  cols   : { q:'問題', chapter:'章', tag:'タグ', answer:'正解', explanation:'解説',
+             options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
+  maxPages: 5   // 1ページ100件。取り切れないときは画面に出す
+};
+
 /* アーティファクト版では、本文の元マークアップを #bodyTpl に持たせ、
    毎回そこから描き直す。こうしておくと、画面を操作したあとの状態が
    保存される版に混ざり込まない（保存時は必ず「元の形＋新しいデータ」になる）。 */
@@ -650,8 +681,11 @@ function saveTheme(v){
 /* ============================================================
    3. 問題データの読み込みと正規化
    ============================================================ */
-var QUESTIONS = [];          // 正規化済みの全問題
-var RAW_DATA  = null;        // 読み込んだ生データ（問題を追加するときにこれへ足す）
+var QUESTIONS = [];          // 出題に使う全問題（埋め込み + Notion）
+var EMBEDDED  = [];          // ページに埋め込まれた問題
+var NOTION_Q  = [];          // Notion から読んだ問題
+var EMB_TITLES = {};         // 埋め込みデータが持っていた章タイトル
+var RAW_DATA  = null;        // 埋め込みの生データ（問題を追加するときにこれへ足す）
 var CHAPTER_TITLES = {};     // 章番号 -> タイトル
 var CHAPTERS = [];           // 出現する章番号（昇順）
 var loadWarnings = [];
@@ -671,6 +705,9 @@ function normAnswer(a, options){
     i = options.indexOf(a);
     if(i >= 0) return i;
     t = a.trim();
+    /* 空欄を弾く。Number('') は 0 なので、これが無いと
+       「正解が未設定の問題」が黙って A を正解にしてしまう。 */
+    if(t === '') return -1;
     if(/^[A-Fa-f]$/.test(t)){
       i = LETTERS.indexOf(t.toUpperCase());
       if(i >= 0 && i < options.length) return i;
@@ -1281,6 +1318,178 @@ function finish(){
 }
 
 /* ============================================================
+   9.4 Notion から追加分を読む
+   ============================================================ */
+var notionState = { status:'idle', count:0, skipped:0, truncated:false, msg:'', fix:'' };
+
+/* Notion の1行を、このアプリの問題に変換する。
+   id は行の URL から作る（問題文を直しても学習記録が残るように）。 */
+function rowToQuestion(row){
+  var c = NOTION.cols;
+  var q = String(row[c.q] || '').trim();
+  if(!q) return null;
+
+  var options = c.options.map(function(k){ return String(row[k] == null ? '' : row[k]).trim(); });
+  if(options.some(function(o){ return !o; })) return null;   // 空欄がある行は使わない
+
+  var ans = normAnswer(String(row[c.answer] || '').trim(), options);
+  if(ans < 0) return null;
+
+  var url = String(row.url || '');
+  var m = url.match(/([0-9a-f]{32})/i);
+  if(!m) return null;
+
+  var tag = String(row[c.tag] == null ? '' : row[c.tag]).trim();
+  if(tag && tag.charAt(0) !== '#' && /^[0-9]+$/.test(tag)) tag = '#' + tag;
+
+  var ch = parseInt(row[c.chapter], 10);
+  if(isNaN(ch)) ch = 0;
+
+  return {
+    id        : 'notion:' + m[1],
+    chapter   : ch,
+    tag       : tag,
+    q         : q,
+    options   : options,
+    answer    : ans,
+    explanation: String(row[c.explanation] == null ? '' : row[c.explanation]).trim(),
+    addedAt   : String(row[c.date] || '').slice(0, 10)
+  };
+}
+
+/* 失敗の種類ごとに、直し方が分かる文言を出す。
+   ひとまとめの「エラーが起きました」にはしない。 */
+function notionFailure(err){
+  var code = (err && err.code) || '';
+  var map = {
+    needs_reauth        : ['Notion の接続が切れています。', 'claude.ai の設定 → コネクタ から Notion を繋ぎ直してください。'],
+    server_not_connected: ['Notion コネクタが繋がっていません。', 'claude.ai の設定 → コネクタ から Notion を追加してください。'],
+    not_granted         : ['Notion の読み取りが許可されていません。', 'このページを開き直して、確認ダイアログで許可してください。'],
+    approval_required   : ['Notion の読み取りに承認が必要です。', '確認ダイアログで許可してください。'],
+    selection_required  : ['どの Notion に繋ぐか選ばれていません。', '確認ダイアログで接続先を選んでください。'],
+    blocked_by_policy   : ['組織の設定で Notion の読み取りが止められています。', '管理者に確認してください。'],
+    server_not_found    : ['Notion コネクタが見つかりません。', 'claude.ai の設定 → コネクタ を確認してください。'],
+    not_in_manifest     : ['このページは Notion の読み取りを宣言していません。', 'アプリを再発行し直す必要があります。'],
+    tool_error          : ['Notion 側でエラーが返りました。', (err && err.message) || 'データベースや列名が変わっていないか確認してください。'],
+    bad_request         : ['Notion への問い合わせ方が合っていません。', 'ビューが削除された可能性があります。'],
+    cancelled           : ['Notion の読み取りが中断されました。', 'もう一度開き直すと読み込みます。'],
+    capability_disabled : ['この表示では Notion を読めません。', ''],
+    capability_removed  : ['この表示では Notion を読めません。', '']
+  };
+  var hit = map[code];
+  if(hit) return { msg:hit[0], fix:hit[1] };
+  return { msg:'Notion から読み込めませんでした。', fix:'しばらく待ってから開き直してください。（' + (code || '原因不明') + '）' };
+}
+
+function loadNotion(){
+  if(!(window.claude && typeof window.claude.use === 'function')) return;
+
+  notionState.status = 'loading';
+  renderNotionLine();
+
+  window.claude.use('mcp').then(function(mcp){
+    if(!mcp){ notionState.status = 'idle'; renderNotionLine(); return; }   // この表示では使えない
+    return fetchNotionPages(mcp, undefined, [], 0);
+  }).catch(function(err){
+    var f = notionFailure(err);
+    /* 再試行してよいのは retryable が立っているものだけ。1回だけ。 */
+    if(err && err.retryable && notionState.status !== 'retried'){
+      notionState.status = 'retried';
+      var wait = (err.retryAfterMs || 1200) + Math.floor(Math.random() * 600);
+      window.setTimeout(function(){
+        window.claude.use('mcp').then(function(mcp){
+          if(mcp) return fetchNotionPages(mcp, undefined, [], 0);
+        }).catch(function(e2){
+          var f2 = notionFailure(e2);
+          notionState.status = 'error'; notionState.msg = f2.msg; notionState.fix = f2.fix;
+          renderNotionLine();
+        });
+      }, wait);
+      return;
+    }
+    notionState.status = 'error';
+    notionState.msg = f.msg;
+    notionState.fix = f.fix;
+    renderNotionLine();
+  });
+}
+
+function fetchNotionPages(mcp, cursor, acc, page){
+  var input = { data: { mode:'view', view_url:NOTION.view, page_size:100 } };
+  if(cursor) input.data.start_cursor = cursor;
+
+  return mcp.callTool(NOTION.server, NOTION.tool, input).then(function(res){
+    var payload = res && res.payload;
+    if(!payload || !Array.isArray(payload.results)){
+      notionState.status = 'error';
+      notionState.msg = 'Notion の応答が想定と違いました。';
+      notionState.fix = 'データベースの列名が変わっていないか確認してください。';
+      renderNotionLine();
+      return;
+    }
+    acc = acc.concat(payload.results);
+
+    if(payload.has_more && payload.next_cursor && page + 1 < NOTION.maxPages){
+      return fetchNotionPages(mcp, payload.next_cursor, acc, page + 1);
+    }
+    notionState.truncated = !!payload.has_more;
+    finishNotion(acc);
+  });
+}
+
+function finishNotion(rows){
+  var seen = {}, list = [], skipped = 0;
+  EMBEDDED.forEach(function(q){ seen[q.id] = true; });
+  rows.forEach(function(r){
+    var q = rowToQuestion(r);
+    if(!q){ skipped++; return; }
+    if(seen[q.id]) return;
+    seen[q.id] = true;
+    list.push(q);
+  });
+
+  NOTION_Q = list;
+  notionState.status = 'ok';
+  notionState.count = list.length;
+  notionState.skipped = skipped;
+  applyQuestions();
+
+  /* 解いている最中に問題数を入れ替えない */
+  if($('screenQuiz').classList.contains('hidden')) renderHome();
+  renderNotionLine();
+}
+
+function renderNotionLine(){
+  var box = $('notionLine');
+  if(!box) return;
+  clear(box);
+  box.className = 'notionline';
+
+  if(notionState.status === 'idle'){ hide(box); return; }
+  show(box);
+
+  if(notionState.status === 'loading' || notionState.status === 'retried'){
+    box.appendChild(el('span', null, 'Notion の問題を読み込んでいます…'));
+    return;
+  }
+  if(notionState.status === 'error'){
+    box.className = 'notionline ng';
+    box.appendChild(el('b', null, notionState.msg));
+    if(notionState.fix) box.appendChild(el('span', null, notionState.fix));
+    box.appendChild(el('span', 'muted', '埋め込み分の ' + EMBEDDED.length + '問はこのまま解けます。'));
+    return;
+  }
+  box.className = 'notionline ok';
+  box.appendChild(el('b', null, notionState.count
+    ? ('Notion から ' + notionState.count + '問 読み込みました')
+    : 'Notion に追加分はありませんでした'));
+  var notes = [];
+  if(notionState.skipped) notes.push(notionState.skipped + '行は空欄か正解未設定のため読みませんでした');
+  if(notionState.truncated) notes.push('件数が多いため一部のみ読み込みました');
+  if(notes.length) box.appendChild(el('span', 'muted', notes.join('。')));
+}
+
+/* ============================================================
    9.5 問題の追加（貼り付け → 検証 → 保存）
    ============================================================ */
 var addPending = null;   // 保存待ちの「追記後の全データ」
@@ -1396,7 +1605,9 @@ function addCheck(){
   if(skipped > 0) lines.push('⚠ ' + skipped + '件は取り込まれません（id の重複か形式エラー）');
   res.warnings.forEach(function(w){ lines.push('⚠ ' + w); });
 
-  addMsg('ok', fresh.length + '問を追加します（合計 ' + res.list.length + '問になります）', lines);
+  addMsg('ok', fresh.length + '問を追加します（このアプリに埋め込む分が ' + res.list.length + '問'
+    + (NOTION_Q.length ? '、Notion 分と合わせて ' + (res.list.length + NOTION_Q.length) + '問' : '')
+    + 'になります）', lines);
   addPending = candidate;
 
   if(canPublish()) show($('addSaveWrap')); else show($('addManual'));
@@ -1625,10 +1836,25 @@ function showError(msg){
   goto('screenError');
 }
 
+/* 埋め込み分と Notion 分を合わせて、章の一覧を組み直す */
+function applyQuestions(){
+  QUESTIONS = EMBEDDED.concat(NOTION_Q);
+  var chapSet = {};
+  QUESTIONS.forEach(function(q){ chapSet[q.chapter] = true; });
+  CHAPTERS = Object.keys(chapSet).map(Number).sort(function(a, b){ return a - b; });
+  CHAPTER_TITLES = {};
+  CHAPTERS.forEach(function(n){
+    CHAPTER_TITLES[n] = EMB_TITLES[n] || DEFAULT_CHAPTER_TITLES[n] || '';
+  });
+}
+
 function boot(raw){
   try{
-    QUESTIONS = normalize(raw);
-    RAW_DATA  = raw;
+    var r = parseData(raw);
+    EMBEDDED     = r.list;
+    EMB_TITLES   = r.titles;
+    loadWarnings = r.warnings;
+    RAW_DATA     = raw;
   }catch(e){
     showError(e.message);
     return;
@@ -1636,9 +1862,11 @@ function boot(raw){
   if(loadWarnings.length){
     try{ console.warn('[quiz] 読み込めなかった問題:\n- ' + loadWarnings.join('\n- ')); }catch(_){}
   }
+  applyQuestions();
   state = loadState();
   renderHome();
   goto('screenHome');
+  loadNotion();   // 非同期。読めなくてもここまでで普通に使える
 }
 
 function init(){
