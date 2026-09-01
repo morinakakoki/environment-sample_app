@@ -1,0 +1,919 @@
+<title>60秒トレーナー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&family=Oswald:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#EFF0F4; --surface:#FFFFFF; --surface-2:#E7E9F1; --surface-3:#DDE0EB;
+  --ink:#191B22; --ink-2:#4A4F5E; --ink-3:#7C8294;
+  --line:#D3D7E2; --line-2:#C0C5D4;
+  --accent:#2F3B8C; --accent-ink:#FFFFFF; --accent-soft:#E3E6F6; --accent-line:#B9C0E8;
+  --good:#1B7A4B; --good-soft:#DFF0E7;
+  --warn:#B26A00; --warn-soft:#FBEBD3;
+  --bad:#B5322B;  --bad-soft:#FADFDD;
+  --shadow:0 1px 2px rgba(25,27,34,.06), 0 8px 24px -14px rgba(25,27,34,.28);
+  --ff-ui:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,-apple-system,sans-serif;
+  --ff-q:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
+  --ff-num:"Oswald","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12141B; --surface:#1B1E27; --surface-2:#242834; --surface-3:#2C3140;
+    --ink:#ECEEF5; --ink-2:#A8AEC0; --ink-3:#767C8E;
+    --line:#2E3341; --line-2:#3A4051;
+    --accent:#8D9BF0; --accent-ink:#12141B; --accent-soft:#232842; --accent-line:#3B4470;
+    --good:#4FBF85; --good-soft:#16301F;
+    --warn:#E0A040; --warn-soft:#33260F;
+    --bad:#F0736A;  --bad-soft:#37191A;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12141B; --surface:#1B1E27; --surface-2:#242834; --surface-3:#2C3140;
+  --ink:#ECEEF5; --ink-2:#A8AEC0; --ink-3:#767C8E;
+  --line:#2E3341; --line-2:#3A4051;
+  --accent:#8D9BF0; --accent-ink:#12141B; --accent-soft:#232842; --accent-line:#3B4470;
+  --good:#4FBF85; --good-soft:#16301F;
+  --warn:#E0A040; --warn-soft:#33260F;
+  --bad:#F0736A;  --bad-soft:#37191A;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--ff-ui); font-size:16px; line-height:1.7;
+  -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased;
+}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+.app{max-width:460px;margin:0 auto;padding:0 14px 24px;display:flex;flex-direction:column;min-height:100dvh;gap:14px}
+
+/* ── status rail ───────────────────────────── */
+.rail{
+  position:sticky;top:0;z-index:20;margin:0 -14px;padding:10px 14px;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px;min-height:52px;
+}
+.rail-mark{
+  font-family:var(--ff-num);font-weight:500;font-size:13px;letter-spacing:.14em;
+  color:var(--accent);border:1.5px solid var(--accent-line);border-radius:3px;
+  padding:1px 6px;flex:none;
+}
+.rail-where{flex:1;min-width:0;font-size:12.5px;line-height:1.35;color:var(--ink-2)}
+.rail-where b{display:block;font-weight:700;font-size:13.5px;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-btn{
+  flex:none;background:none;border:1px solid var(--line-2);border-radius:999px;
+  padding:7px 13px;min-height:44px;font-size:12.5px;font-weight:500;
+  color:var(--ink-2);cursor:pointer;
+}
+.rail-btn:active{background:var(--surface-2)}
+
+/* ── banner ────────────────────────────────── */
+.banner{
+  border:1px dashed var(--warn);background:var(--warn-soft);color:var(--warn);
+  border-radius:10px;padding:11px 13px;font-size:12.5px;line-height:1.6;font-weight:500;
+}
+.banner b{display:block;font-weight:700;color:var(--ink)}
+
+/* ── stage / cards ─────────────────────────── */
+.stage{flex:1;display:flex;flex-direction:column;gap:14px}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:18px 16px;box-shadow:var(--shadow);
+}
+.eyebrow{
+  font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 10px;
+}
+h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:balance}
+.lede{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.75}
+
+/* ── mode picker ───────────────────────────── */
+.modes{display:flex;flex-direction:column;gap:10px}
+.mode{
+  display:flex;align-items:center;gap:13px;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;
+  padding:15px 15px;cursor:pointer;box-shadow:var(--shadow);
+}
+.mode:active{transform:translateY(1px)}
+.mode-ico{
+  flex:none;min-width:38px;height:38px;padding:0 9px;border-radius:9px;
+  display:grid;place-items:center;white-space:nowrap;
+  background:var(--accent-soft);color:var(--accent);
+  font-family:var(--ff-num);font-size:14px;font-weight:500;letter-spacing:.02em;
+}
+.mode-txt{flex:1;min-width:0}
+.mode-txt b{display:block;font-size:15.5px;font-weight:700;line-height:1.4}
+.mode-txt span{display:block;font-size:12px;color:var(--ink-3);line-height:1.5}
+.mode-go{flex:none;color:var(--ink-3);font-size:18px;line-height:1}
+
+.catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:9px}
+.cat{
+  display:flex;align-items:center;gap:9px;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:11px;
+  padding:12px 11px;cursor:pointer;min-height:60px;
+}
+.cat:active{background:var(--surface-2)}
+.cat[disabled]{opacity:.4;cursor:default}
+.cat-k{
+  flex:none;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;
+  font-family:var(--ff-num);font-size:14px;font-weight:500;
+  background:var(--surface-2);color:var(--ink-2);
+}
+.cat.is-deep .cat-k{background:var(--accent-soft);color:var(--accent)}
+.cat-n{flex:1;min-width:0;font-size:13px;font-weight:500;line-height:1.4}
+.cat-n small{display:block;font-size:10.5px;color:var(--ink-3);font-weight:400;
+  font-family:var(--ff-num);letter-spacing:.06em}
+
+/* ── question ──────────────────────────────── */
+.qmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:13px}
+.tag{
+  font-size:10.5px;line-height:1.6;font-weight:500;padding:2px 8px;border-radius:999px;
+  border:1px solid var(--line-2);color:var(--ink-3);white-space:nowrap;
+}
+.tag.id{font-family:var(--ff-num);letter-spacing:.08em;color:var(--accent);
+  border-color:var(--accent-line);background:var(--accent-soft)}
+.tag.deep{color:var(--accent);border-color:var(--accent-line)}
+.qtext{
+  font-family:var(--ff-q);font-weight:600;font-size:21px;line-height:1.72;
+  margin:0;text-wrap:pretty;letter-spacing:.01em;
+}
+
+/* ── timer ─────────────────────────────────── */
+.timer{display:flex;flex-direction:column;align-items:center;gap:12px;padding:6px 0 2px}
+.dial{position:relative;width:min(70vw,270px);aspect-ratio:1}
+.dial svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
+.dial circle{fill:none;stroke-linecap:round}
+.dial .trk{stroke:var(--surface-3);stroke-width:9}
+.dial .fil{stroke:var(--accent);stroke-width:9;transition:stroke .3s ease}
+.dial-mid{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;
+}
+.digits{
+  font-family:var(--ff-num);font-weight:500;font-size:clamp(52px,17vw,68px);
+  line-height:1;letter-spacing:.01em;font-variant-numeric:tabular-nums;
+  color:var(--accent);transition:color .3s ease;
+}
+.dial-lab{
+  font-size:11px;font-weight:700;letter-spacing:.13em;color:var(--ink-3);
+  min-height:17px;text-align:center;
+}
+.timer.is-warn .fil,.timer.is-warn .digits{stroke:var(--warn);color:var(--warn)}
+.timer.is-warn .dial-lab{color:var(--warn)}
+.timer.is-over .fil,.timer.is-over .digits{stroke:var(--bad);color:var(--bad)}
+.timer.is-over .dial-lab{color:var(--bad)}
+.timer.is-over .trk{stroke:var(--bad-soft)}
+.timer.is-over .dial{animation:strike .5s ease-out 3}
+@keyframes strike{
+  0%,100%{opacity:1}
+  50%{opacity:.28}
+}
+@media (prefers-reduced-motion:reduce){
+  .timer.is-over .dial{animation:none}
+  .dial .fil{transition:none}
+}
+.dial-hint{font-size:12px;color:var(--ink-3);text-align:center;margin:0}
+
+/* ── buttons ───────────────────────────────── */
+.acts{display:flex;flex-direction:column;gap:10px}
+.btn{
+  width:100%;min-height:58px;border-radius:13px;border:1px solid transparent;
+  font-size:16.5px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;padding:10px 16px;
+  line-height:1.4;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow)}
+.btn-quiet{background:var(--surface);color:var(--ink);border-color:var(--line-2)}
+.btn-bad{background:var(--surface);color:var(--bad);border-color:var(--bad)}
+.btn-good{background:var(--surface);color:var(--good);border-color:var(--good)}
+.btn-sm{min-height:46px;font-size:14px;font-weight:500;border-radius:10px}
+.btn-txt{
+  background:none;border:none;color:var(--ink-3);font-size:13px;text-decoration:underline;
+  text-underline-offset:3px;cursor:pointer;padding:10px;min-height:44px;
+}
+
+/* ── self check ────────────────────────────── */
+.crits{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.crit{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:13px 14px;cursor:pointer;min-height:62px;
+}
+.crit-no{
+  flex:none;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;
+  font-family:var(--ff-num);font-size:13px;font-weight:500;
+  background:var(--surface-2);color:var(--ink-3);
+}
+.crit-lab{flex:1;min-width:0;font-size:14.5px;font-weight:500;line-height:1.5}
+.crit-lab small{display:block;font-size:11.5px;color:var(--ink-3);font-weight:400;line-height:1.5}
+.crit-box{
+  flex:none;width:26px;height:26px;border-radius:7px;border:2px solid var(--line-2);
+  display:grid;place-items:center;color:transparent;font-size:15px;font-weight:700;
+}
+.crit[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn)}
+.crit[aria-pressed="true"] .crit-no{background:var(--warn);color:var(--surface)}
+.crit[aria-pressed="true"] .crit-box{background:var(--warn);border-color:var(--warn);color:#fff}
+.crit-auto{
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--warn);
+  border:1px solid var(--warn);border-radius:999px;padding:1px 7px;flex:none;
+}
+.elapsed{
+  display:flex;align-items:baseline;justify-content:center;gap:8px;
+  padding:10px;border-radius:11px;background:var(--surface-2);margin-bottom:14px;
+}
+.elapsed b{font-family:var(--ff-num);font-weight:500;font-size:30px;line-height:1;
+  font-variant-numeric:tabular-nums}
+.elapsed span{font-size:11.5px;font-weight:700;letter-spacing:.12em;color:var(--ink-3)}
+.elapsed.over b{color:var(--bad)}
+
+/* ── verdict ───────────────────────────────── */
+.verdict{display:flex;align-items:center;gap:14px;padding:16px;border-radius:13px;margin-bottom:15px}
+.verdict-ico{font-size:36px;line-height:1;flex:none}
+.verdict-txt b{display:block;font-size:17px;font-weight:700;line-height:1.4}
+.verdict-txt span{display:block;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+.verdict.g{background:var(--good-soft);border:1px solid var(--good)}
+.verdict.y{background:var(--warn-soft);border:1px solid var(--warn)}
+.verdict.r{background:var(--bad-soft);border:1px solid var(--bad)}
+
+.field{display:block;margin-bottom:15px}
+.field span{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;
+  color:var(--ink-2);margin-bottom:7px}
+.field input{
+  width:100%;min-height:52px;padding:12px 14px;border-radius:11px;
+  border:1px solid var(--line-2);background:var(--bg);font-size:16px;
+}
+.field input::placeholder{color:var(--ink-3)}
+.field small{display:block;font-size:11.5px;color:var(--ink-3);margin-top:6px}
+
+/* ── log ───────────────────────────────────── */
+.logline{
+  display:block;width:100%;text-align:left;cursor:pointer;
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  padding:12px 13px;font-size:12.5px;line-height:1.65;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  word-break:break-all;color:var(--ink);
+}
+.logline:active{background:var(--surface-3)}
+.copyhint{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:11.5px;color:var(--ink-3);margin-top:7px;font-weight:500;
+}
+.ok{color:var(--good);font-weight:700}
+.ng{color:var(--bad);font-weight:700}
+
+.dock{border-top:1px solid var(--line);margin:0 -14px;padding:0 14px}
+.dock-hd{
+  display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;
+  padding:15px 0 13px;cursor:pointer;text-align:left;
+}
+.dock-hd b{font-size:13.5px;font-weight:700}
+.dock-count{
+  font-family:var(--ff-num);font-size:12px;font-weight:500;padding:1px 8px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);
+}
+.dock-caret{margin-left:auto;color:var(--ink-3);font-size:12px}
+.dock-body{display:flex;flex-direction:column;gap:8px;padding-bottom:16px}
+.dock-tally{display:flex;gap:14px;font-size:12.5px;color:var(--ink-2);font-weight:500;
+  padding:2px 2px 6px;font-variant-numeric:tabular-nums}
+.dock-tally b{font-family:var(--ff-num);font-weight:500;font-size:15px}
+.empty{font-size:12.5px;color:var(--ink-3);padding:0 0 16px;line-height:1.7}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+
+<div class="app">
+  <header class="rail">
+    <span class="rail-mark">60s</span>
+    <div class="rail-where" id="rail-where"><b>面接 60秒トレーナー</b>出題モードを選んでください</div>
+    <button class="rail-btn" id="rail-btn" hidden>モード変更</button>
+  </header>
+
+  <main class="stage" id="stage"></main>
+
+  <section class="dock" id="dock">
+    <button class="dock-hd" id="dock-hd" aria-expanded="true" aria-controls="dock-body">
+      <b>セッションの記録</b>
+      <span class="dock-count" id="dock-count">0</span>
+      <span class="dock-caret" id="dock-caret">▲</span>
+    </button>
+    <div class="dock-body" id="dock-body"></div>
+  </section>
+</div>
+<p class="sr" id="live" aria-live="polite"></p>
+
+<script>
+/* ============================================================================
+   質問バンク  —  interview-question-bank.json をそのまま埋め込む場所
+   ----------------------------------------------------------------------------
+   下の BANK:START 〜 BANK:END の間を、JSON ファイルの中身にまるごと
+   差し替えてください（質問文・ID・カテゴリは一字も変えないこと）。
+   差し替えると "__sample__" が消え、画面上部の「サンプルデータで動作中」
+   バナーも自動的に出なくなります。
+
+   同梱の embed-bank.py を使えば一発で差し替えられます:
+       python3 embed-bank.py interview-question-bank.json
+
+   外部 fetch は一切行いません。データはこのファイルの中だけにあります。
+   ========================================================================== */
+/* BANK:START */
+const BANK = {
+  "__sample__": true,
+  "meta": {
+    "deepDiveCategories": ["A", "B", "C", "D", "H"],
+    "checkCriteria": [
+      "結論が最初",
+      "60秒以内",
+      "軸と矛盾なし",
+      "具体あり",
+      "前提共有"
+    ],
+    "logFormat": "| 日付 | ID | 結果 | 崩れた基準の番号 | 次にやること |"
+  },
+  "categories": [
+    { "id": "A", "name": "転職理由・軸" },
+    { "id": "B", "name": "キャリアの一貫性" },
+    { "id": "C", "name": "実績・再現性" },
+    { "id": "D", "name": "志望動機・企業理解" },
+    { "id": "E", "name": "強み・弱み" },
+    { "id": "F", "name": "対人・チーム" },
+    { "id": "G", "name": "数字・マネジメント" },
+    { "id": "H", "name": "懸念・空白期間" },
+    { "id": "I", "name": "条件・待遇" },
+    { "id": "J", "name": "将来像" },
+    { "id": "K", "name": "逆質問" }
+  ],
+  "questions": [
+    { "id": "A-01", "category": "A", "text": "今回、転職を考えたきっかけを教えてください。", "source": "サンプル" },
+    { "id": "A-02", "category": "A", "text": "会社を選ぶうえで、いちばん譲れない軸は何ですか。", "source": "サンプル" },
+    { "id": "B-01", "category": "B", "text": "これまでのキャリアを1分で説明してください。", "source": "サンプル" },
+    { "id": "B-02", "category": "B", "text": "前々職から前職への転職は、どういう判断でしたか。", "source": "サンプル" },
+    { "id": "C-01", "category": "C", "text": "いちばん成果が出た仕事について教えてください。", "source": "サンプル" },
+    { "id": "C-02", "category": "C", "text": "その成果は、環境が変わっても再現できますか。", "source": "サンプル" },
+    { "id": "D-01", "category": "D", "text": "なぜ当社なのか、他社ではない理由を教えてください。", "source": "サンプル" },
+    { "id": "D-02", "category": "D", "text": "当社の事業について、理解していることを聞かせてください。", "source": "サンプル" },
+    { "id": "E-01", "category": "E", "text": "ご自身の強みを、仕事の場面に即して教えてください。", "source": "サンプル" },
+    { "id": "E-02", "category": "E", "text": "弱みと、それにどう対処しているかを教えてください。", "source": "サンプル" },
+    { "id": "F-01", "category": "F", "text": "チームで意見が割れたとき、どう動きましたか。", "source": "サンプル" },
+    { "id": "G-01", "category": "G", "text": "担当された数字の規模感を教えてください。", "source": "サンプル" },
+    { "id": "H-01", "category": "H", "text": "在職期間が短い理由を教えてください。", "source": "サンプル" },
+    { "id": "H-02", "category": "H", "text": "ブランク期間は何をされていましたか。", "source": "サンプル" },
+    { "id": "I-01", "category": "I", "text": "希望年収と、その根拠を教えてください。", "source": "サンプル" },
+    { "id": "J-01", "category": "J", "text": "3年後、どうなっていたいですか。", "source": "サンプル" },
+    { "id": "K-01", "category": "K", "text": "最後に、何か質問はありますか。", "source": "サンプル" },
+    { "id": "K-02", "category": "K", "text": "入社までに準備しておくとよいことはありますか。", "source": "サンプル" }
+  ]
+};
+/* BANK:END */
+
+
+/* ── normalize ─────────────────────────────────────────────────────────────
+   JSON のキー名が多少違っても拾えるようにする。質問文・ID・カテゴリの
+   「値」には一切手を加えない（トリムも変換もしない）。                      */
+const pick = (o, keys) => {
+  for (const k of keys) if (o && o[k] !== undefined && o[k] !== null && o[k] !== '') return o[k];
+  return undefined;
+};
+
+const META = BANK.meta || BANK.Meta || {};
+const DEEP = (pick(META, ['deepDiveCategories', 'deepDive', 'deep_dive_categories']) || []).map(String);
+
+/* meta.checkCriteria が無い JSON でも判定が成立するよう、仕様の5項目を既定値にする */
+const DEFAULT_CRIT = ['結論が最初', '60秒以内', '軸と矛盾なし', '具体あり', '前提共有'];
+let RAW_CRIT = pick(META, ['checkCriteria', 'check_criteria', 'criteria']) || [];
+if (!RAW_CRIT.length) RAW_CRIT = DEFAULT_CRIT;
+const CRITERIA = RAW_CRIT.map((c, i) => {
+  const label = typeof c === 'string' ? c : (pick(c, ['label', 'name', 'text', 'title']) || String(c));
+  const note  = typeof c === 'string' ? '' : (pick(c, ['note', 'desc', 'description', 'hint']) || '');
+  const no    = typeof c === 'string' ? i + 1 : (pick(c, ['no', 'number', 'index']) ?? i + 1);
+  return { no: Number(no) || i + 1, label, note };
+});
+/* 「60秒以内」に当たる基準（超過時に自動チェックする対象）を特定 */
+const TIME_CRIT = CRITERIA.findIndex(c => /60\s*秒|一分|1\s*分|以内|time/i.test(c.label));
+
+const LOG_FORMAT = pick(META, ['logFormat', 'log_format', 'format'])
+  || '| 日付 | ID | 結果 | 崩れた基準の番号 | 次にやること |';
+/* logFormat の列数を数え、[日付, ID, 結果, 崩れた基準, 次にやること] を順に流し込む */
+const LOG_COLS = (() => {
+  const cells = LOG_FORMAT.split('|').map(s => s.trim());
+  if (cells.length && cells[0] === '') cells.shift();
+  if (cells.length && cells[cells.length - 1] === '') cells.pop();
+  return Math.max(cells.length, 1);
+})();
+
+const RAW_CATS = pick(BANK, ['categories', 'categoryList', 'cats']) || [];
+const CAT_NAME = {};
+const CAT_ORDER = [];
+if (Array.isArray(RAW_CATS)) {
+  RAW_CATS.forEach(c => {
+    if (typeof c === 'string') { CAT_NAME[c] = c; CAT_ORDER.push(c); return; }
+    const id = String(pick(c, ['id', 'key', 'code', 'category', 'categoryId']) ?? '');
+    if (!id) return;
+    CAT_NAME[id] = pick(c, ['name', 'label', 'title', 'categoryName']) || id;
+    CAT_ORDER.push(id);
+  });
+} else if (RAW_CATS && typeof RAW_CATS === 'object') {
+  Object.keys(RAW_CATS).forEach(k => {
+    const v = RAW_CATS[k];
+    CAT_NAME[k] = typeof v === 'string' ? v : (pick(v, ['name', 'label', 'title']) || k);
+    CAT_ORDER.push(k);
+  });
+}
+
+const RAW_QS = pick(BANK, ['questions', 'items', 'bank', 'questionBank']) || [];
+const QUESTIONS = RAW_QS.map((q, i) => {
+  const id   = String(pick(q, ['id', 'ID', 'qid', 'code']) ?? ('Q-' + (i + 1)));
+  let  cat   = pick(q, ['category', 'categoryId', 'cat', 'categoryID', 'group']);
+  if (cat === undefined) { const m = /^([A-Za-z]+)/.exec(id); cat = m ? m[1] : '?'; }
+  cat = String(cat);
+  const text = pick(q, ['text', 'question', 'q', 'body', 'prompt']) ?? '';
+  const src  = pick(q, ['source', 'sourceTag', 'tag', 'origin', 'src']) || '';
+  return { id, cat, text, src, i };
+});
+
+/* 質問側にしか現れないカテゴリも拾う */
+QUESTIONS.forEach(q => {
+  if (!(q.cat in CAT_NAME)) { CAT_NAME[q.cat] = q.cat; CAT_ORDER.push(q.cat); }
+});
+const COUNT_BY_CAT = {};
+QUESTIONS.forEach(q => { COUNT_BY_CAT[q.cat] = (COUNT_BY_CAT[q.cat] || 0) + 1; });
+
+/* 逆質問（K系）＝タイマーなし。カテゴリIDが K のもの。 */
+const isReverse = q => /^K/i.test(q.cat);
+const isDeep    = c => DEEP.includes(c);
+
+const LIMIT = 60; // 秒
+
+/* ── state (メモリ内のみ / 保存APIは一切使わない) ─────────────────────── */
+const S = {
+  screen: 'home',
+  mode: null,          // {kind:'cat'|'random'|'deep', cat?:string, label:string}
+  queue: [],           // 出題キュー（index の配列）
+  cursor: 0,
+  served: 0,           // このモードで出した問題数
+  q: null,
+  startedAt: 0,
+  elapsed: 0,          // ms
+  broke: new Set(),    // 崩れた基準の no
+  autoTime: false,     // 60秒超過で自動チェックしたか
+  verdict: null,       // 'g' | 'y' | 'r'
+  next: '',
+  logs: [],
+  dockOpen: true
+};
+
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+const live = $('live');
+const esc = s => String(s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const say = m => { live.textContent = m; };
+
+const mmss = ms => {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+};
+const today = () => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+       + '-' + String(d.getDate()).padStart(2, '0');
+};
+
+/* ── queue ─────────────────────────────────────────────────────────────── */
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function buildQueue(mode) {
+  if (mode.kind === 'cat')  return QUESTIONS.filter(q => q.cat === mode.cat).map(q => q.i);
+  if (mode.kind === 'deep') return shuffled(QUESTIONS.filter(q => isDeep(q.cat)).map(q => q.i));
+  return shuffled(QUESTIONS.map(q => q.i));
+}
+function startMode(mode) {
+  S.mode = mode;
+  S.queue = buildQueue(mode);
+  S.cursor = 0;
+  S.served = 0;
+  if (!S.queue.length) { render('home'); return; }
+  nextQuestion();
+}
+function nextQuestion() {
+  if (S.cursor >= S.queue.length) {                 // 一巡したら組み直して継続
+    S.queue = S.mode.kind === 'cat' ? S.queue : shuffled(S.queue);
+    S.cursor = 0;
+  }
+  S.q = QUESTIONS[S.queue[S.cursor++]];
+  S.served++;
+  S.elapsed = 0;
+  S.broke = new Set();
+  S.autoTime = false;
+  S.verdict = null;
+  S.next = '';
+  render('question');
+}
+
+/* ── timer ─────────────────────────────────────────────────────────────── */
+const R = 90, CIRC = 2 * Math.PI * R;
+let raf = 0, overFired = false, warnFired = false;
+
+function tick() {
+  if (S.screen !== 'running') return;
+  S.elapsed = Date.now() - S.startedAt;
+  paintTimer(S.elapsed);
+  raf = requestAnimationFrame(tick);
+}
+function paintTimer(ms) {
+  const el = $('timer'); if (!el) return;
+  const left = LIMIT * 1000 - ms;
+  const dig = $('digits'), lab = $('dial-lab'), fil = $('dial-fil');
+
+  if (left <= 0) {
+    el.classList.remove('is-warn'); el.classList.add('is-over');
+    dig.textContent = '+' + mmss(-left);
+    lab.textContent = '60秒 超過';
+    fil.style.strokeDashoffset = CIRC;
+    if (!overFired) { overFired = true; say('60秒経過しました'); }
+  } else {
+    el.classList.remove('is-over');
+    const warn = left <= 10000;
+    el.classList.toggle('is-warn', warn);
+    dig.textContent = mmss(left + 999);          // 残り秒は切り上げ表示
+    lab.textContent = warn ? 'まとめへ' : '残り';
+    fil.style.strokeDashoffset = CIRC * (1 - left / (LIMIT * 1000));
+    if (warn && !warnFired) { warnFired = true; say('残り10秒'); }
+  }
+}
+function stopTimer() { cancelAnimationFrame(raf); raf = 0; }
+
+/* ── copy ──────────────────────────────────────────────────────────────── */
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text); return true;
+    }
+  } catch (e) { /* fall through */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) { return false; }
+}
+async function copyFrom(el, text, hintId) {
+  const hint = $(hintId);
+  const ok = await copyText(text);
+  if (hint) {
+    hint.innerHTML = ok
+      ? '<span class="ok">コピーしました</span>'
+      : '<span class="ng">コピーできませんでした — 長押しで選択してください</span>';
+    setTimeout(() => { if (hint) hint.innerHTML = hint.dataset.idle || ''; }, 2600);
+  }
+  if (!ok && el) {                                  // 手動コピー用に選択しておく
+    const r = document.createRange(); r.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  }
+  say(ok ? 'コピーしました' : 'コピーできませんでした');
+}
+
+/* ── log line ──────────────────────────────────────────────────────────── */
+function makeLogLine() {
+  const nums = [...S.broke].sort((a, b) => a - b).join(',');
+  const cells = [
+    today(),
+    S.q.id,
+    S.verdict === 'g' ? '🟢' : S.verdict === 'y' ? '🟡' : '🔴',
+    nums || '-',
+    S.next.trim() || '-'
+  ].slice(0, LOG_COLS);
+  while (cells.length < LOG_COLS) cells.push('-');
+  return '| ' + cells.join(' | ') + ' |';
+}
+
+/* ── render ────────────────────────────────────────────────────────────── */
+function qMetaHTML(q) {
+  return '<div class="qmeta">'
+    + '<span class="tag id">' + esc(q.id) + '</span>'
+    + '<span class="tag">' + esc(CAT_NAME[q.cat] || q.cat) + '</span>'
+    + (isDeep(q.cat) ? '<span class="tag deep">深掘り対象</span>' : '')
+    + (q.src ? '<span class="tag">' + esc(q.src) + '</span>' : '')
+    + '</div>';
+}
+
+function renderRail() {
+  const w = $('rail-where'), b = $('rail-btn');
+  if (S.screen === 'home' || !S.mode) {
+    w.innerHTML = '<b>面接 60秒トレーナー</b>出題モードを選んでください';
+    b.hidden = true;
+    return;
+  }
+  const total = S.mode.kind === 'cat' ? S.queue.length : S.queue.length;
+  w.innerHTML = '<b>' + esc(S.mode.label) + '</b>'
+    + S.served + '問目 / 全' + total + '問' + (S.logs.length ? ' · 記録' + S.logs.length : '');
+  b.hidden = false;
+}
+
+function render(screen) {
+  if (screen) S.screen = screen;
+  if (S.screen !== 'running') stopTimer();
+  stage.innerHTML = VIEWS[S.screen]();
+  renderRail();
+  wire();
+  if (S.screen !== 'result') window.scrollTo(0, 0);
+}
+
+const VIEWS = {
+
+  /* トップ：モード選択 */
+  home() {
+    const deepN = QUESTIONS.filter(q => isDeep(q.cat)).length;
+    const cats = CAT_ORDER.filter((c, i) => CAT_ORDER.indexOf(c) === i);
+    return (BANK.__sample__ ? '<div class="banner"><b>サンプルデータで動作中</b>'
+        + 'まだ本番の質問バンクが入っていません。HTML内の <code>const BANK</code> を '
+        + 'interview-question-bank.json の中身に差し替えてください。</div>' : '')
+      + '<section class="card">'
+      + '<p class="eyebrow">出題モード</p>'
+      + '<h1>60秒で答える練習</h1>'
+      + '<p class="lede">1問ずつ表示します。声に出して答えてください。'
+      + 'アプリは出題・計時・セルフチェック・記録だけを行います。</p>'
+      + '</section>'
+      + '<div class="modes">'
+      + '<button class="mode" data-mode="random"><span class="mode-ico">ALL</span>'
+      + '<span class="mode-txt"><b>全体ランダム</b><span>全' + QUESTIONS.length + '問をシャッフル</span></span>'
+      + '<span class="mode-go">→</span></button>'
+      + '<button class="mode" data-mode="deep"' + (deepN ? '' : ' disabled') + '>'
+      + '<span class="mode-ico">' + esc(DEEP.length && DEEP.length <= 6 ? DEEP.join('') : '深掘り') + '</span>'
+      + '<span class="mode-txt"><b>深掘り対象のみ</b><span>'
+      + esc(DEEP.join('・')) + ' の' + deepN + '問</span></span>'
+      + '<span class="mode-go">→</span></button>'
+      + '</div>'
+      + '<section><p class="eyebrow" style="margin:4px 0 9px">カテゴリ別</p>'
+      + '<div class="catgrid">'
+      + cats.map(c => {
+          const n = COUNT_BY_CAT[c] || 0;
+          return '<button class="cat' + (isDeep(c) ? ' is-deep' : '') + '" data-cat="' + esc(c) + '"'
+            + (n ? '' : ' disabled') + '>'
+            + '<span class="cat-k">' + esc(c) + '</span>'
+            + '<span class="cat-n">' + esc(CAT_NAME[c] || c) + '<small>' + n + '問'
+            + (/^K/i.test(c) ? ' · 計時なし' : '') + '</small></span></button>';
+        }).join('')
+      + '</div></section>';
+  },
+
+  /* 出題（開始前） */
+  question() {
+    const q = S.q, rev = isReverse(q);
+    return '<section class="card">' + qMetaHTML(q)
+      + '<p class="qtext">' + esc(q.text) + '</p></section>'
+      + (rev
+        ? '<section class="card"><p class="eyebrow">逆質問</p>'
+          + '<p class="lede">この会社に対して、実際に言えますか。'
+          + '声に出してみて、言えたかどうかで判定してください。<br>'
+          + '<b>この設問はタイマーを使いません。</b></p></section>'
+          + '<div class="acts">'
+          + '<button class="btn btn-good" data-act="rev-ok">🟢　言える</button>'
+          + '<button class="btn btn-bad" data-act="rev-ng">🔴　言えない</button>'
+          + '</div>'
+        : '<div class="acts">'
+          + '<button class="btn btn-primary" data-act="start">開始（60秒）</button>'
+          + '<button class="btn btn-quiet" data-act="skip">言えなかった</button>'
+          + '</div>')
+      + '<button class="btn-txt" data-act="pass">この問題を飛ばす</button>';
+  },
+
+  /* 計時中 */
+  running() {
+    const q = S.q;
+    return '<section class="card">' + qMetaHTML(q)
+      + '<p class="qtext">' + esc(q.text) + '</p></section>'
+      + '<div class="timer" id="timer">'
+      + '<div class="dial">'
+      + '<svg viewBox="0 0 200 200" aria-hidden="true">'
+      + '<circle class="trk" cx="100" cy="100" r="' + R + '"></circle>'
+      + '<circle class="fil" id="dial-fil" cx="100" cy="100" r="' + R + '"'
+      + ' stroke-dasharray="' + CIRC.toFixed(2) + '" stroke-dashoffset="0"></circle>'
+      + '</svg>'
+      + '<div class="dial-mid"><span class="digits" id="digits" role="timer">1:00</span>'
+      + '<span class="dial-lab" id="dial-lab">残り</span></div>'
+      + '</div>'
+      + '<p class="dial-hint">声に出して答えてください</p>'
+      + '</div>'
+      + '<div class="acts">'
+      + '<button class="btn btn-primary" data-act="done">答え終わった</button>'
+      + '<button class="btn btn-quiet" data-act="skip">言えなかった</button>'
+      + '</div>';
+  },
+
+  /* セルフチェック */
+  check() {
+    const over = S.elapsed > LIMIT * 1000;
+    return '<section class="card">'
+      + '<p class="eyebrow">セルフチェック</p>'
+      + '<div class="elapsed' + (over ? ' over' : '') + '">'
+      + '<span>話した時間</span><b>' + mmss(S.elapsed) + '</b></div>'
+      + '<h1 style="font-size:17px;margin-bottom:4px">崩れたものにチェック</h1>'
+      + '<p class="lede">できていた項目は触らなくて大丈夫です。'
+      + 'チェック0個なら🟢、1個以上なら🟡になります。</p>'
+      + '</section>'
+      + '<ul class="crits">'
+      + CRITERIA.map((c, i) => {
+          const on = S.broke.has(c.no);
+          const auto = S.autoTime && i === TIME_CRIT;
+          return '<li><button class="crit" data-crit="' + c.no + '" aria-pressed="' + on + '">'
+            + '<span class="crit-no">' + c.no + '</span>'
+            + '<span class="crit-lab">' + esc(c.label)
+            + (c.note ? '<small>' + esc(c.note) + '</small>'
+                      : (auto ? '<small>60秒を超えたため自動でチェックしました</small>' : ''))
+            + '</span>'
+            + (auto ? '<span class="crit-auto">自動</span>' : '')
+            + '<span class="crit-box" aria-hidden="true">✓</span>'
+            + '</button></li>';
+        }).join('')
+      + '</ul>'
+      + '<div class="acts">'
+      + '<button class="btn btn-primary" data-act="judge">判定する</button>'
+      + '<button class="btn btn-quiet" data-act="skip">言えなかった（🔴）</button>'
+      + '</div>';
+  },
+
+  /* 判定＋記録 */
+  result() {
+    const v = S.verdict;
+    const meta = {
+      g: ['🟢', '60秒で言えた', 'チェック0個。この形を固めましょう。'],
+      y: ['🟡', '言えたが崩れた', '崩れた基準：' + [...S.broke].sort((a, b) => a - b)
+            .map(n => n + '. ' + (CRITERIA.find(c => c.no === n) || {}).label).join(' / ')],
+      r: ['🔴', '言えなかった', 'まず一文目の結論だけ用意しておきましょう。']
+    }[v];
+    const line = makeLogLine();
+    const rev = isReverse(S.q);
+    return '<section class="card">' + qMetaHTML(S.q)
+      + '<div class="verdict ' + v + '">'
+      + '<span class="verdict-ico">' + meta[0] + '</span>'
+      + '<span class="verdict-txt"><b>' + esc(meta[1]) + '</b><span>' + esc(meta[2]) + '</span></span>'
+      + '</div>'
+      + (rev || v === 'r' ? '' :
+          '<div class="elapsed' + (S.elapsed > LIMIT * 1000 ? ' over' : '') + '" style="margin-bottom:15px">'
+          + '<span>話した時間</span><b>' + mmss(S.elapsed) + '</b></div>')
+      + '<label class="field"><span>次にやること（省略可）</span>'
+      + '<input id="next" type="text" inputmode="text" enterkeyhint="done" maxlength="120"'
+      + ' placeholder="例：冒頭を「結論は〜」で始める" value="' + esc(S.next) + '"></label>'
+      + '<p class="eyebrow" style="margin:0 0 8px">ログ行</p>'
+      + '<button class="logline" id="line" data-act="copyline">' + esc(line) + '</button>'
+      + '<p class="copyhint" id="line-hint" data-idle="タップでコピー">'
+      + '<span>タップでコピー</span></p>'
+      + '</section>'
+      + '<div class="acts">'
+      + '<button class="btn btn-primary" data-act="next">次の問題へ</button>'
+      + '</div>';
+  }
+};
+
+/* ── dock ──────────────────────────────────────────────────────────────── */
+function renderDock() {
+  $('dock-count').textContent = S.logs.length;
+  $('dock-caret').textContent = S.dockOpen ? '▲' : '▼';
+  $('dock-hd').setAttribute('aria-expanded', String(S.dockOpen));
+  const body = $('dock-body');
+  body.hidden = !S.dockOpen;
+  if (!S.logs.length) {
+    body.innerHTML = '<p class="empty">まだ記録がありません。'
+      + '判定まで進むと、ここにログ行が溜まります。'
+      + '<br>保存はしません — コピーして外に持ち出してください。</p>';
+    return;
+  }
+  const tally = { g: 0, y: 0, r: 0 };
+  S.logs.forEach(l => tally[l.v]++);
+  body.innerHTML =
+      '<p class="dock-tally"><span>🟢 <b>' + tally.g + '</b></span>'
+    + '<span>🟡 <b>' + tally.y + '</b></span>'
+    + '<span>🔴 <b>' + tally.r + '</b></span></p>'
+    + S.logs.map((l, i) =>
+        '<button class="logline" data-log="' + i + '">' + esc(l.line) + '</button>').join('')
+    + '<p class="copyhint" id="dock-hint" data-idle="1行タップでその行だけコピー">'
+    + '<span>1行タップでその行だけコピー</span></p>'
+    + '<button class="btn btn-quiet btn-sm" data-act="copyall">'
+    + '全' + S.logs.length + '行をまとめてコピー</button>';
+}
+
+/* ── actions ───────────────────────────────────────────────────────────── */
+function commitLog() {
+  S.logs.push({ line: makeLogLine(), v: S.verdict });
+  renderDock();
+  renderRail();
+}
+
+const ACTS = {
+  start() {
+    S.startedAt = Date.now();
+    S.elapsed = 0;
+    overFired = false; warnFired = false;
+    render('running');
+    paintTimer(0);
+    raf = requestAnimationFrame(tick);
+    say('60秒の計測を開始しました');
+  },
+  done() {
+    stopTimer();
+    S.elapsed = Date.now() - S.startedAt;
+    if (S.elapsed > LIMIT * 1000 && TIME_CRIT >= 0) {
+      S.broke.add(CRITERIA[TIME_CRIT].no);
+      S.autoTime = true;
+    }
+    render('check');
+  },
+  judge() {
+    S.verdict = S.broke.size === 0 ? 'g' : 'y';
+    commitLog();
+    render('result');
+  },
+  skip() {                       // 「言えなかった」→ 🔴
+    stopTimer();
+    if (S.screen === 'running') S.elapsed = Date.now() - S.startedAt;
+    S.verdict = 'r';
+    commitLog();
+    render('result');
+  },
+  'rev-ok'() { S.verdict = 'g'; commitLog(); render('result'); },
+  'rev-ng'() { S.verdict = 'r'; commitLog(); render('result'); },
+  pass()  { nextQuestion(); },   // 記録せず次へ
+  next()  { nextQuestion(); },
+  home()  { stopTimer(); S.mode = null; S.q = null; render('home'); },
+  copyline() { copyFrom($('line'), makeLogLine(), 'line-hint'); },
+  copyall()  {
+    const all = S.logs.map(l => l.line).join('\n');
+    copyFrom($('dock-body'), all, 'dock-hint');
+  }
+};
+
+function wire() {
+  stage.querySelectorAll('[data-act]').forEach(el => {
+    el.addEventListener('click', () => ACTS[el.dataset.act] && ACTS[el.dataset.act]());
+  });
+  stage.querySelectorAll('[data-mode]').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.mode;
+      startMode({ kind: k, label: k === 'deep' ? '深掘り対象のみ' : '全体ランダム' });
+    });
+  });
+  stage.querySelectorAll('[data-cat]').forEach(el => {
+    el.addEventListener('click', () => {
+      const c = el.dataset.cat;
+      startMode({ kind: 'cat', cat: c, label: c + '　' + (CAT_NAME[c] || c) });
+    });
+  });
+  stage.querySelectorAll('[data-crit]').forEach(el => {
+    el.addEventListener('click', () => {
+      const no = Number(el.dataset.crit);
+      if (S.broke.has(no)) S.broke.delete(no); else S.broke.add(no);
+      el.setAttribute('aria-pressed', String(S.broke.has(no)));
+    });
+  });
+  const nx = $('next');
+  if (nx) {
+    nx.addEventListener('input', () => {
+      S.next = nx.value;
+      const line = makeLogLine();
+      $('line').textContent = line;
+      if (S.logs.length) { S.logs[S.logs.length - 1].line = line; renderDock(); }
+    });
+    nx.addEventListener('keydown', e => { if (e.key === 'Enter') nx.blur(); });
+  }
+}
+
+/* dock は一度だけ配線（stage の再描画とは独立） */
+$('dock-hd').addEventListener('click', () => { S.dockOpen = !S.dockOpen; renderDock(); });
+$('dock-body').addEventListener('click', e => {
+  const row = e.target.closest('[data-log]');
+  if (row) { copyFrom(row, S.logs[Number(row.dataset.log)].line, 'dock-hint'); return; }
+  const btn = e.target.closest('[data-act]');
+  if (btn && ACTS[btn.dataset.act]) ACTS[btn.dataset.act]();
+});
+$('rail-btn').addEventListener('click', ACTS.home);
+
+/* タブが隠れている間も実時間で進むよう、復帰時に描き直す */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && S.screen === 'running') {
+    S.elapsed = Date.now() - S.startedAt;
+    paintTimer(S.elapsed);
+  }
+});
+
+renderDock();
+render('home');
+</script>
