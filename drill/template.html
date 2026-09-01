@@ -189,8 +189,8 @@
     place-items: center;
     margin-top: .18rem;
   }
-  .case .t { font-weight: 700; font-size: 1rem; line-height: 1.55; letter-spacing: .01em; }
-  .case .aim { font-size: .8rem; color: var(--ink-2); line-height: 1.65; margin-top: .1rem; }
+  .case .t { display: block; font-weight: 700; font-size: 1rem; line-height: 1.55; letter-spacing: .01em; }
+  .case .aim { display: block; font-size: .8rem; color: var(--ink-2); line-height: 1.65; margin-top: .15rem; }
   .case .done {
     display: inline-block;
     font-family: "IBM Plex Mono", monospace;
@@ -275,6 +275,25 @@
 
   .panel.lead { border-left: 3px solid var(--shu); background: var(--shu-soft); border-color: var(--shu-soft); }
   .panel.lead .label { color: var(--shu); }
+
+  details.recap { background: var(--card-2); }
+  details.recap > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    font-size: .68rem;
+    letter-spacing: .18em;
+    font-weight: 700;
+    color: var(--ink-3);
+  }
+  details.recap > summary::-webkit-details-marker { display: none; }
+  details.recap > summary::after { content: "開く"; letter-spacing: .06em; color: var(--ai); }
+  details.recap[open] > summary::after { content: "閉じる"; }
+  details.recap[open] > summary { margin-bottom: .6rem; }
+  details.recap p { font-size: .86rem; color: var(--ink-2); }
 
   .prompt {
     font-weight: 700;
@@ -510,14 +529,14 @@
     border-radius: 2px;
     padding: .8rem .85rem;
     cursor: pointer;
-    overflow-x: auto;
   }
   .copyrow:hover { border-color: var(--ai); border-style: solid; }
   .copyrow code {
     font-family: "IBM Plex Mono", monospace;
     font-size: .74rem;
     line-height: 1.9;
-    white-space: pre;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
     color: var(--ink);
   }
   .taphint { font-size: .74rem; color: var(--ink-3); margin-top: .4rem; letter-spacing: .04em; }
@@ -748,8 +767,8 @@ function renderQuestion() {
   if (state.qIndex === 0) {
     html += '<div class="panel"><span class="label">状況</span><p>' + esc(c.scenario) + "</p></div>";
   } else {
-    html += '<div class="panel" style="background:var(--card-2)"><span class="label">状況（再掲）</span><p style="font-size:.86rem;color:var(--ink-2)">' +
-      esc(c.scenario) + "</p></div>";
+    html += '<details class="panel recap"><summary>状況（再掲）</summary><p>' +
+      esc(c.scenario) + "</p></details>";
   }
 
   if (q.lead && q.lead.trim()) {
@@ -868,8 +887,9 @@ function renderReview() {
   c.questions.forEach(function (q, qi) {
     const p = state.picks[qi];
     const hit = p.choice === q.answer;
-    html += '<section class="qreview"><h3><span>設問' + (qi + 1) + "</span>" +
-      '<span class="tag">' + (hit ? "正解" : "不正解") + " ／ あなた " + SYM[p.choice] + " ・ 正解 " + SYM[q.answer] + "</span></h3>";
+    html += '<section class="qreview"><h3><span>設問' + (qi + 1) +
+      '<span class="chip ' + (hit ? "c" : "y") + '" style="margin-left:.5rem">' + (hit ? "正解" : "不正解") + "</span></span>" +
+      '<span class="tag">あなた ' + SYM[p.choice] + " ／ 正解 " + SYM[q.answer] + "</span></h3>";
     html += '<p class="qtext">' + esc(q.prompt) + "</p>";
 
     html += '<div class="myreason"><span class="label">あなたが書いた理由</span><p>' + esc(p.reason) + "</p></div>";
