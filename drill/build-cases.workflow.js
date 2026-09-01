@@ -10,7 +10,8 @@ export const meta = {
   ],
 }
 
-const SCRATCH = '/tmp/claude-0/-home-user-environment-sample-app/12b75d1b-8e16-59e7-a5ad-1909687784bb/scratchpad'
+// 作業ディレクトリ。リポジトリ直下で実行する場合は drill を指す。
+const SCRATCH = 'drill'
 const SPEC = SCRATCH + '/spec.md'
 
 const CASES = [
