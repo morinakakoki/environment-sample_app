@@ -40,6 +40,47 @@ for(let i=0;i<3;i++){
 await p.locator('#screenResult:not(.hidden)').waitFor();
 ok(await p.locator('#rsReview .srcline a').count()>=1,'振り返り一覧にも出典が出る');
 ok(errs.length===0,'例外なし'+(errs.length?': '+errs[0]:''));
+
+/* 出典リンクの表示が、実際の遷移先と食い違わないか。
+   入力文字列を切り出してドメインを出すと、キリル文字の e やタブ入り userinfo で
+   本物そっくりの表示のまま別サイトへ飛ばせる。 */
+console.log('\n【リンク偽装】表示ドメインと実際の遷移先が一致するか');
+{
+  const CASES = [
+    ['https://cloud.googlе.com/bigquery/docs', 'IDN ホモグラフ（е はキリル文字）'],
+    ['https://cloud.google.com\t@evil.example/phish', 'タブ入り userinfo'],
+    ['https://cloud.google.com\n@evil.example/phish', '改行入り userinfo'],
+    ['https://user:pw@evil.example/x', '素の userinfo'],
+  ];
+  const p2 = await c.newPage();
+  await p2.route('**/quiz-data.json', r => r.fulfill({ contentType:'application/json',
+    body: JSON.stringify(CASES.map((cs, i) => ({
+      id: 100 + i, chapter: 1, tag: '#1', q: '偽装URLの問題' + i,
+      options: ['あ' + i, 'い', 'う', 'え'], answer: 0, explanation: '解説',
+      source: cs[0], addedAt: '2026-12-31' }))) }));
+  await p2.goto('http://localhost:8777/index.html', { waitUntil:'networkidle' });
+  await p2.locator('#screenHome:not(.hidden)').waitFor();
+  await p2.locator('#modeRecent').click();
+  await p2.locator('#screenQuiz:not(.hidden)').waitFor();
+  for (let i = 0; i < CASES.length; i++) {
+    await p2.locator('#qOpts .opt').nth(0).click();
+    await p2.locator('#qVerdict:not(.hidden)').waitFor();
+    const a = p2.locator('#qVerdict .srcline a');
+    if (await a.count()) {
+      const label = (await a.textContent()).trim();
+      const host = await a.evaluate(n => n.hostname);
+      ok(label === host,
+         `表示が実際のホストと一致する（"${label}" / 実際 "${host}"）`);
+      ok(!/^cloud\.google\.com$/.test(label) || host === 'cloud.google.com',
+         `本物のドメインを騙っていない: "${label}"`);
+    } else {
+      ok(true, 'リンクにしない（' + CASES[i][1] + '）');
+    }
+    if (i < CASES.length - 1) await p2.locator('#nextBtn').click();
+  }
+  await p2.close();
+}
+
 await b.close();
 console.log('\n'+(f.length?`FAILURES (${f.length}):\n - `+f.join('\n - '):'ALL PASS'));
 process.exit(f.length?1:0);

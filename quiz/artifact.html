@@ -1586,14 +1586,20 @@ function answer(i){
 function sourceLink(url){
   var wrap = el('div', 'srcline');
   wrap.appendChild(el('span', 'lbl', '出典'));
-  if(/^https?:\/\//i.test(url)){
+  /* 表示するドメインは、入力文字列を切り出すのではなく URL パーサに出させる。
+     文字列を切ると、実際の遷移先と違うドメインを表示させられる:
+       https://cloud.googlе.com/…      … е がキリル文字（見た目は本物）
+       https://cloud.google.com\t@evil/… … ブラウザはタブを除去し evil へ飛ぶ
+     hostname は punycode（xn--…）で返り、userinfo も落ちるので偽装が見える。 */
+  var u = null;
+  try{ u = new URL(url); }catch(e){ u = null; }
+  if(u && (u.protocol === 'https:' || u.protocol === 'http:')){
     var a = document.createElement('a');
-    a.href = url;
+    a.href = u.href;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    var host = url.replace(/^https?:\/\//i, '').split('/')[0];
-    a.textContent = host;
-    a.title = url;
+    a.textContent = u.hostname;
+    a.title = u.href;
     wrap.appendChild(a);
   }else{
     wrap.appendChild(el('span', 'muted', url));
