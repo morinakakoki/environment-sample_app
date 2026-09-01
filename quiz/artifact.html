@@ -309,6 +309,21 @@ h1,h2,h3{line-height:1.4;margin:0}
 }
 .notice b{color:var(--warn)}
 .empty{text-align:center;color:var(--muted);font-size:14px;padding:22px 8px;line-height:1.8}
+
+/* 学習の記録 */
+.chartbox{width:100%;overflow-x:auto}
+.chartbox svg{display:block;width:100%;height:auto}
+.lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0 0}
+.lgd i{display:inline-block;width:16px;height:0;border-top-width:2px;border-top-style:solid;
+  vertical-align:middle;margin-right:5px}
+.mrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.mrow:first-child{border-top:0}
+.mrow .mn{flex:none;width:96px;font-size:12.5px;color:var(--fg-soft);line-height:1.45}
+.mrow .msp{flex:1;min-width:0}
+.mrow .msp svg{display:block;width:100%;height:auto}
+.mrow .mv{flex:none;width:56px;text-align:right;font-size:13px;font-weight:700;
+  font-variant-numeric:tabular-nums}
+.mrow .mv small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
 .muted{color:var(--muted)}
 .hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.6}
 code,kbd{
@@ -474,6 +489,8 @@ python3 -m http.server 8000
     <div class="card" id="histCard">
       <h2>最近のセッション</h2>
       <div class="hist" id="histList"></div>
+      <div style="height:11px"></div>
+      <button class="btn btn-ghost" id="progBtn" type="button">学習の記録（推移）を見る</button>
     </div>
 
     <div class="card">
@@ -555,6 +572,45 @@ python3 -m http.server 8000
     </div>
   </section>
 
+  <!-- 学習の記録 -->
+  <section id="screenProgress" class="hidden">
+    <div class="card">
+      <h2>学習の記録</h2>
+      <div class="stats">
+        <div class="stat"><b id="pgCover">–</b><span>カバー率</span></div>
+        <div class="stat is-ok"><b id="pgRetain">–</b><span>定着率</span></div>
+        <div class="stat"><b id="pgSessions">0</b><span>セッション</span></div>
+      </div>
+      <p class="hint" style="text-align:left">
+        <b>カバー率</b>＝一度でも正解できた問題の割合。<b>定着率</b>＝いま「直近正解」の状態にある割合。
+        忘れると下がるので、復習どきの目安になります。
+      </p>
+    </div>
+
+    <div class="card" id="pgCurveCard">
+      <h2>カバー率と定着率の推移</h2>
+      <div id="pgCurve" class="chartbox"></div>
+      <p class="hint" style="text-align:left">
+        <b>正答率の推移はあえて出していません。</b>このアプリは間違えた問題を優先して出すので、
+        上達するほど難しい問題ばかり並び、正答率は上がりません。伸びているかどうかは
+        上の2本で見てください。
+      </p>
+    </div>
+
+    <div class="card" id="pgMethodCard">
+      <h2>方式別の定着</h2>
+      <p class="hint" style="text-align:left;margin:-4px 0 12px">
+        方式設計書のどこが言葉にできて、どこがまだかの推移です。数字はいまの定着率。
+      </p>
+      <div id="pgMethods"></div>
+    </div>
+
+    <div class="card">
+      <button class="btn btn-ghost" id="pgBackBtn" type="button">ホームに戻る</button>
+      <p class="hint" id="pgNote"></p>
+    </div>
+  </section>
+
   <!-- 結果 -->
   <section id="screenResult" class="hidden">
     <div class="card">
@@ -598,7 +654,10 @@ var DATA_URL   = 'quiz-data.json';
 var LS_KEY     = 'gcpQuiz.v1';
 var LS_THEME   = 'gcpQuiz.theme';
 var PICK_N     = 10;          // 「全範囲」「最近追加」の出題数
-var HIST_MAX   = 20;          // 保存するセッション履歴の件数
+/* 保存するセッション履歴の件数。学習曲線をここから描くので長めに持つ。
+   1件 200〜300 バイト程度なので、200件でも 60KB 弱にしかならない。 */
+var HIST_MAX   = 200;
+var HIST_SHOW  = 20;          // ホームの「最近のセッション」に出す件数
 var SESS_MAX   = 60;          // 1セッションの最大出題数（章別が巨大化したときの保険）
 
 /* 章タイトルの既定値。quiz-data.json が {chapters:{...},questions:[...]} 形式なら
@@ -1040,14 +1099,15 @@ function buildSession(mode, chapter){
 /* ============================================================
    6. 画面遷移
    ============================================================ */
-var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult','screenAdd'];
+var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult','screenAdd','screenProgress'];
 function goto(name){
   SCREENS.forEach(function(s){
     var n = $(s);
     if(!n) return;
     if(s === name) show(n); else hide(n);
   });
-  if(name === 'screenQuiz' || name === 'screenResult' || name === 'screenAdd') show($('homeBtn')); else hide($('homeBtn'));
+  if(name === 'screenQuiz' || name === 'screenResult' || name === 'screenAdd' || name === 'screenProgress')
+    show($('homeBtn')); else hide($('homeBtn'));
   $('brandSub').textContent = (name === 'screenQuiz' && session) ? session.label : 'ポートフォリオ復習用';
   window.scrollTo(0, 0);
 }
@@ -1169,10 +1229,11 @@ function renderHome(){
   var hl = $('histList');
   clear(hl);
   if(!state.sessions.length){
-    hide($('histCard'));
+    /* カードごと隠すと、中にある「推移を見る」に辿り着けなくなる。
+       一覧だけを空表示にしてカードは残す。 */
+    hl.appendChild(el('div', 'empty', 'まだ記録がありません。1セッション解くとここに出ます。'));
   }else{
-    show($('histCard'));
-    state.sessions.slice(0, HIST_MAX).forEach(function(h){
+    state.sessions.slice(0, HIST_SHOW).forEach(function(h){
       var row = el('div', 'histrow');
       row.appendChild(el('span', 'hw', fmtWhen(h.at)));
       row.appendChild(el('span', 'hm', h.label || ''));
@@ -1190,6 +1251,222 @@ function fmtWhen(iso){
     var hh = ('0' + d.getHours()).slice(-2), mi = ('0' + d.getMinutes()).slice(-2);
     return mm + '/' + dd + ' ' + hh + ':' + mi;
   }catch(e){ return ''; }
+}
+
+/* ============================================================
+   7.5 学習の記録（カバー率・定着率の推移）
+
+   セッション履歴の明細（"@<日時>|<id>:1,..."）を古い順にたどり直して、
+   その時点での「一度でも正解できた問題」と「直近正解の問題」を数える。
+   新しく記録する項目は無い。すでに取ってあるデータを読み直すだけ。
+
+   分母は「いまある問題」で固定する。あとから問題が増えるので、
+   当時の問題数で割ると過去の値が実際より高く出てしまうため。
+   ============================================================ */
+var SVGNS = 'http://www.w3.org/2000/svg';
+function svg(tag, attrs){
+  var n = document.createElementNS(SVGNS, tag), k;
+  for(k in attrs){ if(Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]); }
+  return n;
+}
+
+function buildProgress(){
+  var inSet = {}, methodOf = {};
+  QUESTIONS.forEach(function(q){ inSet[q.id] = true; methodOf[q.id] = q.method || ''; });
+
+  var methods = methodList();
+  var mTotal = {};
+  methods.forEach(function(m){ mTotal[m] = poolMethod(m).length; });
+
+  // 古い順に。明細があって、アプリが書いたものだけ使う。
+  var runs = [];
+  state.sessions.forEach(function(h){
+    var d = parseDetail(h.detail || '');
+    if(!d.trusted || !d.pairs.length) return;
+    runs.push({ at: d.at || h.at, label: h.label || '', pairs: d.pairs, truncated: d.truncated });
+  });
+  runs.sort(function(a, b){ return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
+
+  var everOK = {}, lastOK = {}, points = [], truncated = false;
+  runs.forEach(function(r){
+    if(r.truncated) truncated = true;
+    r.pairs.forEach(function(p){
+      if(!inSet[p.id]) return;            // 消された問題は数えない
+      if(p.ok){ everOK[p.id] = true; lastOK[p.id] = true; }
+      else lastOK[p.id] = false;
+    });
+    var cover = 0, retain = 0, mRetain = {};
+    methods.forEach(function(m){ mRetain[m] = 0; });
+    QUESTIONS.forEach(function(q){
+      if(everOK[q.id]) cover++;
+      if(lastOK[q.id]){ retain++; if(mRetain[methodOf[q.id]] !== undefined) mRetain[methodOf[q.id]]++; }
+    });
+    points.push({ at:r.at, label:r.label, cover:cover, retain:retain, m:mRetain });
+  });
+
+  // いまの正（state.stats）。曲線の末尾とズレたら、古い履歴が落ちている印。
+  var nowCover = 0, nowRetain = 0;
+  QUESTIONS.forEach(function(q){
+    var s = statOf(q.id);
+    if(s && (s.correct | 0) > 0) nowCover++;
+    if(statusOf(q.id) === 'ok') nowRetain++;
+  });
+
+  var last = points.length ? points[points.length - 1] : null;
+  return {
+    total: QUESTIONS.length,
+    methods: methods, mTotal: mTotal,
+    points: points,
+    nowCover: nowCover, nowRetain: nowRetain,
+    truncated: truncated,
+    incomplete: !!last && (last.cover < nowCover)   // 履歴が切り詰められている
+  };
+}
+
+/* 折れ線1枚。x は等間隔（回数）、y は 0〜100%。 */
+function lineChart(points, series){
+  var W = 340, H = 170, L = 30, R = 8, T = 10, B = 24;
+  var iw = W - L - R, ih = H - T - B;
+  var s = svg('svg', { viewBox:'0 0 ' + W + ' ' + H, role:'img' });
+  var n = points.length;
+  var x = function(i){ return n < 2 ? L + iw / 2 : L + iw * i / (n - 1); };
+  var y = function(v){ return T + ih * (1 - v / 100); };
+
+  [0, 25, 50, 75, 100].forEach(function(v){
+    s.appendChild(svg('line', { x1:L, y1:y(v), x2:W - R, y2:y(v),
+      stroke:'var(--line)', 'stroke-width':1 }));
+    var t = svg('text', { x:L - 6, y:y(v) + 4, 'text-anchor':'end',
+      fill:'var(--muted)', 'font-size':10 });
+    t.textContent = v;
+    s.appendChild(t);
+  });
+
+  series.forEach(function(se){
+    var pts = points.map(function(p, i){ return x(i) + ',' + y(se.get(p)); }).join(' ');
+    if(n === 1){
+      s.appendChild(svg('circle', { cx:x(0), cy:y(se.get(points[0])), r:3.5, fill:se.color }));
+    }else{
+      var pl = svg('polyline', { points:pts, fill:'none', stroke:se.color,
+        'stroke-width':2, 'stroke-linejoin':'round', 'stroke-linecap':'round' });
+      if(se.dash) pl.setAttribute('stroke-dasharray', '4 3');
+      s.appendChild(pl);
+    }
+    var lp = points[n - 1];
+    s.appendChild(svg('circle', { cx:x(n - 1), cy:y(se.get(lp)), r:3, fill:se.color }));
+  });
+
+  if(n){
+    var a = svg('text', { x:L, y:H - 6, fill:'var(--muted)', 'font-size':10 });
+    a.textContent = fmtDay(points[0].at);
+    s.appendChild(a);
+    if(n > 1){
+      var b = svg('text', { x:W - R, y:H - 6, 'text-anchor':'end',
+        fill:'var(--muted)', 'font-size':10 });
+      b.textContent = fmtDay(points[n - 1].at);
+      s.appendChild(b);
+    }
+  }
+  return s;
+}
+
+/* 方式ごとの小さな折れ線 */
+function sparkline(vals){
+  var W = 100, H = 24, P = 2;
+  var s = svg('svg', { viewBox:'0 0 ' + W + ' ' + H, preserveAspectRatio:'none', 'aria-hidden':'true' });
+  var n = vals.length;
+  s.appendChild(svg('line', { x1:0, y1:H - P, x2:W, y2:H - P, stroke:'var(--line)', 'stroke-width':1 }));
+  if(!n) return s;
+  var x = function(i){ return n < 2 ? W / 2 : W * i / (n - 1); };
+  /* 0% を土台の線とちょうど重ねない。重なると「まだ0の区間」が
+     消えてしまい、線が途中から始まったように見える。 */
+  var y = function(v){ return P + (H - P * 2 - 2) * (1 - v / 100); };
+  if(n === 1){
+    s.appendChild(svg('circle', { cx:x(0), cy:y(vals[0]), r:2, fill:'var(--accent)' }));
+    return s;
+  }
+  s.appendChild(svg('polyline', {
+    points: vals.map(function(v, i){ return x(i) + ',' + y(v); }).join(' '),
+    fill:'none', stroke:'var(--accent)', 'stroke-width':1.5,
+    'stroke-linejoin':'round', 'stroke-linecap':'round',
+    'vector-effect':'non-scaling-stroke' }));
+  return s;
+}
+
+function fmtDay(iso){
+  try{
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }catch(e){ return ''; }
+}
+
+function renderProgress(){
+  var pg = buildProgress();
+  var pct = function(v){ return pg.total ? Math.round(v / pg.total * 100) : 0; };
+
+  $('pgCover').textContent    = pg.total ? pct(pg.nowCover) + '%' : '–';
+  $('pgRetain').textContent   = pg.total ? pct(pg.nowRetain) + '%' : '–';
+  $('pgSessions').textContent = pg.points.length;
+
+  var curve = $('pgCurve');
+  clear(curve);
+  if(pg.points.length < 2){
+    curve.appendChild(el('div', 'empty',
+      pg.points.length
+        ? 'あと1回解くと推移が出ます。（いまは1セッションぶんだけです）'
+        : 'まだ記録がありません。1セッション解くとここに出ます。'));
+    hide($('pgMethodCard'));
+  }else{
+    show($('pgMethodCard'));
+    curve.appendChild(lineChart(pg.points, [
+      { color:'var(--accent)', get:function(p){ return pct(p.cover); } },
+      { color:'var(--muted)', dash:true, get:function(p){ return pct(p.retain); } }
+    ]));
+    var lg = el('div', 'lgd');
+    [['カバー率', 'var(--accent)', false], ['定着率', 'var(--muted)', true]].forEach(function(t){
+      var sp = el('span', null, t[0]);
+      var i = document.createElement('i');
+      i.style.borderTopColor = t[1];
+      if(t[2]) i.style.borderTopStyle = 'dashed';
+      sp.insertBefore(i, sp.firstChild);
+      lg.appendChild(sp);
+    });
+    curve.appendChild(lg);
+  }
+
+  // 方式別
+  var mm = $('pgMethods');
+  clear(mm);
+  pg.methods.forEach(function(m){
+    var tot = pg.mTotal[m] || 0;
+    if(!tot) return;
+    var vals = pg.points.map(function(p){ return Math.round((p.m[m] || 0) / tot * 100); });
+    var now = vals.length ? vals[vals.length - 1] : 0;
+    var row = el('div', 'mrow');
+    row.appendChild(el('span', 'mn', m));
+    var sp = el('span', 'msp');
+    sp.appendChild(sparkline(vals));
+    row.appendChild(sp);
+    var v = el('span', 'mv', now + '%');
+    var small = document.createElement('small');
+    small.textContent = tot + '問';
+    v.appendChild(small);
+    row.appendChild(v);
+    mm.appendChild(row);
+  });
+  if(!mm.firstChild) mm.appendChild(el('div', 'empty', '方式が設定された問題がまだありません。'));
+
+  // 注記。曲線がどこまで信用できるかを隠さない。
+  var notes = [];
+  notes.push('曲線は保存されている ' + pg.points.length + ' セッションから組み直しています（分母はいまの ' + pg.total + '問）。');
+  if(pg.incomplete){
+    notes.push('古い履歴が保存件数の上限で落ちているため、左端は実際より低めに出ます'
+      + '（上の数字はいまの正しい値です）。');
+  }
+  if(pg.truncated){
+    notes.push('明細が長すぎて一部が記録しきれていないセッションがあります。');
+  }
+  $('pgNote').textContent = notes.join(' ');
 }
 
 /* ============================================================
@@ -2233,6 +2510,9 @@ function wire(){
 
   $('addBtn').addEventListener('click', openAdd);
   $('addBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
+
+  $('progBtn').addEventListener('click', function(){ renderProgress(); goto('screenProgress'); });
+  $('pgBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
   $('addCheckBtn').addEventListener('click', addCheck);
   /* 確認したあとに本文を書き換えたら、確認結果を捨てる。
      画面と違う内容が保存されるのを防ぐ。 */
