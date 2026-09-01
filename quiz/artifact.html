@@ -440,7 +440,7 @@ python3 -m http.server 8000
         <div class="stat is-ng"><b id="stWrong">0</b><span>要復習</span></div>
       </div>
       <div id="storageWarn" class="notice hidden">
-        <b>履歴を保存できません。</b>ブラウザの localStorage が使えない設定（プライベートモード等）のようです。今回の結果はこのタブを閉じるまで有効です。
+        <b>履歴を保存できません。</b><span id="storageWhy">ブラウザの localStorage が使えない設定（プライベートモード等）のようです。</span>今回の結果はこのタブを閉じるまで有効です。
       </div>
       <div id="dataWarn" class="notice hidden"></div>
       <div id="notionLine" class="notionline hidden"></div>
@@ -726,12 +726,24 @@ function el(tag, cls, txt){
 }
 function clear(node){ while(node.firstChild) node.removeChild(node.firstChild); }
 
+/* 外から来た文字列をキーにする連想配列は、必ずこれで作る。
+   ふつうの {} だと "constructor" や "toString" が中身なしでも truthy になり、
+   "__proto__" への代入はキーではなくプロトタイプの差し替えになる。
+   問題の id・方式名・追加日・セッションの日時はすべて外（Notion / 貼り付け /
+   localStorage）から来るので、素の {} をマップに使うと事故る。 */
+function bare(){ return Object.create(null); }
+
+/* プロトタイプいじりに使われるキー名。id や方式名としては受け付けない。 */
+function isProtoKey(k){
+  return k === '__proto__' || k === 'constructor' || k === 'prototype';
+}
+
 /* ============================================================
    2. localStorage（すべて try/catch）
    ============================================================ */
 var storageOK = true;
 
-function blankState(){ return { version:1, stats:{}, sessions:[] }; }
+function blankState(){ return { version:1, stats:bare(), sessions:[] }; }
 
 function loadState(){
   try{
@@ -742,9 +754,12 @@ function loadState(){
     /* 中身まで検査する。1件でも壊れていると起動時に落ち、
        リセットボタンにも辿り着けなくなるため。 */
     var sessions = Array.isArray(p.sessions) ? p.sessions.filter(function(x){
-      return x && typeof x === 'object' && typeof x.at === 'string' && x.at;
+      /* detail は文字列でなければ落とす。オブジェクトのまま通すと
+         parseDetail の text.indexOf で落ち、学習の記録が開けなくなる。 */
+      return x && typeof x === 'object' && typeof x.at === 'string' && x.at
+        && (x.detail === undefined || typeof x.detail === 'string');
     }) : [];
-    var stats = {};
+    var stats = bare();
     if(p.stats && typeof p.stats === 'object'){
       Object.keys(p.stats).forEach(function(k){
         var v = p.stats[k];
@@ -766,6 +781,14 @@ function saveState(){
   }catch(e){
     storageOK = false;
     try{ console.warn('[quiz] 履歴の保存に失敗しました:', e); }catch(_){}
+    /* 容量オーバーとプライベートモードは対処が違う。取り違えると直せない。 */
+    var why = $('storageWhy');
+    if(why){
+      var quota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+      why.textContent = quota
+        ? '保存領域がいっぱいです。ホーム最下部の「学習履歴をリセット」で空けてください。'
+        : 'ブラウザの localStorage が使えない設定（プライベートモード等）のようです。';
+    }
     var w = $('storageWarn'); if(w) show(w);
   }
 }
@@ -826,7 +849,7 @@ function normAnswer(a, options){
 function parseData(raw){
   var list = [];
   var chapTitles = {};
-  var seen = {};
+  var seen = bare();
   var warnings = [];
 
   var arr;
@@ -869,6 +892,8 @@ function parseData(raw){
     }
 
     var id = (r.id === 0 || r.id) ? String(r.id) : hashId(qtext);
+    /* id も連想配列のキーになる。プロトタイプ名だと「重複」と誤判定されて捨てられる。 */
+    if(isProtoKey(id)) id = hashId(qtext);
     if(seen[id]){
       warnings.push('id "' + id + '" が重複しています。後ろの1件を無視しました。');
       continue;
@@ -893,13 +918,15 @@ function parseData(raw){
       source    : (typeof r.source === 'string') ? r.source.trim() : '',
       /* 方式設計書のどの方式か。機能を作るたびに、その方式の問題が増えていく軸。 */
       method    : (typeof r.method === 'string') ? r.method.trim() : '',
-      addedAt   : (typeof r.addedAt === 'string') ? r.addedAt : ''
+      /* 日付の形以外は捨てる。addedAt は「最近追加」で連想配列のキーになるので、
+         任意の文字列を通すとそこが壊れる。 */
+      addedAt   : (typeof r.addedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.addedAt)) ? r.addedAt : ''
     });
   }
 
   if(!list.length) throw new Error('有効な問題が1問もありませんでした。データの形式を確認してください。');
 
-  var chapSet = {};
+  var chapSet = bare();
   list.forEach(function(q){ chapSet[q.chapter] = true; });
   var chapters = Object.keys(chapSet).map(Number).sort(function(a, b){ return a - b; });
 
@@ -1011,7 +1038,7 @@ function poolMethod(m){ return QUESTIONS.filter(function(q){ return q.method ===
 var METHOD_ORDER = ['構成・前提','処理方式','データ方式','認証・権限方式',
                     '運用・監視方式','コスト方式','IaC方式','設計判断'];
 function methodList(){
-  var seen = {}, out = [];
+  var seen = bare(), out = [];
   QUESTIONS.forEach(function(q){ if(q.method) seen[q.method] = true; });
   METHOD_ORDER.forEach(function(m){ if(seen[m]){ out.push(m); delete seen[m]; } });
   return out.concat(Object.keys(seen).sort());
@@ -1033,7 +1060,7 @@ function compareId(a, b){
    ことなので、未挑戦を先に出さないと、間違えた問題が10問の枠を埋めてしまい、
    同じ日に11問以上足したとき新しい問題が一度も出てこない。 */
 function poolRecent(){
-  var groups = {}, days = [];
+  var groups = bare(), days = [];
   QUESTIONS.forEach(function(q){
     if(!groups[q.addedAt]){ groups[q.addedAt] = []; days.push(q.addedAt); }
     groups[q.addedAt].push(q);
@@ -1271,11 +1298,11 @@ function svg(tag, attrs){
 }
 
 function buildProgress(){
-  var inSet = {}, methodOf = {};
+  var inSet = bare(), methodOf = bare();
   QUESTIONS.forEach(function(q){ inSet[q.id] = true; methodOf[q.id] = q.method || ''; });
 
   var methods = methodList();
-  var mTotal = {};
+  var mTotal = bare();
   methods.forEach(function(m){ mTotal[m] = poolMethod(m).length; });
 
   // 古い順に。明細があって、アプリが書いたものだけ使う。
@@ -1287,7 +1314,7 @@ function buildProgress(){
   });
   runs.sort(function(a, b){ return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
 
-  var everOK = {}, lastOK = {}, points = [], truncated = false;
+  var everOK = bare(), lastOK = bare(), points = [], truncated = false;
   runs.forEach(function(r){
     if(r.truncated) truncated = true;
     r.pairs.forEach(function(p){
@@ -1295,7 +1322,7 @@ function buildProgress(){
       if(p.ok){ everOK[p.id] = true; lastOK[p.id] = true; }
       else lastOK[p.id] = false;
     });
-    var cover = 0, retain = 0, mRetain = {};
+    var cover = 0, retain = 0, mRetain = bare();
     methods.forEach(function(m){ mRetain[m] = 0; });
     QUESTIONS.forEach(function(q){
       if(everOK[q.id]) cover++;
@@ -1795,7 +1822,9 @@ function encodeDetail(at, answers){
    その場合も出題数・正解数の列は使えるので、履歴としては残る。 */
 function parseDetail(text){
   var out = { at:'', pairs:[], truncated:false, trusted:false };
-  if(!text) return out;
+  /* 文字列以外が来ても落ちないようにする。localStorage は手で書き換えられるので、
+     detail がオブジェクトのまま来ると indexOf で落ち、学習の記録が開けなくなる。 */
+  if(typeof text !== 'string' || !text) return out;
   var bar = text.indexOf('|');
   if(text.charAt(0) !== '@' || bar <= 0) return out;   // アプリが書いたものではない
   out.trusted = true;
@@ -1806,7 +1835,9 @@ function parseDetail(text){
     if(!t) return;
     var i = t.lastIndexOf(':');
     if(i <= 0) return;
-    out.pairs.push({ id:decId(t.slice(0, i)), ok:t.slice(i + 1) === '1' });
+    var pid = decId(t.slice(0, i));
+    if(isProtoKey(pid)) return;   // 連想配列のキーになるので受け付けない
+    out.pairs.push({ id:pid, ok:t.slice(i + 1) === '1' });
   });
   return out;
 }
@@ -1817,15 +1848,17 @@ function parseDetail(text){
 function trimSessions(remoteKeys){
   if(state.sessions.length <= HIST_MAX) return;
   var keep = [], overflow = [];
+  /* 未送信ぶんは残すが、無条件にすると Notion を使わないときに上限が
+     一度も効かず、履歴が無限に増えて localStorage を埋める。上限は付ける。 */
   state.sessions.forEach(function(x, i){
     var unsent = x.detail && !(remoteKeys && remoteKeys[x.at]);
-    if(i < HIST_MAX || unsent) keep.push(x); else overflow.push(x);
+    if(i < HIST_MAX || (unsent && keep.length < HIST_MAX * 2)) keep.push(x); else overflow.push(x);
   });
   state.sessions = keep;
 }
 
 function mergeRemoteLog(rows){
-  var remoteKeys = {}, remoteSessions = [], tmp = {};
+  var remoteKeys = bare(), remoteSessions = [], tmp = bare();
 
   rows.forEach(function(r){
     var d = parseDetail(r[LOG.cols.detail] || '');
@@ -1866,7 +1899,7 @@ function mergeRemoteLog(rows){
   });
 
   /* セッション履歴も混ぜて、新しい順に並べ直す */
-  var have = {};
+  var have = bare();
   state.sessions.forEach(function(x){ have[x.at] = true; });
   remoteSessions.forEach(function(x){ if(!have[x.at]){ state.sessions.push(x); have[x.at] = true; changed = true; } });
   state.sessions.sort(function(a, b){ return a.at < b.at ? 1 : (a.at > b.at ? -1 : 0); });
@@ -2023,7 +2056,11 @@ function rowToQuestion(row){
   if(ans < 0) return null;
 
   var url = String(row.url || '');
-  var m = url.match(/([0-9a-f]{32})/i);
+  /* Notion のページ ID は URL の末尾にある。最初の一致を採ると、
+     途中に 32 桁の16進が混じった URL で別ページと同じ id になってしまう。
+     最後の一致を小文字に正規化して使う。 */
+  var all = url.match(/[0-9a-f]{32}/gi);
+  var m = all && all.length ? [null, all[all.length - 1].toLowerCase()] : null;
   if(!m) return null;
 
   var tag = String(row[c.tag] == null ? '' : row[c.tag]).trim();
@@ -2127,7 +2164,7 @@ function fetchNotionPages(mcp, cursor, acc, page){
 }
 
 function finishNotion(rows){
-  var seen = {}, list = [], skipped = 0;
+  var seen = bare(), list = [], skipped = 0;
   EMBEDDED.forEach(function(q){ seen[q.id] = true; });
   rows.forEach(function(r){
     var q = rowToQuestion(r);
@@ -2188,12 +2225,12 @@ function mergeRaw(raw, incoming, chapters){
   var k;
   if(Array.isArray(raw) && !chapters) return raw.concat(incoming);
   var copy = {};
-  if(!Array.isArray(raw)){ for(k in raw){ if(Object.prototype.hasOwnProperty.call(raw, k)) copy[k] = raw[k]; } }
+  if(!Array.isArray(raw)){ for(k in raw){ if(Object.prototype.hasOwnProperty.call(raw, k) && k !== '__proto__') copy[k] = raw[k]; } }
   copy.questions = (Array.isArray(raw) ? raw : (raw.questions || [])).concat(incoming);
   if(chapters){
     var merged = {};
     var cur = Array.isArray(raw) ? {} : (raw.chapters || {});
-    for(k in cur){ if(Object.prototype.hasOwnProperty.call(cur, k)) merged[k] = cur[k]; }
+    for(k in cur){ if(Object.prototype.hasOwnProperty.call(cur, k) && k !== '__proto__') merged[k] = cur[k]; }
     for(k in chapters){ if(Object.prototype.hasOwnProperty.call(chapters, k)) merged[k] = String(chapters[k]); }
     copy.chapters = merged;
   }
@@ -2251,7 +2288,9 @@ function addCheck(){
     var needsDate = typeof r.addedAt !== 'string' || !r.addedAt;
     if(!needsId && !needsDate) return r;
     var copy = {}, k;
-    for(k in r){ if(Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k]; }
+    /* __proto__ を写すと、キーではなくプロトタイプの差し替えになる。
+       中身が入っているように見えて JSON.stringify では消えるので、抜け殻が保存される。 */
+    for(k in r){ if(Object.prototype.hasOwnProperty.call(r, k) && k !== '__proto__') copy[k] = r[k]; }
     if(needsId)   copy.id = ++nextId;
     /* addedAt が無いと「最近追加された問題」に一度も出てこないので、今日を入れる */
     if(needsDate) copy.addedAt = today;
@@ -2263,7 +2302,7 @@ function addCheck(){
      id の重複も同じ。1件ずつ見ると重複しようがないので、既出の id を持ち回る。
      （アーティファクト版はデータが埋め込みで、あとから消す手段が無い） */
   var before = incoming.length;
-  var seenIds = {}, dupes = 0;
+  var seenIds = bare(), dupes = 0;
   QUESTIONS.forEach(function(q){ seenIds[String(q.id)] = true; });
   incoming = incoming.filter(function(r){
     var p;
@@ -2294,7 +2333,7 @@ function addCheck(){
   try{ res = parseData(candidate); }
   catch(e){ addMsg('ng', '取り込めませんでした。', [e.message]); return; }
 
-  var have = {};
+  var have = bare();
   QUESTIONS.forEach(function(q){ have[q.id] = true; });
   var fresh = res.list.filter(function(q){ return !have[q.id]; });
 
@@ -2532,8 +2571,11 @@ function wire(){
   $('addCopyBtn').addEventListener('click', addCopy);
 
   $('resetBtn').addEventListener('click', function(){
-    if(!window.confirm('この端末の学習履歴を消します。\n\nNotion の「復習クイズ 学習記録」は消えないので、'
-      + '次に開いたときにそこから戻ってきます。完全に消すには Notion 側の行も削除してください。\n\nよろしいですか？')) return;
+    /* 「次に開いたとき」ではない。1セッション解き終わった時点で finish() が
+       syncLog() を呼ぶので、その場で戻ってくる。実挙動どおりに書く。 */
+    if(!window.confirm('この端末の学習履歴を消します。\n\nただし Notion の「復習クイズ 学習記録」は消えません。'
+      + 'そちらの行が残っている限り、次にセッションを1回解き終えた時点で戻ってきます。\n'
+      + 'まっさらにするには Notion 側の行も削除してください。\n\nよろしいですか？')) return;
     state = blankState();
     syncEpoch++;                 // 走っている同期の結果を無効にする
     /* inflight は落とさない。落とすと二重起動の歯止めが外れ、走っている同期の
@@ -2585,7 +2627,7 @@ function showError(msg){
 /* 埋め込み分と Notion 分を合わせて、章の一覧を組み直す */
 function applyQuestions(){
   QUESTIONS = EMBEDDED.concat(NOTION_Q);
-  var chapSet = {};
+  var chapSet = bare();
   QUESTIONS.forEach(function(q){ chapSet[q.chapter] = true; });
   CHAPTERS = Object.keys(chapSet).map(Number).sort(function(a, b){ return a - b; });
   CHAPTER_TITLES = {};
