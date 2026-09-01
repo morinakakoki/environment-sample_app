@@ -157,6 +157,9 @@ await p.locator('[data-act="rev-ok"]').click();
 await p.waitForTimeout(150);
 ok(await p.locator('.verdict.g').count()===1,'K系で🟢が付く');
 ok(await p.locator('.elapsed').count()===0,'K系の結果に「話した時間」が出ない');
+const kTxt=await p.locator('.verdict-txt').textContent();
+ok(!kTxt.includes('60秒で言えた'),`K系の判定文が計測を騙らない (${kTxt.trim().slice(0,30)})`);
+ok(kTxt.includes('この会社'),'K系は「この会社に言えるか」で判定する');
 
 console.log('\n--- 制約 ---');
 ok(await p.evaluate(()=>{try{return localStorage.length===0}catch(e){return true}}),'localStorageに書き込んでいない');
@@ -174,10 +177,55 @@ const small=await p.evaluate(()=>[...document.querySelectorAll('button')]
   .filter(x=>x.h>0&&x.h<44));
 ok(small.length===0,'全ボタンの高さ>=44px '+(small.length?JSON.stringify(small):''));
 
+// 一巡しても「19問目 / 全18問」にならず、周回として表示される
+await p.locator('#rail-btn').click(); await p.waitForTimeout(150);
+await p.locator('.cat[data-cat="F"]').click(); await p.waitForTimeout(150); // F は1問だけ
+const railBefore=await p.locator('#rail-where').textContent();
+ok(railBefore.includes('1問目 / 全1問'),`1問カテゴリの表示 (${railBefore.trim()})`);
+await p.locator('[data-act="pass"]').click(); await p.waitForTimeout(150);
+const railAfter=await p.locator('#rail-where').textContent();
+ok(railAfter.includes('1問目 / 全1問')&&railAfter.includes('2周目'),
+   `一巡後は「2周目」と出て総数を超えない (${railAfter.trim()})`);
+
+console.log('\n--- 修正済みバグの再発防止 ---');
+// 60秒超過 → 自動チェックを手で外しても🟢にはならない（仕様4はAND条件）
+await p.locator('#rail-btn').click(); await p.waitForTimeout(150);
+await p.locator('.cat[data-cat="A"]').click(); await p.waitForTimeout(150);
+await p.locator('[data-act="start"]').click(); await p.waitForTimeout(150);
+await p.evaluate(()=>{S.startedAt=Date.now()-92000;}); await p.waitForTimeout(200);
+const ringOver=await p.locator('#dial-fil').evaluate(e=>e.style.strokeDashoffset);
+ok(ringOver==='0px'||ringOver==='0','超過時はリングを赤で満たす（消さない）');
+await p.locator('[data-act="done"]').click(); await p.waitForTimeout(200);
+ok(await p.locator('.crit-auto').isVisible(),'超過で「自動」バッジが出る');
+await p.locator('.crit[data-crit="2"]').click(); await p.waitForTimeout(120);
+ok(!await p.locator('.crit-auto').isVisible(),'チェックを外すと「自動」バッジも消える');
+ok(await p.locator('.crit[aria-pressed="true"]').count()===0,'チェックは0個になった');
+await p.locator('[data-act="judge"]').click(); await p.waitForTimeout(200);
+ok(await p.locator('.verdict.y').count()===1,
+   '92秒話してチェックを全部外しても🟢にはならず🟡（60秒条件は外せない）');
+ok((await p.locator('#line').textContent()).includes('🟡'),'ログ行も🟡');
+
+// 次にやること に | を入れても表が壊れない
+await p.locator('#next').fill('A|Bを分ける'); await p.waitForTimeout(150);
+const piped=await p.locator('#line').textContent();
+// エスケープ済みの \| は区切りではないので、列数はそれを除いて数える
+ok(piped.split(/(?<!\\)\|/).length-2===5,`| を含めても5列のまま (${piped})`);
+ok(piped.includes('\\|'),'セル内の | はエスケープされる');
+
+// 🔴 は「言えなかった」なので、自動チェック分が崩れた基準に混じらない
+await p.locator('[data-act="next"]').click(); await p.waitForTimeout(150);
+await p.locator('[data-act="start"]').click(); await p.waitForTimeout(150);
+await p.evaluate(()=>{S.startedAt=Date.now()-80000;}); await p.waitForTimeout(200);
+await p.locator('[data-act="skip"]').click(); await p.waitForTimeout(200);
+ok(await p.locator('.verdict.r').count()===1,'超過後でも「言えなかった」→🔴');
+const rLine=await p.locator('#line').textContent();
+ok(/🔴 \| - \|/.test(rLine),`🔴のとき崩れた基準は「-」 (${rLine})`);
+
 console.log('\n--- まとめてコピー ---');
 const allBtn=p.locator('[data-act="copyall"]');
 ok(await allBtn.isVisible(),'「まとめてコピー」ボタンがある');
-ok((await allBtn.textContent()).includes('全4行'),'ボタンに件数が出る');
+const nLogs=await p.evaluate(()=>S.logs.length);
+ok((await allBtn.textContent()).includes('全'+nLogs+'行'),`ボタンに件数が出る (全${nLogs}行)`);
 
 console.log('\n--- ダークテーマ ---');
 await p.emulateMedia({colorScheme:'dark'});

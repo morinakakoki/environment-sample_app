@@ -49,11 +49,13 @@ body{
 button,input,textarea{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
 
-.app{max-width:460px;margin:0 auto;padding:0 14px 24px;display:flex;flex-direction:column;min-height:100dvh;gap:14px}
+.app{max-width:460px;margin:0 auto;padding:0 14px 24px;display:flex;flex-direction:column;
+  min-height:100vh;min-height:100dvh;gap:14px}
 
 /* ── status rail ───────────────────────────── */
 .rail{
   position:sticky;top:0;z-index:20;margin:0 -14px;padding:10px 14px;
+  background:var(--bg);
   background:color-mix(in srgb,var(--bg) 88%,transparent);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);
@@ -102,6 +104,8 @@ h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:bala
   padding:15px 15px;cursor:pointer;box-shadow:var(--shadow);
 }
 .mode:active{transform:translateY(1px)}
+.mode[disabled]{opacity:.4;cursor:default;box-shadow:none}
+.mode[disabled]:active{transform:none}
 .mode-ico{
   flex:none;min-width:38px;height:38px;padding:0 9px;border-radius:9px;
   display:grid;place-items:center;white-space:nowrap;
@@ -135,8 +139,10 @@ h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:bala
 .qmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:13px}
 .tag{
   font-size:10.5px;line-height:1.6;font-weight:500;padding:2px 8px;border-radius:999px;
-  border:1px solid var(--line-2);color:var(--ink-3);white-space:nowrap;
+  border:1px solid var(--line-2);color:var(--ink-3);
+  max-width:100%;overflow-wrap:anywhere;
 }
+.tag.id{white-space:nowrap}
 .tag.id{font-family:var(--ff-num);letter-spacing:.08em;color:var(--accent);
   border-color:var(--accent-line);background:var(--accent-soft)}
 .tag.deep{color:var(--accent);border-color:var(--accent-line)}
@@ -145,9 +151,11 @@ h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:bala
   margin:0;text-wrap:pretty;letter-spacing:.01em;
 }
 
+.running-q{max-height:30vh;overflow-y:auto}
+
 /* ── timer ─────────────────────────────────── */
 .timer{display:flex;flex-direction:column;align-items:center;gap:12px;padding:6px 0 2px}
-.dial{position:relative;width:min(70vw,270px);aspect-ratio:1}
+.dial{position:relative;width:min(70vw,270px,34vh);aspect-ratio:1}
 .dial svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
 .dial circle{fill:none;stroke-linecap:round}
 .dial .trk{stroke:var(--surface-3);stroke-width:9}
@@ -220,11 +228,14 @@ h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:bala
 }
 .crit[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn)}
 .crit[aria-pressed="true"] .crit-no{background:var(--warn);color:var(--surface)}
-.crit[aria-pressed="true"] .crit-box{background:var(--warn);border-color:var(--warn);color:#fff}
+.crit[aria-pressed="true"] .crit-box{background:var(--warn);border-color:var(--warn);color:var(--surface)}
 .crit-auto{
   font-size:10.5px;font-weight:700;letter-spacing:.06em;color:var(--warn);
   border:1px solid var(--warn);border-radius:999px;padding:1px 7px;flex:none;
 }
+/* チェックを外したら「自動」の表示も消す */
+.crit[aria-pressed="false"] .crit-auto,
+.crit[aria-pressed="false"] .auto-note{display:none}
 .elapsed{
   display:flex;align-items:baseline;justify-content:center;gap:8px;
   padding:10px;border-radius:11px;background:var(--surface-2);margin-bottom:14px;
@@ -256,6 +267,7 @@ h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:bala
 /* ── log ───────────────────────────────────── */
 .logline{
   display:block;width:100%;text-align:left;cursor:pointer;
+  user-select:text;-webkit-user-select:text;
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
   padding:12px 13px;font-size:12.5px;line-height:1.65;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -281,6 +293,7 @@ h1{font-size:22px;line-height:1.45;font-weight:700;margin:0 0 6px;text-wrap:bala
 }
 .dock-caret{margin-left:auto;color:var(--ink-3);font-size:12px}
 .dock-body{display:flex;flex-direction:column;gap:8px;padding-bottom:16px}
+.dock-lines{display:flex;flex-direction:column;gap:8px}
 .dock-tally{display:flex;gap:14px;font-size:12.5px;color:var(--ink-2);font-weight:500;
   padding:2px 2px 6px;font-variant-numeric:tabular-nums}
 .dock-tally b{font-family:var(--ff-num);font-weight:500;font-size:15px}
@@ -375,67 +388,127 @@ const BANK = {
 
 
 /* ── normalize ─────────────────────────────────────────────────────────────
-   JSON のキー名が多少違っても拾えるようにする。質問文・ID・カテゴリの
-   「値」には一切手を加えない（トリムも変換もしない）。                      */
+   JSON のキー名や形が多少違っても拾えるようにする。質問文・ID・カテゴリの
+   「値」には一切手を加えない（トリムも変換もしない）。
+   どんな形でも例外を投げないこと＝白画面にしないことを最優先にする。      */
 const pick = (o, keys) => {
   for (const k of keys) if (o && o[k] !== undefined && o[k] !== null && o[k] !== '') return o[k];
   return undefined;
 };
+/* 配列でも・オブジェクトマップでも・単体でも、必ず配列にする */
+const arr = v => {
+  if (Array.isArray(v)) return v;
+  if (v === undefined || v === null || v === '') return [];
+  if (typeof v === 'object') return Object.keys(v).map(k => {
+    const x = v[k];
+    return (x && typeof x === 'object' && !Array.isArray(x))
+      ? Object.assign({ id: k }, x)
+      : { id: k, name: x, text: x, label: x };
+  });
+  return [v];
+};
+/* 文字列で来た一覧（"A,B,C" / "A・B・C"）も配列として扱う */
+const asList = v => (typeof v === 'string' ? v.split(/[,、・\s\/]+/).filter(Boolean) : arr(v));
+/* 値をラベル文字列にする。オブジェクトが来ても [object Object] にしない */
+const asLabel = (v, keys, fallback) => {
+  if (v === undefined || v === null) return fallback;
+  if (typeof v === 'object') return String(pick(v, keys) ?? fallback);
+  return String(v);
+};
 
-const META = BANK.meta || BANK.Meta || {};
-const DEEP = (pick(META, ['deepDiveCategories', 'deepDive', 'deep_dive_categories']) || []).map(String);
+const META = BANK.meta || BANK.Meta || BANK.META || {};
+
+const DEEP = asList(pick(META, ['deepDiveCategories', 'deepDive', 'deep_dive_categories']))
+  .map(d => asLabel(d, ['id', 'key', 'code', 'category'], ''))
+  .filter(Boolean);
 
 /* meta.checkCriteria が無い JSON でも判定が成立するよう、仕様の5項目を既定値にする */
 const DEFAULT_CRIT = ['結論が最初', '60秒以内', '軸と矛盾なし', '具体あり', '前提共有'];
-let RAW_CRIT = pick(META, ['checkCriteria', 'check_criteria', 'criteria']) || [];
-if (!RAW_CRIT.length) RAW_CRIT = DEFAULT_CRIT;
+let RAW_CRIT = arr(pick(META, ['checkCriteria', 'check_criteria', 'criteria']));
+if (!RAW_CRIT.length) RAW_CRIT = DEFAULT_CRIT.slice();
 const CRITERIA = RAW_CRIT.map((c, i) => {
-  const label = typeof c === 'string' ? c : (pick(c, ['label', 'name', 'text', 'title']) || String(c));
-  const note  = typeof c === 'string' ? '' : (pick(c, ['note', 'desc', 'description', 'hint']) || '');
-  const no    = typeof c === 'string' ? i + 1 : (pick(c, ['no', 'number', 'index']) ?? i + 1);
-  return { no: Number(no) || i + 1, label, note };
+  const label = asLabel(c, ['label', 'name', 'text', 'title'], '基準' + (i + 1));
+  const note  = (c && typeof c === 'object')
+    ? String(pick(c, ['note', 'desc', 'description', 'hint']) || '') : '';
+  /* no / number は表示用の番号。index は0始まりの配列位置なので +1 する。 */
+  const obj   = (c && typeof c === 'object') ? c : null;
+  const shown = obj ? Number(pick(obj, ['no', 'number', 'num'])) : NaN;
+  const idx   = obj ? Number(obj.index) : NaN;
+  const no    = Number.isFinite(shown) ? shown
+              : Number.isFinite(idx)   ? idx + 1
+              : i + 1;
+  return { no, label, note };
 });
-/* 「60秒以内」に当たる基準（超過時に自動チェックする対象）を特定 */
-const TIME_CRIT = CRITERIA.findIndex(c => /60\s*秒|一分|1\s*分|以内|time/i.test(c.label));
+/* 番号が重複・欠落していたら通し番号に振り直す（ログの番号が潰れるのを防ぐ） */
+if (new Set(CRITERIA.map(c => c.no)).size !== CRITERIA.length) {
+  CRITERIA.forEach((c, i) => { c.no = i + 1; });
+}
+/* 「60秒以内」に当たる基準（超過時に自動チェックする対象）。
+   「以内」だけでは他の基準を誤って掴むので、時間の語を必須にする。 */
+const TIME_CRIT = CRITERIA.findIndex(c =>
+  /(60|６０|六十)\s*(秒|びょう)|(1|１|一)\s*分|time\s*limit/i.test(c.label));
 
-const LOG_FORMAT = pick(META, ['logFormat', 'log_format', 'format'])
-  || '| 日付 | ID | 結果 | 崩れた基準の番号 | 次にやること |';
-/* logFormat の列数を数え、[日付, ID, 結果, 崩れた基準, 次にやること] を順に流し込む */
-const LOG_COLS = (() => {
-  const cells = LOG_FORMAT.split('|').map(s => s.trim());
+/* ── logFormat ────────────────────────────────────────────────────────────
+   列数だけでなく「見出し」を読んで、どの列に何を入れるかを決める。
+   列順が違う logFormat でも中身が入れ替わらない。                          */
+const LOG_FORMAT_RAW = pick(META, ['logFormat', 'log_format', 'format']);
+const LOG_FORMAT = typeof LOG_FORMAT_RAW === 'string'
+  ? LOG_FORMAT_RAW : '| 日付 | ID | 結果 | 崩れた基準の番号 | 次にやること |';
+const LOG_HEADS = (() => {
+  const lines = LOG_FORMAT.split('\n').map(l => l.trim()).filter(Boolean)
+    .filter(l => !/^\|?[\s:|-]+\|?$/.test(l));   // |---|---| の区切り行は捨てる
+  const head = lines.find(l => l.indexOf('|') >= 0);
+  if (!head) return ['日付', 'ID', '結果', '崩れた基準の番号', '次にやること'];
+  const cells = head.split('|').map(x => x.trim());
   if (cells.length && cells[0] === '') cells.shift();
   if (cells.length && cells[cells.length - 1] === '') cells.pop();
-  return Math.max(cells.length, 1);
+  return cells.length ? cells : ['日付', 'ID', '結果', '崩れた基準の番号', '次にやること'];
 })();
+const POSITIONAL = ['date', 'id', 'verdict', 'broke', 'next'];
+const LOG_FIELDS = LOG_HEADS.map((h, i) => {
+  if (/崩れ|基準|criteri/i.test(h))                       return 'broke';
+  if (/次に|やること|アクション|next|todo|action/i.test(h)) return 'next';
+  if (/結果|判定|result|verdict/i.test(h))                 return 'verdict';
+  if (/日付|日時|date/i.test(h))                           return 'date';
+  if (/\bid\b|ＩＤ|問題番号|質問番号|設問/i.test(h))        return 'id';
+  return POSITIONAL[i] || 'blank';
+});
 
-const RAW_CATS = pick(BANK, ['categories', 'categoryList', 'cats']) || [];
+const RAW_CATS = arr(pick(BANK, ['categories', 'categoryList', 'cats']));
 const CAT_NAME = {};
 const CAT_ORDER = [];
-if (Array.isArray(RAW_CATS)) {
+RAW_CATS.forEach(c => {
+  if (typeof c === 'string') {
+    if (!(c in CAT_NAME)) { CAT_NAME[c] = c; CAT_ORDER.push(c); }
+    return;
+  }
+  const id = String(pick(c, ['id', 'key', 'code', 'category', 'categoryId']) ?? '');
+  if (!id || (id in CAT_NAME)) return;
+  CAT_NAME[id] = asLabel(pick(c, ['name', 'label', 'title', 'categoryName']), ['name', 'label'], id);
+  CAT_ORDER.push(id);
+});
+
+/* questions は配列・オブジェクトマップ・categories[].questions のいずれでも拾う */
+let RAW_QS = arr(pick(BANK, ['questions', 'items', 'bank', 'questionBank', 'qs']));
+if (!RAW_QS.length) {
   RAW_CATS.forEach(c => {
-    if (typeof c === 'string') { CAT_NAME[c] = c; CAT_ORDER.push(c); return; }
-    const id = String(pick(c, ['id', 'key', 'code', 'category', 'categoryId']) ?? '');
-    if (!id) return;
-    CAT_NAME[id] = pick(c, ['name', 'label', 'title', 'categoryName']) || id;
-    CAT_ORDER.push(id);
-  });
-} else if (RAW_CATS && typeof RAW_CATS === 'object') {
-  Object.keys(RAW_CATS).forEach(k => {
-    const v = RAW_CATS[k];
-    CAT_NAME[k] = typeof v === 'string' ? v : (pick(v, ['name', 'label', 'title']) || k);
-    CAT_ORDER.push(k);
+    if (!c || typeof c !== 'object') return;
+    const nested = arr(pick(c, ['questions', 'items', 'qs']));
+    const cid = String(pick(c, ['id', 'key', 'code']) ?? '');
+    nested.forEach(q => RAW_QS.push(
+      (q && typeof q === 'object') ? Object.assign({ category: cid }, q) : { category: cid, text: q }));
   });
 }
 
-const RAW_QS = pick(BANK, ['questions', 'items', 'bank', 'questionBank']) || [];
 const QUESTIONS = RAW_QS.map((q, i) => {
-  const id   = String(pick(q, ['id', 'ID', 'qid', 'code']) ?? ('Q-' + (i + 1)));
-  let  cat   = pick(q, ['category', 'categoryId', 'cat', 'categoryID', 'group']);
+  const o    = (q && typeof q === 'object') ? q : { text: q };
+  const id   = String(pick(o, ['id', 'ID', 'qid', 'code', 'no']) ?? ('Q-' + (i + 1)));
+  let  cat   = pick(o, ['category', 'categoryId', 'cat', 'categoryID', 'group']);
   if (cat === undefined) { const m = /^([A-Za-z]+)/.exec(id); cat = m ? m[1] : '?'; }
-  cat = String(cat);
-  const text = pick(q, ['text', 'question', 'q', 'body', 'prompt']) ?? '';
-  const src  = pick(q, ['source', 'sourceTag', 'tag', 'origin', 'src']) || '';
-  return { id, cat, text, src, i };
+  cat = asLabel(cat, ['id', 'key', 'code', 'name'], '?');
+  const text = pick(o, ['text', 'question', 'q', 'body', 'prompt']) ?? '';
+  const src  = asLabel(pick(o, ['source', 'sourceTag', 'tag', 'origin', 'src']), ['name', 'label'], '');
+  return { id, cat, text: String(text), src, i };
 });
 
 /* 質問側にしか現れないカテゴリも拾う */
@@ -445,8 +518,8 @@ QUESTIONS.forEach(q => {
 const COUNT_BY_CAT = {};
 QUESTIONS.forEach(q => { COUNT_BY_CAT[q.cat] = (COUNT_BY_CAT[q.cat] || 0) + 1; });
 
-/* 逆質問（K系）＝タイマーなし。カテゴリIDが K のもの。 */
-const isReverse = q => /^K/i.test(q.cat);
+/* 逆質問＝タイマーなし。カテゴリIDが K 始まり、またはカテゴリ名が「逆質問」。 */
+const isReverse = q => /^K/i.test(q.cat) || /逆質問/.test(CAT_NAME[q.cat] || '');
 const isDeep    = c => DEEP.includes(c);
 
 const LIMIT = 60; // 秒
@@ -542,7 +615,7 @@ function paintTimer(ms) {
     el.classList.remove('is-warn'); el.classList.add('is-over');
     dig.textContent = '+' + mmss(-left);
     lab.textContent = '60秒 超過';
-    fil.style.strokeDashoffset = CIRC;
+    fil.style.strokeDashoffset = 0;   // 赤いリングを満たして「時間切れ」を示す
     if (!overFired) { overFired = true; say('60秒経過しました'); }
   } else {
     el.classList.remove('is-over');
@@ -557,23 +630,37 @@ function paintTimer(ms) {
 function stopTimer() { cancelAnimationFrame(raf); raf = 0; }
 
 /* ── copy ──────────────────────────────────────────────────────────────── */
-async function copyText(text) {
+/* 同期パス。タップのユーザー操作文脈を保ったまま実行する必要がある。 */
+function copySync(text) {
+  let ta = null;
   try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text); return true;
-    }
-  } catch (e) { /* fall through */ }
-  try {
-    const ta = document.createElement('textarea');
+    ta = document.createElement('textarea');
     ta.value = text;
     ta.setAttribute('readonly', '');
-    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    ta.contentEditable = 'true';          // iOS Safari で選択できるようにする
+    ta.style.cssText =
+      'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;'
+      + 'opacity:0;font-size:16px';       // 16px 未満だと iOS がズームする
     document.body.appendChild(ta);
-    ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch (e) { return false; }
+    const range = document.createRange();
+    range.selectNodeContents(ta);
+    const sel = window.getSelection();
+    if (sel) { sel.removeAllRanges(); sel.addRange(range); }
+    ta.setSelectionRange(0, text.length);
+    return document.execCommand('copy');
+  } catch (e) {
+    return false;
+  } finally {
+    if (ta && ta.parentNode) ta.parentNode.removeChild(ta);
+  }
+}
+async function copyText(text) {
+  /* 先に同期パス。await を挟むと iOS ではフォールバックごと死ぬ。 */
+  if (copySync(text)) return true;
+  try {
+    if (navigator.clipboard) { await navigator.clipboard.writeText(text); return true; }
+  } catch (e) { /* 下で失敗として扱う */ }
+  return false;
 }
 async function copyFrom(el, text, hintId) {
   const hint = $(hintId);
@@ -585,8 +672,13 @@ async function copyFrom(el, text, hintId) {
     setTimeout(() => { if (hint) hint.innerHTML = hint.dataset.idle || ''; }, 2600);
   }
   if (!ok && el) {                                  // 手動コピー用に選択しておく
-    const r = document.createRange(); r.selectNodeContents(el);
-    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    try {
+      const sel = window.getSelection();
+      if (sel) {
+        const r = document.createRange(); r.selectNodeContents(el);
+        sel.removeAllRanges(); sel.addRange(r);
+      }
+    } catch (e) { /* 選択できなくてもコピー結果の表示は出す */ }
   }
   say(ok ? 'コピーしました' : 'コピーできませんでした');
 }
@@ -594,15 +686,18 @@ async function copyFrom(el, text, hintId) {
 /* ── log line ──────────────────────────────────────────────────────────── */
 function makeLogLine() {
   const nums = [...S.broke].sort((a, b) => a - b).join(',');
-  const cells = [
-    today(),
-    S.q.id,
-    S.verdict === 'g' ? '🟢' : S.verdict === 'y' ? '🟡' : '🔴',
-    nums || '-',
-    S.next.trim() || '-'
-  ].slice(0, LOG_COLS);
-  while (cells.length < LOG_COLS) cells.push('-');
-  return '| ' + cells.join(' | ') + ' |';
+  const v = { g: '🟢', y: '🟡', r: '🔴' }[S.verdict] || '-';
+  const val = {
+    date: today(),
+    id: S.q.id,
+    verdict: v,
+    broke: nums || '-',
+    next: S.next.trim() || '-',
+    blank: '-'
+  };
+  /* セル内の | は表を壊すのでエスケープする */
+  const cell = x => String(x).replace(/\|/g, '\\|');
+  return '| ' + LOG_FIELDS.map(f => cell(val[f])).join(' | ') + ' |';
 }
 
 /* ── render ────────────────────────────────────────────────────────────── */
@@ -622,9 +717,13 @@ function renderRail() {
     b.hidden = true;
     return;
   }
-  const total = S.mode.kind === 'cat' ? S.queue.length : S.queue.length;
+  const total = S.queue.length;
+  const lap = total ? Math.floor((S.served - 1) / total) + 1 : 1;
+  const pos = total ? ((S.served - 1) % total) + 1 : S.served;
   w.innerHTML = '<b>' + esc(S.mode.label) + '</b>'
-    + S.served + '問目 / 全' + total + '問' + (S.logs.length ? ' · 記録' + S.logs.length : '');
+    + pos + '問目 / 全' + total + '問'
+    + (lap > 1 ? ' · ' + lap + '周目' : '')
+    + (S.logs.length ? ' · 記録' + S.logs.length : '');
   b.hidden = false;
 }
 
@@ -634,7 +733,7 @@ function render(screen) {
   stage.innerHTML = VIEWS[S.screen]();
   renderRail();
   wire();
-  if (S.screen !== 'result') window.scrollTo(0, 0);
+  window.scrollTo(0, 0);
 }
 
 const VIEWS = {
@@ -653,7 +752,8 @@ const VIEWS = {
       + 'アプリは出題・計時・セルフチェック・記録だけを行います。</p>'
       + '</section>'
       + '<div class="modes">'
-      + '<button class="mode" data-mode="random"><span class="mode-ico">ALL</span>'
+      + '<button class="mode" data-mode="random"' + (QUESTIONS.length ? '' : ' disabled') + '>'
+      + '<span class="mode-ico">ALL</span>'
       + '<span class="mode-txt"><b>全体ランダム</b><span>全' + QUESTIONS.length + '問をシャッフル</span></span>'
       + '<span class="mode-go">→</span></button>'
       + '<button class="mode" data-mode="deep"' + (deepN ? '' : ' disabled') + '>'
@@ -699,7 +799,7 @@ const VIEWS = {
   /* 計時中 */
   running() {
     const q = S.q;
-    return '<section class="card">' + qMetaHTML(q)
+    return '<section class="card running-q">' + qMetaHTML(q)
       + '<p class="qtext">' + esc(q.text) + '</p></section>'
       + '<div class="timer" id="timer">'
       + '<div class="dial">'
@@ -738,7 +838,7 @@ const VIEWS = {
             + '<span class="crit-no">' + c.no + '</span>'
             + '<span class="crit-lab">' + esc(c.label)
             + (c.note ? '<small>' + esc(c.note) + '</small>'
-                      : (auto ? '<small>60秒を超えたため自動でチェックしました</small>' : ''))
+                      : (auto ? '<small class="auto-note">60秒を超えたため自動でチェックしました</small>' : ''))
             + '</span>'
             + (auto ? '<span class="crit-auto">自動</span>' : '')
             + '<span class="crit-box" aria-hidden="true">✓</span>'
@@ -754,14 +854,22 @@ const VIEWS = {
   /* 判定＋記録 */
   result() {
     const v = S.verdict;
-    const meta = {
+    const rev = isReverse(S.q);
+    const over = S.elapsed > LIMIT * 1000;
+    const meta = rev ? {
+      g: ['🟢', 'この会社に言える', '面接で実際に聞ける形になっています。'],
+      y: ['🟡', '言えたが崩れた', ''],
+      r: ['🔴', 'この会社には言えない', 'この会社について調べ直すところからです。']
+    }[v] : {
       g: ['🟢', '60秒で言えた', 'チェック0個。この形を固めましょう。'],
-      y: ['🟡', '言えたが崩れた', '崩れた基準：' + [...S.broke].sort((a, b) => a - b)
-            .map(n => n + '. ' + (CRITERIA.find(c => c.no === n) || {}).label).join(' / ')],
+      y: ['🟡', over ? '60秒を超えた' : '言えたが崩れた',
+          [...S.broke].length
+            ? '崩れた基準：' + [...S.broke].sort((a, b) => a - b)
+                .map(n => n + '. ' + ((CRITERIA.find(c => c.no === n) || {}).label || '')).join(' / ')
+            : '60秒を超えました。削るところを決めましょう。'],
       r: ['🔴', '言えなかった', 'まず一文目の結論だけ用意しておきましょう。']
     }[v];
     const line = makeLogLine();
-    const rev = isReverse(S.q);
     return '<section class="card">' + qMetaHTML(S.q)
       + '<div class="verdict ' + v + '">'
       + '<span class="verdict-ico">' + meta[0] + '</span>'
@@ -803,8 +911,10 @@ function renderDock() {
       '<p class="dock-tally"><span>🟢 <b>' + tally.g + '</b></span>'
     + '<span>🟡 <b>' + tally.y + '</b></span>'
     + '<span>🔴 <b>' + tally.r + '</b></span></p>'
+    + '<div id="dock-lines" class="dock-lines">'
     + S.logs.map((l, i) =>
         '<button class="logline" data-log="' + i + '">' + esc(l.line) + '</button>').join('')
+    + '</div>'
     + '<p class="copyhint" id="dock-hint" data-idle="1行タップでその行だけコピー">'
     + '<span>1行タップでその行だけコピー</span></p>'
     + '<button class="btn btn-quiet btn-sm" data-act="copyall">'
@@ -820,6 +930,7 @@ function commitLog() {
 
 const ACTS = {
   start() {
+    stopTimer();                 // 二重起動防止
     S.startedAt = Date.now();
     S.elapsed = 0;
     overFired = false; warnFired = false;
@@ -838,13 +949,18 @@ const ACTS = {
     render('check');
   },
   judge() {
-    S.verdict = S.broke.size === 0 ? 'g' : 'y';
+    /* 🟢は「60秒で言えた」かつ「チェック0個」。実測時間も条件に入れる。 */
+    const inTime = S.elapsed <= LIMIT * 1000;
+    S.verdict = (S.broke.size === 0 && inTime) ? 'g' : 'y';
     commitLog();
     render('result');
   },
   skip() {                       // 「言えなかった」→ 🔴
     stopTimer();
     if (S.screen === 'running') S.elapsed = Date.now() - S.startedAt;
+    /* 答えられていないので、崩れた基準の内訳は残さない（自動チェック分も含む） */
+    S.broke = new Set();
+    S.autoTime = false;
     S.verdict = 'r';
     commitLog();
     render('result');
@@ -857,7 +973,7 @@ const ACTS = {
   copyline() { copyFrom($('line'), makeLogLine(), 'line-hint'); },
   copyall()  {
     const all = S.logs.map(l => l.line).join('\n');
-    copyFrom($('dock-body'), all, 'dock-hint');
+    copyFrom($('dock-lines'), all, 'dock-hint');
   }
 };
 
