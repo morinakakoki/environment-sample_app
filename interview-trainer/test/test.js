@@ -52,7 +52,11 @@ ok(await p.locator('.qtext').isVisible(),'質問文が表示される');
 ok(await p.locator('.tag.id').isVisible(),'IDタグが表示される');
 const qm=await p.locator('.qmeta').textContent();
 console.log('    qmeta:',qm.trim().replace(/\s+/g,' '));
-ok(/サンプル/.test(qm),'出典タグが表示される');
+const cur=await p.evaluate(()=>({id:S.q.id,cat:S.q.cat,src:S.q.src,
+                                 name:CAT_NAME[S.q.cat]}));
+ok(qm.includes(cur.id),'ID が表示される');
+ok(qm.includes(cur.name),'カテゴリ名が表示される');
+ok(cur.src?qm.includes(cur.src):true,`出典タグが表示される (${cur.src||'なし'})`);
 
 // 「答え終わった」が計時中にスクロールなしで見えるか
 await p.locator('[data-act="start"]').click();
@@ -177,14 +181,20 @@ const small=await p.evaluate(()=>[...document.querySelectorAll('button')]
   .filter(x=>x.h>0&&x.h<44));
 ok(small.length===0,'全ボタンの高さ>=44px '+(small.length?JSON.stringify(small):''));
 
-// 一巡しても「19問目 / 全18問」にならず、周回として表示される
+// 一巡しても「19問目 / 全18問」にならず、周回として表示される。
+// 問題数のいちばん少ないカテゴリを選んで一周させる。
 await p.locator('#rail-btn').click(); await p.waitForTimeout(150);
-await p.locator('.cat[data-cat="F"]').click(); await p.waitForTimeout(150); // F は1問だけ
+const smallest=await p.evaluate(()=>{
+  const e=Object.entries(COUNT_BY_CAT).filter(([c])=>!/^K/i.test(c));
+  e.sort((a,b)=>a[1]-b[1]); return {cat:e[0][0],n:e[0][1]};
+});
+await p.locator(`.cat[data-cat="${smallest.cat}"]`).click(); await p.waitForTimeout(150);
 const railBefore=await p.locator('#rail-where').textContent();
-ok(railBefore.includes('1問目 / 全1問'),`1問カテゴリの表示 (${railBefore.trim()})`);
-await p.locator('[data-act="pass"]').click(); await p.waitForTimeout(150);
+ok(railBefore.includes(`1問目 / 全${smallest.n}問`),
+   `${smallest.cat}(${smallest.n}問)の初期表示 (${railBefore.trim()})`);
+for(let k=0;k<smallest.n;k++){ await p.locator('[data-act="pass"]').click(); await p.waitForTimeout(60); }
 const railAfter=await p.locator('#rail-where').textContent();
-ok(railAfter.includes('1問目 / 全1問')&&railAfter.includes('2周目'),
+ok(railAfter.includes(`1問目 / 全${smallest.n}問`)&&railAfter.includes('2周目'),
    `一巡後は「2周目」と出て総数を超えない (${railAfter.trim()})`);
 
 console.log('\n--- 修正済みバグの再発防止 ---');
