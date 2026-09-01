@@ -1,0 +1,960 @@
+<title>インフラ判断ドリル</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #E7E8E1;
+    --card: #FAFAF7;
+    --card-2: #F1F2EC;
+    --ink: #1B232E;
+    --ink-2: #4B5561;
+    --ink-3: #7B8590;
+    --rule: #C7C9C0;
+    --rule-2: #DDDED6;
+    --ai: #23477E;
+    --ai-soft: #E3E9F3;
+    --shu: #B8402B;
+    --shu-soft: #F4E3DE;
+    --midori: #2B6A4D;
+    --midori-soft: #E0EDE4;
+    --shadow: 0 1px 0 rgba(27,35,46,.06), 0 6px 18px -12px rgba(27,35,46,.35);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #11151B;
+      --card: #191F27;
+      --card-2: #1F262F;
+      --ink: #E7E9E4;
+      --ink-2: #ADB5BD;
+      --ink-3: #79828C;
+      --rule: #2F3843;
+      --rule-2: #232B34;
+      --ai: #8FB1E9;
+      --ai-soft: #1C2635;
+      --shu: #E5765D;
+      --shu-soft: #31201C;
+      --midori: #6DBF92;
+      --midori-soft: #16271E;
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 20px -14px rgba(0,0,0,.9);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #11151B;
+    --card: #191F27;
+    --card-2: #1F262F;
+    --ink: #E7E9E4;
+    --ink-2: #ADB5BD;
+    --ink-3: #79828C;
+    --rule: #2F3843;
+    --rule-2: #232B34;
+    --ai: #8FB1E9;
+    --ai-soft: #1C2635;
+    --shu: #E5765D;
+    --shu-soft: #31201C;
+    --midori: #6DBF92;
+    --midori-soft: #16271E;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 20px -14px rgba(0,0,0,.9);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.85;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 33rem;
+    margin: 0 auto;
+    padding: 0 1.05rem 5rem;
+  }
+
+  /* ---------- shared type ---------- */
+  .mincho { font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif; font-weight: 600; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .label {
+    font-size: .68rem;
+    letter-spacing: .18em;
+    font-weight: 700;
+    color: var(--ink-3);
+    line-height: 1;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    padding: 2.4rem 0 1.5rem;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: .35rem;
+  }
+  .masthead h1 {
+    margin: .5rem 0 0;
+    font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+    font-weight: 700;
+    font-size: 1.85rem;
+    line-height: 1.4;
+    letter-spacing: .04em;
+    text-wrap: balance;
+  }
+  .masthead .sub {
+    margin: .7rem 0 0;
+    font-size: .84rem;
+    line-height: 1.75;
+    color: var(--ink-2);
+  }
+  .rule-thin { border-bottom: 1px solid var(--ink); height: 3px; margin-bottom: 1.6rem; }
+
+  /* ---------- random card ---------- */
+  .random {
+    width: 100%;
+    display: block;
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--shu);
+    border-left: 4px solid var(--shu);
+    border-radius: 2px;
+    padding: 1rem 1.1rem;
+    margin: 0 0 2rem;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    box-shadow: var(--shadow);
+    transition: transform .12s ease, background .12s ease;
+  }
+  .random:hover { background: var(--shu-soft); }
+  .random:active { transform: translateY(1px); }
+  .random .big {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.18rem;
+    color: var(--shu);
+    letter-spacing: .05em;
+  }
+  .random .cap { display: block; font-size: .78rem; color: var(--ink-2); margin-top: .15rem; line-height: 1.6; }
+
+  /* ---------- field sections ---------- */
+  .field-head {
+    display: flex;
+    align-items: baseline;
+    gap: .6rem;
+    margin: 2rem 0 .55rem;
+    padding-bottom: .35rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .field-head .name {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.02rem;
+    letter-spacing: .1em;
+  }
+  .field-head .count { font-size: .72rem; color: var(--ink-3); letter-spacing: .08em; }
+
+  .case-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
+
+  .case {
+    display: grid;
+    grid-template-columns: 2.3rem 1fr;
+    gap: .8rem;
+    width: 100%;
+    text-align: left;
+    background: var(--card);
+    border: 1px solid var(--rule-2);
+    border-radius: 2px;
+    padding: .85rem .9rem;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .case:hover { border-color: var(--ai); background: var(--ai-soft); }
+  .case:active { transform: translateY(1px); }
+  .case .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: .85rem;
+    font-weight: 500;
+    color: var(--ai);
+    border: 1px solid var(--ai);
+    border-radius: 2px;
+    height: 1.75rem;
+    display: grid;
+    place-items: center;
+    margin-top: .18rem;
+  }
+  .case .t { display: block; font-weight: 700; font-size: 1rem; line-height: 1.55; letter-spacing: .01em; }
+  .case .aim { display: block; font-size: .8rem; color: var(--ink-2); line-height: 1.65; margin-top: .15rem; }
+  .case .done {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 0 .4rem;
+    margin-left: .4rem;
+    vertical-align: .12em;
+    color: var(--ink-2);
+    background: var(--card-2);
+  }
+
+  /* ---------- session log ---------- */
+  .logbox {
+    margin-top: 2.4rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--card-2);
+    padding: 1rem;
+  }
+  .logbox h2 { margin: 0 0 .6rem; font-size: .95rem; font-weight: 700; letter-spacing: .04em; }
+  .logrows { overflow-x: auto; }
+  .logrows pre {
+    margin: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    line-height: 1.9;
+    white-space: pre;
+    color: var(--ink-2);
+  }
+
+  /* ---------- question view ---------- */
+  .qbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .8rem;
+    padding: 1.15rem 0 .8rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 1.3rem;
+  }
+  .backlink {
+    background: none; border: none; padding: 0; font: inherit; cursor: pointer;
+    color: var(--ink-3); font-size: .8rem; letter-spacing: .04em;
+  }
+  .backlink:hover { color: var(--shu); }
+  .steps { display: flex; gap: .3rem; }
+  .steps span {
+    width: 1.45rem; height: 1.45rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    display: grid; place-items: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    color: var(--ink-3);
+    background: var(--card);
+  }
+  .steps span.done { border-color: var(--ai); color: var(--ai); }
+  .steps span.now { border-color: var(--ai); background: var(--ai); color: var(--card); font-weight: 500; }
+
+  .case-title {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.45rem;
+    line-height: 1.45;
+    letter-spacing: .02em;
+    margin: 0 0 .2rem;
+    text-wrap: balance;
+  }
+  .case-meta { font-size: .76rem; color: var(--ink-3); letter-spacing: .1em; margin-bottom: 1.2rem; }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--rule-2);
+    border-radius: 2px;
+    padding: 1rem 1.05rem;
+    margin-bottom: 1.1rem;
+  }
+  .panel .label { display: block; margin-bottom: .5rem; }
+  .panel p { margin: 0; font-size: .935rem; line-height: 1.95; letter-spacing: .01em; }
+
+  .panel.lead { border-left: 3px solid var(--shu); background: var(--shu-soft); border-color: var(--shu-soft); }
+  .panel.lead .label { color: var(--shu); }
+
+  details.recap { background: var(--card-2); }
+  details.recap > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    font-size: .68rem;
+    letter-spacing: .18em;
+    font-weight: 700;
+    color: var(--ink-3);
+  }
+  details.recap > summary::-webkit-details-marker { display: none; }
+  details.recap > summary::after { content: "開く"; letter-spacing: .06em; color: var(--ai); }
+  details.recap[open] > summary::after { content: "閉じる"; }
+  details.recap[open] > summary { margin-bottom: .6rem; }
+  details.recap p { font-size: .86rem; color: var(--ink-2); }
+
+  .prompt {
+    font-weight: 700;
+    font-size: 1.06rem;
+    line-height: 1.8;
+    margin: 1.5rem 0 1rem;
+    padding-left: .8rem;
+    border-left: 3px solid var(--ink);
+    text-wrap: pretty;
+  }
+
+  .choices { display: flex; flex-direction: column; gap: .6rem; }
+  .choice {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: .75rem;
+    align-items: start;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: .95rem .9rem;
+    cursor: pointer;
+    line-height: 1.8;
+    font-size: .92rem;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  .choice:hover { border-color: var(--ai); }
+  .choice .sym {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: .88rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    height: 1.9rem;
+    display: grid; place-items: center;
+    color: var(--ink-2);
+    background: var(--card-2);
+  }
+  .choice[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); }
+  .choice[aria-pressed="true"] .sym { background: var(--ai); border-color: var(--ai); color: var(--card); }
+
+  /* ---------- reason ---------- */
+  .reason { margin-top: 1.4rem; border-top: 1px dashed var(--rule); padding-top: 1.2rem; }
+  .reason .label { display: block; margin-bottom: .1rem; }
+  .reason .hint { font-size: .78rem; color: var(--ink-2); margin: .45rem 0 .6rem; line-height: 1.7; }
+  textarea {
+    width: 100%;
+    min-height: 5.2rem;
+    resize: vertical;
+    font: inherit;
+    font-size: .93rem;
+    line-height: 1.8;
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: .7rem .8rem;
+  }
+  textarea:focus { outline: 2px solid var(--ai); outline-offset: 1px; border-color: var(--ai); }
+  .counter {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    color: var(--ink-3);
+    margin-top: .4rem;
+  }
+  .counter .ok { color: var(--midori); }
+
+  .next {
+    width: 100%;
+    margin-top: 1.1rem;
+    padding: 1rem;
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: .08em;
+    color: var(--card);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .next[disabled] { background: transparent; color: var(--ink-3); border-color: var(--rule); cursor: not-allowed; }
+  .next:not([disabled]):active { transform: translateY(1px); }
+
+  /* ---------- review ---------- */
+  .score {
+    text-align: center;
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    background: var(--card);
+    padding: 1.5rem 1rem 1.3rem;
+    margin-bottom: 1.8rem;
+  }
+  .score .mark {
+    font-family: "Shippori Mincho", serif;
+    font-size: 3.6rem;
+    line-height: 1;
+    font-weight: 700;
+    display: block;
+  }
+  .score .n { font-family: "IBM Plex Mono", monospace; font-size: .82rem; color: var(--ink-2); margin-top: .7rem; letter-spacing: .06em; }
+  .score .verdict { font-size: .9rem; color: var(--ink-2); margin-top: .55rem; line-height: 1.75; }
+
+  .qreview { margin-bottom: 2.2rem; }
+  .qreview > h3 {
+    margin: 0 0 .8rem;
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    padding-bottom: .4rem;
+    border-bottom: 1px solid var(--ink);
+    display: flex; justify-content: space-between; align-items: baseline; gap: .5rem;
+  }
+  .qreview > h3 .tag { font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 400; color: var(--ink-3); }
+  .qreview .qtext { font-size: .9rem; color: var(--ink-2); line-height: 1.8; margin: 0 0 .9rem; }
+
+  .opt {
+    border: 1px solid var(--rule-2);
+    border-left: 3px solid var(--rule);
+    border-radius: 2px;
+    background: var(--card);
+    padding: .8rem .85rem;
+    margin-bottom: .55rem;
+  }
+  .opt .head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .4rem; }
+  .opt .sym {
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: .82rem;
+    width: 1.6rem; height: 1.6rem;
+    display: grid; place-items: center;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    color: var(--ink-2);
+    flex: none;
+  }
+  .chip {
+    font-size: .68rem; letter-spacing: .08em; font-weight: 700;
+    border-radius: 2px; padding: .1rem .42rem; line-height: 1.7;
+  }
+  .chip.c { color: var(--midori); border: 1px solid var(--midori); background: var(--midori-soft); }
+  .chip.y { color: var(--shu); border: 1px solid var(--shu); background: var(--shu-soft); }
+  .opt .body { font-size: .89rem; line-height: 1.8; color: var(--ink); }
+  .opt .why { font-size: .855rem; line-height: 1.85; color: var(--ink-2); margin-top: .55rem; padding-top: .55rem; border-top: 1px dotted var(--rule); }
+  .opt.correct { border-left-color: var(--midori); background: var(--midori-soft); border-color: var(--midori-soft); }
+  .opt.correct .sym { border-color: var(--midori); color: var(--midori); border-radius: 50%; }
+  .opt.correct .why { color: var(--ink); }
+  .opt.yours { border-left-color: var(--shu); }
+  .opt.yours .sym { border-color: var(--shu); color: var(--shu); }
+
+  .myreason {
+    border-left: 3px solid var(--ink-3);
+    padding: .1rem 0 .1rem .8rem;
+    margin: .9rem 0 1rem;
+  }
+  .myreason .label { display: block; margin-bottom: .25rem; }
+  .myreason p { margin: 0; font-size: .89rem; line-height: 1.8; color: var(--ink-2); }
+
+  .box {
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--card);
+    padding: 1.05rem 1.05rem 1.1rem;
+    margin-bottom: 1.1rem;
+  }
+  .box > .label { display: block; margin-bottom: .55rem; }
+  .box h4 {
+    margin: 0 0 .55rem;
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    letter-spacing: .02em;
+  }
+  .box p { margin: 0; font-size: .89rem; line-height: 1.9; color: var(--ink-2); }
+  .lines { list-style: none; margin: 0; padding: 0; counter-reset: ln; }
+  .lines li {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: .55rem;
+    font-size: .9rem;
+    line-height: 1.85;
+    padding: .5rem 0;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .lines li:last-child { border-bottom: none; }
+  .lines li::before {
+    counter-increment: ln;
+    content: counter(ln);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    color: var(--ai);
+    border: 1px solid var(--ai);
+    border-radius: 2px;
+    height: 1.35rem;
+    display: grid; place-items: center;
+    margin-top: .3rem;
+  }
+
+  .principle {
+    border: none;
+    border-top: 2px solid var(--shu);
+    border-bottom: 2px solid var(--shu);
+    background: transparent;
+    padding: 1.15rem 0 1.25rem;
+    margin: 1.8rem 0;
+    text-align: center;
+  }
+  .principle .label { color: var(--shu); display: block; margin-bottom: .6rem; }
+  .principle p {
+    margin: 0;
+    font-family: "Shippori Mincho", serif;
+    font-weight: 700;
+    font-size: 1.18rem;
+    line-height: 1.75;
+    letter-spacing: .03em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .copyrow {
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--card-2);
+    border: 1px dashed var(--rule);
+    border-radius: 2px;
+    padding: .8rem .85rem;
+    cursor: pointer;
+  }
+  .copyrow:hover { border-color: var(--ai); border-style: solid; }
+  .copyrow code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+  }
+  .taphint { font-size: .74rem; color: var(--ink-3); margin-top: .4rem; letter-spacing: .04em; }
+
+  .actions { display: flex; flex-direction: column; gap: .55rem; margin-top: 2rem; }
+  .btn {
+    width: 100%;
+    padding: .95rem;
+    font: inherit;
+    font-weight: 700;
+    font-size: .95rem;
+    letter-spacing: .06em;
+    border-radius: 2px;
+    cursor: pointer;
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--ink);
+  }
+  .btn.primary { background: var(--ink); color: var(--card); }
+  .btn:active { transform: translateY(1px); }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%) translateY(1.5rem);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: .82rem;
+    letter-spacing: .06em;
+    padding: .6rem 1.1rem;
+    border-radius: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s ease, transform .18s ease;
+    z-index: 20;
+  }
+  .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .foot { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: .74rem; line-height: 1.85; color: var(--ink-3); }
+
+  :focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+  .view { animation: rise .22s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .view { animation: none; }
+    * { transition-duration: .01ms !important; }
+  }
+</style>
+
+<div class="app" id="app"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const CASES = [{"id":1,"field":"障害対応","title":"月曜9時の応答遅延","scenario":"A社の受注管理システムは、ALB配下のEC2インスタンス4台と、Multi-AZ構成のRDSで稼働している。利用者は業務部門の約300名で、月曜9時が受注入力の立ち上がりピークにあたる。前週金曜の21時にアプリケーションのリリースが実施されたが、週末は利用がほとんどなく、これまで異常の報告はない。月曜9時5分、業務部門から「画面が出るまで30秒かかる」との連絡が運用チームに入った。ALBのターゲットはいずれも正常と判定されたままで、CloudWatchのTargetResponseTimeは上昇しているが、HTTPCode_ELB_5XX_Countは出ていない。リリース物に何が含まれていたかの詳細は手元になく、リリース担当者はまだ出社していない。運用チームの上司は移動中で連絡がつかない。運用規程では、上司不在時は次席へ上げることになっている。あなたはこの日の運用当番である。","frame":{"name":"事実確認→影響範囲→暫定対処→恒久対処","howto":"まず数字で事実を確認する。今回ならTargetResponseTimeが立ち上がった時刻、ターゲットの正常性、直前のリリースの有無までを押さえる。次に影響範囲を、誰のどの業務がどれだけ遅いかという言葉に直して業務部門と共有する。暫定対処は「後から元に戻せるか」を基準に選び、承認を取ってから順に試す。恒久対処は原因が確定してからで、そこへ至る期限と担当は暫定の時点で決めておく。"},"principle":"初動は「直す」より「広げない・知らせる」","interview":["月曜の朝いちばんに、ALB配下の業務システムで画面が三十秒出ないという連絡が入り、私がその日の運用当番でした。","私は原因を探すより、影響範囲を数字で押さえて業務部門と次席へ伝えることを優先しました。初動は直すことより、広げず知らせることが先だと考えたからです。","結果、暫定策で持ちこたえられましたが、原因は後追いになりました。以後は暫定でしのいだときほど、解除の期限を決めて記録に残すようにしています。"],"questions":[{"no":1,"lead":"","prompt":"業務部門からの連絡を受けた直後である。あなたはこの最初の五分間を、何にどの順で使うと判断するか。","choices":["金曜のリリース物の差分とアプリケーションログを一件ずつ突き合わせて遅延の原因を特定し、原因が見えた時点で業務部門への連絡と対処方針の決定をまとめて行うことにする。","CloudWatchで遅延の開始時刻と影響範囲を数字で押さえ、業務部門へ事象と次報の時刻を伝えたうえで、規程に従って次席へ報告する。原因の特定はその後に回す。","遅延の原因は金曜のリリースにあると考えられるため、まず該当リリースの切り戻しを実施し、応答が戻ったことを確認してから業務部門へ復旧を報告する。","応答が戻るまでの暫定措置としてEC2を2台増設してターゲットグループに登録し、効果を確認してから業務部門と次席へ状況をまとめて連絡することにする。"],"answer":1,"explain":"初動の目的は障害を直すことではなく、被害を広げず、知るべき人に知らせることである。TargetResponseTimeの立ち上がり時刻とリクエスト数を押さえれば、全面的な遅延なのか一部に限られるのかが数分で分かる。そのうえで業務部門へ事象と次報の時刻を伝えれば、利用者は再送や問い合わせの殺到を避けられ、運用側も調査の時間を確保できる。上司に連絡がつかないことを待つ理由にせず、運用規程が定めた次席へ上げるのが手続きとして正しい。代償は小さくない。この五分間で原因には一歩も近づかず、連絡と記録に人手を取られ、「なぜ先に調べないのか」と言われる場面もある。それでも判断の材料と関係者の合意を先に確保したほうが、後に残る選択肢は広い。","others":[{"i":0,"text":"差分とログの突き合わせは原因究明として正しい手順であり、いずれ必ず必要になる。ただし数分で終わる作業ではなく、その間、業務部門は理由の分からない遅延を抱えたまま入力を続けることになる。連絡と影響範囲の把握を後ろに置いた点で、この場面では順位が下がる。"},{"i":2,"text":"金曜のリリースは最も疑わしいが、この時点で遅延との関係は確認できていない。切り戻せるかどうかもリリース物の中身を見るまで分からない。未確認の因果を確定した前提として扱ったまま本番に手を入れると、外れた場合に切り分けがかえって難しくなる。"},{"i":3,"text":"台数を増やす暫定対処そのものは候補に入り、実際に効く場面もある。ただし本番構成の変更を、承認も記録もないまま当番の判断だけで先に実施している。規程は上司不在時に次席へ上げると定めており、連絡は動いた後ではなく動く前に置くのが手続きである。"}]},{"no":2,"lead":"9時20分、出社したリリース担当者から、金曜のリリースには受注テーブルの列削除とインデックス構成の変更が同梱されており、アプリケーションだけを戻してもデータ構造が合わないと報告があった。切り戻しは事実上できない。遅延は続き、業務部門からの問い合わせも増え始めている。","prompt":"切り戻しという退路が消え、遅延は続いている。あなたはこの後の30分を、どう使うと判断するか。","choices":["事実確認と定時連絡の体制を維持し、上司の承認が取れるまでは本番構成に手を入れず、業務部門へは30分ごとの定時連絡を続けながら、確認できた事実を記録に残していく。","削除された列を復元する逆向きのマイグレーションをこの場で作成して適用し、データ構造をリリース前の状態に戻したうえで、アプリケーションも金曜以前のバージョンへ差し戻す。","切り戻しが使えない以上、遅延の原因はリリースにあると判断し、該当機能の停止を当番の判断で業務部門へ通知したうえで、利用者が減った状態で切り分けに当たる。","次席の承認を得たうえで、後から元に戻せる暫定策だけを優先度順に試し、実施時刻と効果、外れたときの戻し方を記録に残す。原因究明は時間を区切って後続の担当へ預ける。"],"answer":3,"explain":"前提が変わった以上、判断の型も置き直す必要がある。切り戻しが使えないなら、残る手は「戻せる範囲の変更を、承認を取ってから順に試す」ことになる。ターゲットの追加やパラメータの調整は、効果が外れても元に戻せるため、原因が未確定でも踏める。次席の承認を経ることで、当番の独断ではなく組織の判断として記録が残り、後から検証もできる。代償として、原因が分からないまま試すので空振りの時間が生じ、承認を待つ数分も失う。恒久対処は先送りになり、実施時刻を書き留める手間も増える。それでも退路が消えた場面では、「元に戻せるかどうか」が手を出してよい範囲を決めるほぼ唯一の線引きであり、その内側で動くほうが被害を広げない。","others":[{"i":0,"text":"連絡も記録も続いており、構えとしては問1の延長にある。ただし承認を待つ相手が連絡のつかない上司のままで、その前提が変わったことを見ていない。退路が消えた局面では、待てる相手を探すのではなく、戻せる範囲で手を打つ側へ移る必要がある。"},{"i":1,"text":"列を復元する逆向きの変更は、恒久的な原状回復としては筋が通る。ただし削除済みの列はPITRで復元した別インスタンスから取り出して突き合わせる必要があり、復元にも突合にも時間がかかる。ピーク時間帯に不可逆な変更を重ねる作業であり、いま最初に置く手ではない。"},{"i":2,"text":"利用停止は影響を確実に止められる強い手で、選択肢としては最後まで残る。ただし業務を止めるかどうかは業務部門と上位の判断であり、当番が単独で通知して確定させることではない。合意と記録を先に取る手続きを飛ばしている点が問題になる。"}]},{"no":3,"lead":"11時15分、ターゲットの追加とパラメータ調整で応答は3秒程度まで戻り、業務部門は入力を再開した。ただし遅延が起きた理由は分かっていない。上司とは11時に連絡がつき、経緯は共有済みである。翌週には月末の繁忙期が控えている。","prompt":"原因が未特定のまま応答が戻り、暫定策で持ちこたえている。あなたはこの後、どのような手続きを取ると判断するか。","choices":["暫定策のままで原因が未特定である事実を障害記録に明記し、遅延が再び伸びたら気づけるよう監視のしきい値を見直したうえで、原因調査と暫定策解除の期限を上司と合意する。","応答が戻ったことを業務部門へ正式に報告し、初動で見つかった連絡手順の不足を運用手順書へ反映する作業を先に進める。原因調査は繁忙期明けを着手期限として業務部門と口頭で合意する。","応答が3秒まで戻り業務も再開したことから事象は収束したものとして扱い、通常運用へ戻す。暫定策の内容は運用チーム内の連絡ノートに記録し、同じ遅延が再発したら同じ手を適用する。","追加した台数と変更したパラメータを恒久構成として扱う方針で構成管理表の記載を更新し、原因調査はリリース担当者へ引き継いだうえで、当番の申し送りに記載して次の当番へ渡す。"],"answer":0,"explain":"応答が戻ったことと、原因が分かったことは別である。いま手元にあるのは「台数を増やしたら数字が下がった」という事実だけで、朝のピークが過ぎて負荷そのものが落ちただけという可能性も残る。だからこの状態は復旧ではなく、期限付きの暫定運用として扱う。未特定であることを記録に明記し、遅延が再び伸びたら気づけるようしきい値を見直し、調査と暫定策解除の期限を月末繁忙期の前に置いて上司と合意する。この三点があって初めて、後回しにした原因究明が忘れられた宿題ではなく日付のある約束になる。代償として、増やしたままの費用が期限まで発生し、調査の工数を別の作業から取ることになる。上司から「もう直ったのに」と言われることもある。","others":[{"i":1,"text":"手順書への反映は必要な作業で、記憶が新しいうちに書く意味もある。合意も口頭で取ってはいるが、着手時期を告げただけで、誰が何を調べるかは残らない。暫定策が期限も監視もないまま残る状態を先に片づけないと、繁忙期に同じ遅延を迎えることになる。"},{"i":2,"text":"数字が戻った以上、通常運用へ戻す判断そのものはあり得る。記録も残してはいるが、宛先がチーム内の連絡ノートで、障害記録として上位や次の担当へは届かない。改善した理由も未確認のまま収束と扱っており、前提の置き方に無理がある。"},{"i":3,"text":"暫定策を恒久構成へ格上げする整理は、いずれ必要になる判断ではある。ただし費用と設計に影響する変更を、当番が単独で確定させている。申し送りは残るものの、いつまでに原因を確かめ、誰が恒久化の可否を決めるのかという期限と担当が残らない点で手続きが足りない。"}]}],"aim":"初動5分の優先順位と、切り戻しが使えないと分かった後の判断"},{"id":2,"field":"障害対応","title":"勝手に直ったRDS","scenario":"A社の受注管理システムは、EC2上の業務アプリケーションと、RDS for MySQL（Multi-AZ配置）で構成されている。運用チームの担当者であるあなたが8時30分に出社したところ、RDSのイベントに未明3時12分の「Multi-AZ instance failover started」と3時14分の「completed」が記録されていた。DBは切り替わった側のAZで正常に稼働し、応答時間も平常どおりである。夜間バッチは全ジョブが完了しているが、一部の処理開始時刻が通常より遅れている。業務部門の始業は9時で、問い合わせはまだ届いていない。契機を示す記録はイベント以外に見当たらず、監視からのアラート通知も残っていない。上司からは「動いているなら急ぎではないだろう」と言われている。当日の作業の優先順位は、あなた自身が組み立ててよいことになっている。","frame":{"name":"自動復旧≠障害対応完了（復旧と原因究明の分離）","howto":"まず「サービスが戻ったか」と「原因が分かったか」を別の欄に分けて書き、戻っただけの状態を完了と呼ばない。復旧側では利用者影響の有無と残作業を確定させ、原因側では保持期間のある証跡を先に確保する。そのうえで原因究明をどこまでやるかを期限と再開条件付きで合意し、未解明なら未解明のまま記録に残す。"},"principle":"復旧した障害こそ、記録と原因究明を残す","interview":["運用担当として、未明にRDSがMulti-AZで自動フェイルオーバーし、朝には正常へ戻っていた事象を引き継ぎました。","私は様子見にせず、当日中に消えるログを先に押さえ、影響の有無を確かめると判断しました。復旧したことと原因が分かったことは別だからです。","結果、原因までは特定できませんでしたが、未解明であることと再発時の条件を記録に残せました。以後は、直ってしまった障害ほど記録を残しています。"],"questions":[{"no":1,"lead":"","prompt":"業務部門の始業まで30分ある。上司は急ぎではないと言っている。この状況で、あなたはまず何をどの順で行うか。最も適切なものを選べ。","choices":["拡張モニタリングとスロークエリログを未明の時間帯まで遡って突き合わせ、フェイルオーバーの契機を特定する。判明した原因と影響を上司と業務部門へ一度にまとめて報告し、証跡の保全と記録はその後に回す。","Multi-AZの自動フェイルオーバーは想定内の動作であり単発でもあるため、事象と復旧をチームのチャットに書き置き、再発したら正式に調査するとその場で決めて、当日は通常の案件作業を優先する。","未明のRDSイベントとメトリクスに加え、当日中にローテートするログを保全し、接続断で取りこぼした処理がないかをアプリログとバッチ結果で確認する。暫定の記録を作り、始業前に上司へ一報を入れる。","接続断はアプリケーションの接続プールが再接続して吸収する設計であるため利用者影響はないと判断し、影響確認は省いて未明のイベントとメトリクスの保全だけを行い、始業後の定例で事象を共有する。"],"answer":2,"explain":"フェイルオーバーは復旧であって、障害対応の完了ではない。始業までの30分で効くのは、取りこぼした処理があるかの確認と、業務部門が問い合わせを受ける前に上司へ入れる第一報である。証跡はこの30分では消えないが、RDSがローテートするログファイルは24時間ほどで失われ、翌日には同じものを取り出せない。だから当日の作業順の先頭に保全を置く。そのうえで、数十秒から数分の接続断があった前提で影響を確かめ、暫定の記録を作って始業前に上司へ一報を入れる。痛みもある。原因はこの時点では分からないままで、上司が急ぎではないと考えている作業に半日近くを使い、予定していた案件作業は後ろへずれる。","others":[{"i":0,"text":"原因の特定を先頭に置いている点で順序が入れ替わっている。ログの突き合わせは終わる時刻が読めず、始業までに片付く保証がない。その間、影響の有無の確認と第一報が止まったままになる。原因究明は保全を済ませたあとに、時間を区切って着手する仕事である。"},{"i":1,"text":"記録の形と再発時の扱いを、担当者の裁量だけで決めている点に手続きの欠落がある。単発かどうかは今日の時点では判定できず、チャットの書き置きは後から追跡できる記録にならない。調査を先送りするにしても、記録の形式と上長の合意は先に取り付けたい。"},{"i":3,"text":"利用者影響がないことを、確かめないまま前提に据えている。接続プールの再接続が期待どおり働いたか、取りこぼした処理がないかは、アプリログとバッチ結果を見るまで分からない。保全だけ進めて確認を飛ばすと、影響の有無が空欄のまま始業を迎える。"}]},{"no":2,"lead":"翌週、同じ運用チームが持つ周辺システムで同種の事象が起きた。こちらのRDSは単一AZ構成で、未明2時40分にインスタンスが停止し、稼働を再開したのは3時25分である。約45分間は接続できず、日次バッチは途中で異常終了していた。あなたが把握したのは8時40分で、始業は9時である。","prompt":"始業まで20分しかなく、上司にも業務部門にもまだ何も伝えていない。あなたはこの20分を何に使い、どこから手を付けるか。最も適切なものを選べ。","choices":["異常終了したバッチの停止位置とデータの整合を先に押さえ、上司へ一報したうえで、始業前に業務部門へ影響範囲と再実行の見込みを連絡する。証跡の保全と原因究明は後ろに回し、記録に作成時刻を明示する。","まず未明のイベントとメトリクスを保全し、接続断で影響を受けた処理があるかを一件ずつ確認したうえで事象記録を作る。上司へ一報を入れてから、業務部門への連絡内容とバッチの再実行の可否を組み立てる。","停止時間の長さは単一AZ構成に起因するため、当日夜のメンテナンス枠でMulti-AZへ変更することを運用チーム内で決め、その準備を優先し、変更を終えてから事象と対策をまとめて関係者へ報告する。","自動で復旧して現在は正常であることから、異常終了したバッチを運用チームの判断でそのまま再実行し、取り込めなかった分は次回実行で吸収されるとみなして、業務部門への連絡は日中の定例にまとめる。"],"answer":0,"explain":"前提が一つ変わるだけで順位が入れ替わる。Multi-AZでは接続断が数十秒から数分で、影響の有無を確かめるところから始まった。単一AZでは約45分の停止とバッチの異常終了という影響が確定しており、調べる仕事ではなく、戻す仕事と知らせる仕事が先に来る。停止位置とデータの整合を押さえ、上司に一報を入れたうえで、始業前に業務部門へ影響範囲と再実行の見込みを伝える。始業後に合わない数字を見せてから説明するのと、その前に伝えるのとでは、業務側が取れる打ち手が違う。代償として証跡の保全と原因究明は後ろへ回る。イベントとメトリクスは当日中に押さえれば間に合うが、24時間でローテートするログファイルは、今日のうちに手が回らなければ取り逃す。","others":[{"i":1,"text":"問1で最善だった段取りを、前提が変わった後もそのまま持ち込んでいる。影響の有無を確認してから動く順序は、影響が未確定だった場合に効いたものである。ここでは停止時間もバッチの異常終了も見えており、業務部門への連絡を検討段階に留めている間に、始業を迎えてしまう。"},{"i":2,"text":"構成変更という結論は検討に値するが、変更管理の承認を経ずに当日夜の実施をチーム内で決め、関係者への報告を対策の後に置いている点で手続きを飛ばしている。Multi-AZ化は費用と性能影響を伴う構成変更であり、運用チーム単独で決める範囲を超える。"},{"i":3,"text":"次回実行で吸収される、という確かめていない前提に乗っている。再実行が安全かどうかは処理の作りによって変わり、二重計上を生む場合もある。始業直後に業務部門が合わないデータを見る可能性も織り込まれていない。"}]},{"no":3,"lead":"Multi-AZ側の件に戻る。イベント以外に契機を示す記録は見つからず、基盤側の事象である可能性が高いという以上の特定はできなかった。上司からは、再発していないのだから原因究明の工数はここで打ち切り、進行中の案件作業に戻るよう指示された。証跡の保持期間は有限である。","prompt":"上司の指示どおり原因究明を打ち切るにあたり、あなたは何を残してから案件作業に戻るか。最も適切なものを選べ。","choices":["打ち切りは上司の承認が出たものとして案件作業へ戻り、再発した場合はその時点で改めて調査を起こすことを、翌日の朝会でチームへ口頭で共有したうえで、当面は監視の通知を注視する。","原因が分からない以上は再発時に確実に捕捉できることが先だと考え、フェイルオーバーの検知と主要メトリクスの監視通知をこの機会に見直し、監視設計の変更としてまとめて上司へ提案してから案件作業に戻る。","原因不明のままでは再発時に説明できないため、可能性が高い基盤側のホスト障害を推定原因として障害記録に記載し、再発時の調査手順を添えたうえで恒久対策は不要と結論づけ、起票を当日中に閉じる。","保持期間で消える前に未明のイベントとメトリクスとバッチ結果を記録へ添付し、未解明であることと再発時に即日調査へ戻す条件を上司の承認付きで残す。案件作業の再開が半日遅れることも、その場で伝える。"],"answer":3,"explain":"原因究明を打ち切ること自体は、工数配分の判断として成り立つ。問題は、打ち切りが何も残さない形で行われることである。証跡には保持期間があり、時間が経てば同じものを取り出せなくなる。だから先に、未明のイベント、メトリクス、バッチ結果を記録へ添付する。そのうえで、未解明であること、打ち切った理由、再発したら即日調査へ戻すという再開条件を、上司の承認付きで残す。再発時に一から情報を集め直さずに済むのは、この記録があるからである。代償は小さくない。記録の作成に半日を使い、その分だけ案件作業の再開が遅れる。原因が分からないという結論も、そのまま残る。","others":[{"i":0,"text":"打ち切りの可否が上司の判断であること自体は正しく、承認を取った形にもなっている。ただしその承認は口頭で、何が未解明のまま残ったかも、どうなったら調査を再開するかも記録に残らない。数週間後には、フェイルオーバーが起きた事実ごと誰も思い出せなくなる。"},{"i":1,"text":"監視の見直しは、将来の再発時に効く正しい打ち手ではある。ただし打ち切りの合意と証跡の確保という数時間の手当てを飛ばして大きい改修に入っており、指示された案件作業とも衝突する。残すものを残してから、設計の議論に移る順序になる。"},{"i":2,"text":"推定を確定として記録に書き、恒久対策は不要とまで結論づけている点で、前提の置き方に無理がある。未確認の原因が一度記録に載ると、次に同じ事象が起きたときの調査範囲を不当に狭めてしまう。分からなかったことは、分からなかったと書くほうが後で使える。"}]}],"aim":"自動で直った障害を、どこまで追うか"},{"id":3,"field":"障害対応","title":"ディスク90%はまだ障害ではない","scenario":"A社の受注管理システムは、ALB配下のEC2 2台とRDSで構成され、各EC2に200GiBのgp3ボリュームが接続されている。ボリュームにはアプリケーションログと夜間バッチの中間ファイルが同居する。8月31日、月次点検で1号機のディスク使用率が90%に達していることが判明した。増加ペースは過去半年で月あたり約8ポイント、約16GiBである。使用率はCloudWatchエージェントで取得しているが、アラームはない。EBSはオンラインで拡張できるが、本番構成の変更は変更管理委員会の承認を要し、申請から実施まで2週間、部長承認と理由書を要する緊急枠でも5日かかる。現在は期末の業務繁忙期で、9月15日までリリース凍結期間である。使用率の内訳は未調査であり、ログローテーションの設定状況は運用手順書に記載がない。運用リーダーは出張中で、連絡は翌日になる。あなたは運用チームのインフラ担当である。","frame":{"name":"リスク＝影響度×発生確率×猶予／暫定と恒久の分離","howto":"まず影響度、発生確率、猶予の三つを数字にする。満杯時に何が止まるか、今のペースで到達する見込みがあるか、到達まで何日かを出す。その猶予から申請のリードタイムを引いた残りが、判断と調整に使える実質の期限であり、ここがひと月を切るなら予兆ではなく期限付きの課題として扱う。次に打ち手を、空きを作る暫定策と容量を増やす恒久策に分け、暫定策には有効期限を、恒久策には申請の最終期限日を付けて並行で走らせる。"},"principle":"「まだ障害じゃない」は猶予を計算してから言う","interview":["本番サーバのディスク使用率が90%に達したのですが、繁忙期でリリース凍結中という状況で、私が一次判断を任されていました。","私はまず満杯までの日数を出すべきだと判断しました。理由は、猶予が約五週間でも申請に二週間かかり、動ける余裕は三週間しかないからです。","実際に繁忙期で上振れしましたが、決めておいた基準で緊急申請に切り替え、停止は避けられました。以後、容量は日数に直して報告しています。"],"questions":[{"no":1,"lead":"","prompt":"あなたはこの状況をどう扱い、本日中に何をどこまで進めるか。最も適切なものを選べ。","choices":["現在の増加ペースから満杯までの猶予日数を概算し、猶予と満杯時の業務影響を添えて上長に報告する。内訳調査は申請と並行に回し、本日中に拡張の変更申請を起票して95%と98%のアラームを設定する。","満杯の原因を確定させることが先であり、ファイルシステム全体を走査して増加している領域とファイル種別を洗い出し、増加要因を特定してから、報告内容と拡張後の必要容量を一つにまとめて翌日に提出する。","増加ペースが月8ポイントなら100%到達まで1か月以上の余裕があり、繁忙期に変更を通す負担も大きいため、拡張の申請は凍結明けの9月16日以降とし、それまでは週次の使用率の推移確認だけを継続する。","EBSはオンラインで拡張でき業務影響も小さいため、リリース凍結の対象外の運用作業として扱い、本日中にボリュームサイズの変更とファイルシステムの拡張を実施し、結果を翌日の日報で報告する。"],"answer":0,"explain":"この時点で決めるべきは「危ないかどうか」ではなく「いつまでに手を打てば間に合うか」である。残り10%は約20GiB、月あたり約16GiBの増加なら到達まで約37日で、申請から実施までの2週間を引いた残り3週間が、判断と調整に使える時間の全部である。だからこれは予兆ではなく期限付きの課題として扱う。初日は概算容量で起票し、内訳は申請と並行で詰める。アラームは95%を緊急申請への切替点、98%を満杯直前の最終警告として役割を分けて置く。代償として、凍結期間中に変更申請を出すことになり、委員会や運用リーダーからは今やる必要があるのかという反発を受ける。その反発に耐える材料が、猶予日数という数字である。","others":[{"i":1,"text":"増加要因の特定は拡張後の必要容量を決めるうえで必要な作業であり、内容自体は正しい。しかし調査の完了を報告と申請の前提に置くと、2週間のリードタイムがその分だけ後ろにずれる。調査は申請と並行して進められるものであり、先に期限を確保しておく方が失うものが少ない。"},{"i":2,"text":"月8ポイントというペースを今後も変わらない事実として扱っている点が弱い。繁忙期はログもバッチの中間ファイルも通常より増え、その上振れを検知する仕組みも置かれていない。9月16日に見に行ったときには、部長承認と理由書が要る緊急枠しか残っていない事態を排除できない。"},{"i":3,"text":"EBSのオンライン拡張が可能である点は正しく、業務影響が小さいのも事実である。ただし本番構成の変更が委員会の承認事項と定められている以上、対象外かどうかを判断する権限は担当者にはない。手続きを一度飛ばすと、次に本当に急ぐときの緊急枠の道も使いにくくなる。"}]},{"no":2,"lead":"翌日、出張から戻った運用リーダーに猶予日数と内訳を報告したところ、繁忙期に本番変更を通すのは委員会が嫌がるし、月8ポイントなら1か月以上持つのだから、拡張の申請は凍結明けの9月16日以降でいい、と言われた。起票した申請は、まだ提出前である。","prompt":"拡張を凍結明けに回すという上位者の判断を受けて、あなたはどう対応するか。最も適切なものを選べ。","choices":["現場を長く見ている運用リーダーの判断であり、月8ポイントというペースの読みも自分の試算と一致する。凍結明けでよいという方針をその場で合意し、やり取りを作業記録に残して現在の運用を維持する。","猶予が短いことは数字で示せる以上、担当者として引くべきではないと考え、リーダーの指示にかかわらず本日中に申請をそのまま提出し、変更管理委員会には猶予日数を添えて繁忙期の例外として直接説明する。","凍結明けでよいという判断を条件に置き換える。満杯予測日から2週間を引いた最終期限日と、95%到達で緊急申請に切り替える基準を示し、監視と期限日の提出を自分が引き受ける形で合意して記録する。","9月16日まで確実に持たせることが先決であるため、ログローテーションの保持世代の見直しと古いログのS3退避に着手して空き容量を稼ぎ、拡張の申請は凍結明けを期限として改めて提起する。"],"answer":2,"explain":"変わった前提は、上位者が凍結明けでよいと判断したという一点であり、猶予日数そのものは変わっていない。ここで争うべきは申請日ではなく、その日まで待ってよいと言える条件である。満杯予測日から2週間のリードタイムを引けば、これを過ぎると間に合わなくなる最終期限日が一意に決まる。その日付と、上振れを検知する95%アラームの二つを合意しておけば、凍結明けに回す判断は成立する。指示に従うことと、指示が成り立つ範囲を明示することは両立する。代償は小さくない。監視と提出の担当を引き受ければ繁忙期に自分の負荷が増え、緊急申請になった場合はなぜもっと早く出さなかったのかという説明も自分が引き受けることになる。","others":[{"i":0,"text":"リーダーの読みと自分の試算が一致しているのは事実で、その場で方針を合意し記録も残している。ただし合意した中身が「凍結明けでよい」という結論だけで、満杯予測日から逆算した最終期限が入っていない。数字が動いたとき、この合意は誰も守れない。"},{"i":1,"text":"数字の裏付けがある点は強く、担当者として粘る姿勢も実務では評価される。ただし上位者の判断を覆すのであれば、まず前提となる数字を突き合わせて合意を取り直すのが先である。合意のないまま委員会に直接出すと、次に本当に緊急の申請が必要になったときに通しにくくなる。"},{"i":3,"text":"空き容量を稼ぐ手当てそのものは正しく、暫定策として最初に置いてよい。ただし退避で何日分の猶予が伸びるのかを示さないまま、申請の期限を凍結明けへ戻している。暫定策は、恒久策の期限を先送りしてよい理由にはならない。"}]},{"no":3,"lead":"合意から10日後、月次バッチの実行で使用率が96%に達し、95%のアラームが発報した。基準どおり部長承認を得て緊急枠で申請したため、実施は5日後である。内訳を見ると、3年前に停止したはずの旧集計バッチが出力した中間ファイルが約30GiB残っていた。設計書に保持期間の記載はなく、参照する処理も見当たらない。","prompt":"残り5日を持たせる必要がある。この約30GiBの古いファイルをどう扱うか。最も適切なものを選べ。","choices":["3年前に停止した処理の出力であり、参照している処理も見当たらないことから不要と判断し、対象を絞って当日中に削除して空き容量を確保し、実施した内容を翌朝の運用日報に記録して報告する。","削除する前に対象ファイルの一覧とサイズと最終更新日を控え、S3へ退避してから削除する手順に組み替える。対象と復旧方法を示してリーダーの承認を当日中に取り、期限付きの暫定措置として記録に残す。","逼迫の根本は容量不足であるため、部長を通して変更管理委員会に実施日の繰り上げを要請し、5日後の予定をさらに前倒しできないか交渉する。期限は交渉の結果次第とし、決まるまでファイルの扱いは保留する。","削除は影響が読めないため、ログローテーションの保持世代を絞る設定を本番サーバへ直接反映して古いものから自動で消えるようにする。口頭で承認は得ており、変更内容は拡張の申請書に併せて記載する。"],"answer":1,"explain":"消すこと自体が悪いのではなく、消した後に何が消えたのか分からなくなることが悪い。退避してから削除すれば、判断を誤っていた場合でも戻せる余地が残る。一覧とサイズと最終更新日を先に控えるのは、後で何を消したのかを答えられるようにするためであり、承認を当日中に取るのは、権限のない者が単独で本番のデータを減らした形にしないためである。そのうえで、これは5日間をしのぐ暫定措置にすぎず、期限を切って恒久策である拡張につなぐ。代償として、S3への転送に時間と保管費用がかかり、承認待ちの数時間も失う。さらに参照されていないことを完全には証明できないまま実施することになるため、退避データを削除してよい時期も同時に決めておく。","others":[{"i":0,"text":"不要と判断した根拠は具体的で、日報に記録も残る。ただし記録が事後で、消す前に何が消えるのかを第三者が確認できる形になっていない。本番データの削除は、判断が妥当かどうかより、外したときに取り返しがつかないことのほうが問題になる。"},{"i":2,"text":"交渉で実施日を前倒しできれば最良で、上位を通す筋も通っている。ただし期限が交渉の結果任せで、決まるまで容量は減り続ける。動かせないものを待つ間に、自分の手で動かせる暫定策を止めている点で順序が逆になっている。"},{"i":3,"text":"保持世代の見直しは恒久策として正しく、いずれ必要になる。ただし口頭の承認を根拠に本番の設定を直接変えており、世代を絞った瞬間に何が消えるのかを事前に特定していない。まだ必要なログまで消える可能性が残る。"}]}],"aim":"まだ壊れていないものへの優先度の付け方と、手を出す範囲"},{"id":4,"field":"障害対応","title":"自分の作業ミスかもしれない","scenario":"B社の販売管理システムは、ALB配下のEC2上のアプリケーションとRDSからなる。あなたは運用チームの担当として、変更管理の承認を得たうえで、20時から本番VPCのセキュリティグループに、監視サーバ向けのインバウンドルールを1件追加し、不要とされた旧ルールを1件削除した。作業は20時12分に完了し、疎通確認も想定どおりであった。ところが20時18分、バッチサーバのアプリケーションログをCloudWatch Logsのメトリクスフィルタで監視している接続エラー件数のアラームが発報した。バッチの定期ジョブは20時15分起動である。変更管理票には削除対象が「不要な旧ルール1件」としか書かれておらず、作業前後の設定のエビデンスも取得していない。ただしCloudTrailには自分のAPI操作が記録されている。上長は退社済みだが電話は通じ、監視当番は別室に在席している。","frame":{"name":"第一報に自責他責は関係ない／隠すコストは時間で複利","howto":"まず、第一報を出すかどうかの判断から「自分のせいか」を外す。材料は、事象が起きているかと、自分がその事象に関係し得る操作をしたか、の二つだけでよい。次に、出す中身を事実・推定・確度・次の行動の四つに分けて書き、確定していない話でも誤解なく渡せる形にする。最後に、黙っていた時間は他者の調査時間として何倍かになって返ってくると考え、迷っている時間そのものをコストとして数える。"},"principle":"ミスの報告は、早いほど安い","interview":["本番のセキュリティグループを変更した直後に、バッチの接続エラーのアラートが上がったことがありました。","私は原因を調べる前に、上長と監視当番へ第一報を入れました。自分の操作の中身を知っているのが私だけだったからです。","結果、原因は私の削除したルールでしたが、先に情報を出したぶん切り戻しは早く済みました。以後は事実と推定と確度を分けて第一報を出しています。"],"questions":[{"no":1,"lead":"","prompt":"本番作業の直後にアラームが発報し、自分の手順ミスの可能性が否定できない。この時点で、あなたはまず何をどの順で行うか。","choices":["作業直後の発報であることからセキュリティグループの変更が原因だと判断し、記憶をたどって削除したルールを再作成して復旧を優先し、収まってから経緯をまとめて報告する。","原因が確定しない報告は現場を混乱させるため、VPCフローログとRDSの接続状況の突き合わせを進め、並行して切り戻し手順を準備し、因果が確定してから上長へ連絡する。","一次切り分けは監視当番の役割であるため、直前に作業を行った事実と完了時刻を当番に伝えて対応を引き継ぎ、自分はCloudTrailでの削除内容の特定に専念する。","上長と監視当番へ、作業時刻と発報時刻の事実、自分の変更が関係し得るという推定、その確度を分けて直ちに第一報を入れ、CloudTrailで削除内容の特定に着手する。"],"answer":3,"explain":"第一報の目的は原因の確定ではなく、事象と「それに関係し得る変更を握っている人間がいる」ことを早く共有することにある。作業直後の発報に相関があるとは限らないが、それを判定するのは切り分けを進める側であり、判定材料を持っているのは作業者だけである。事実と推定と確度を分けて出せば、確定していない話を渡しても受け手は誤解しない。同時に削除内容の特定に着手しておけば、記録が反映されるまでの待ち時間を切り分けと重ねられ、切り戻しが必要になったときに記憶に頼らずに戻せる。代償は小さくない。自分の作業が疑われた状態で調査に立ち会うことになり、無関係だった場合は他人の手を止めた分の説明が残る。","others":[{"i":0,"text":"切り戻し自体は正しい手段で、いずれ必要になる可能性も高い。ただし原因を未確認のまま確定した前提として扱っている。バッチの起動時刻や監視側の別要因が重なった可能性を潰していない段階で、記憶を頼りにルールを再作成すると、元と異なる範囲を開けてしまう危険がある。"},{"i":1,"text":"切り分けを尽くしてから報告する姿勢は誠実で、切り戻しの準備を先に進める点も無駄ではない。ただしこの場面では順序が逆になる。フローログは集約間隔のぶんだけ遅れて届くため、突き合わせが終わるのは早くても十数分後である。その間、当番は同じ事象を別の筋で追い、上長への連絡もその分だけ遅れる。"},{"i":2,"text":"当番へ引き継ぎ、作業の事実と時刻まで渡す点は運用として自然である。ただし宛先が当番だけに閉じており、上長への第一報が落ちている。自分の変更が関係し得るという推定を出せるのは作業者であり、それを上長にも同時に渡さなければ、体制を厚くする判断が遅れる。"}]},{"no":2,"lead":"切り分けの結果、接続断の原因は自分が削除したルールであることが20時25分に確定した。影響はこのバッチ1本に限られ、元のルール内容はCloudTrailの記録から特定済みで、再作成は1分もかからない。ただし本番のセキュリティグループ変更は、切り戻しであっても変更管理の承認を要する運用である。","prompt":"原因が自分の操作であると確定した。あなたはこの切り戻しを、どのような手続きを踏んで実施するか。","choices":["自分の操作と確定した以上は復旧が最優先のため、CloudTrailの記録どおりルールを再作成して直ちに戻し、実施内容は戻し終えてから当番へ共有し、変更管理票は翌営業日に起票する。","切り戻しも本番変更であるため、上長に電話で内容と想定影響と所要時間を伝えて口頭承認を取り、実施時刻と操作内容を当番にも共有して戻し、翌営業日に変更管理票を起票する。","夜間の無承認変更は避けるべきであるため、翌朝の変更管理会議の承認を得てから戻すこととし、それまで当該バッチを手動で停止し、再実行の見送りを業務部門に伝えることにする。","戻す前に、なぜ不要な旧ルールと判断したのかの経緯を整理し、同種の未使用ルールが他にないかを本番VPC全体で棚卸ししたうえで、まとめて是正する計画にすることにする。"],"answer":1,"explain":"変わった前提は二つある。原因が自分の操作だと確定したことと、その復旧そのものが本番のセキュリティグループ変更にあたることである。原因が自分だと分かった瞬間にいちばん強く働くのは、早く元に戻して無かったことにしたいという力だが、承認の系統は自分のミスかどうかで変わらない。踏むべき手続きは、電話が通じる上長に内容と想定影響と所要時間を先に伝えて口頭承認を取ることであり、あわせて実施時刻と操作内容を当番に渡せば、戻した後に別の事象が出たときの切り分けが濁らない。代償はある。夜間に上長を呼び出すことになり、口頭承認と後追い起票という例外を、自分の名前で記録に残すことになる。","others":[{"i":0,"text":"原因が確定しているなら早く戻すという判断自体は正しく、当番への共有も起票も行っている。ただし共有が戻した後で、実施中は誰も内容を知らない。切り戻しも本番変更である以上、影響を見積もって承認を取る手順は、原因が自分にあるときこそ省けない。"},{"i":2,"text":"夜間の無承認変更を避ける原則は正しく、影響範囲が読めない場面ならこの判断でよい。ただし戻す内容も所要時間も分かっている状況で、翌朝まで業務を止める側に倒す理由が弱い。承認は会議を待たなくても取れるため、形式を守るために影響を残す順序になっている。"},{"i":3,"text":"判断経緯の振り返りも未使用ルールの棚卸しも、いずれ必要な作業である。ただしどちらも今夜でなくてよく、影響が続いている間に着手する順位ではない。棚卸しの範囲を本番VPC全体に広げるほど、切り戻しはその分だけ後ろにずれる。戻したうえで、別件として起票したい。"}]},{"no":3,"lead":"翌朝、対応は完了した。ただし夜間の切り戻しは上長の口頭承認で行っており、変更管理票は未起票である。加えて今回削除したルールの作業前後の設定エビデンスは最後まで取得できておらず、元の内容はCloudTrailの記録から復元したものである。","prompt":"今回の対応で捨てたものと、明日以降に残るリスクを踏まえ、翌営業日にあなたが取る手当てとして最も適切なものはどれか。","choices":["作業前後の設定を自動取得する仕組みの整備こそ根本的な手当てだと考え、その設計と導入を今四半期を期限として進め、今回の口頭承認と未起票の扱いはその中で整理することにする。","隠すことの是非よりも空振りの負担を減らすほうが実効的だと考え、第一報の宛先を監視当番だけに絞り、上長への連絡は原因が絞れた段階に回す運用に改めることにする。","口頭承認による夜間変更とエビデンスのない削除という積み残しを書き出し、変更管理票の後追い起票と作業前後の設定取得を必須とする手順改訂を、期限と担当を付けて起票する。","今回の教訓は変更管理票の記載粒度にあると整理し、削除するルールの内容と根拠を票に明記する様式改訂を起票して、報告と承認の基準は現行のままとすることにする。"],"answer":2,"explain":"昨夜の判断で捨てたものは二つある。一つは正規の承認プロセスで、これを口頭承認で置き換えた。もう一つは作業前後の証跡で、元のルール内容はCloudTrailからの復元にとどまる。どちらも影響を早く止めるための取引として妥当だったが、放置すれば「口頭で通した前例」と「証跡のない削除」だけが残る。手当ては、この二つを事実として書き出し、後追いの起票と手順改訂に期限と担当を付けて上長の承認を得ることである。代償は軽くない。自分の手続き逸脱を、自分の手で文書に残すことになり、レビューで指摘を受ける対象が一つ増える。それでも、記録に残った逸脱は次の例外を判断する材料になり、残らない逸脱は同じ形で繰り返される。","others":[{"i":0,"text":"仕組みで防ぐ発想は正しく、期限も置いている。ただし今四半期という粒度では、今夜の口頭承認と未起票がいつ片づくのかが決まらない。仕組みができるまでの間に同じ夜間作業が何度も走る点で、順序として後ろに置く手当てである。"},{"i":1,"text":"空振りの通知を軽くしたいという動機は理解できる。ただし宛先から上長を外すと、承認や体制を判断できる相手に事象が届かなくなる。受け手の負担を減らすことと、報告の相手を減らすことは別である。昨夜の切り戻しも、上長が電話に出たからこそ承認を取って進められた。"},{"i":3,"text":"様式改訂の方向は正しく、変更管理票の記載粒度は今回の弱点そのものである。ただし一般則の是正だけでは、自分が昨夜残した口頭承認と未起票は閉じない。仕組みを直す起票と、自分の逸脱を閉じる起票は別の手続きであり、後者を省くと積み残しが個人の記憶にしか残らない。"}]}],"aim":"自分のミス疑いを、いつ・誰に・どう出すか"},{"id":5,"field":"基本設計","title":"99.9%と予算の板挟み","scenario":"A社の受注管理システムをオンプレミスからAWSへ移行する案件である。想定構成は、ALB配下に二つのアベイラビリティゾーンへ分散したEC2のWeb・APサーバと、RDS for MySQLの単一AZ構成である。EC2からの外向き通信は、片方のAZに置いたNATゲートウェイを経由する。提案時の要件一覧には稼働率99.9%とだけ記載があり、計画停止を分母に含めるか、RTOとRPOをいくつとするかは定義されていない。概算では、RDSをMulti-AZにすると月額のインフラ費用が予算を30%超過する。顧客のB部長からは「予算内で、でも止まるな」と言われている。単一AZのRDSはパッチ適用時に停止が発生し、AZ障害時はスナップショットからの復旧となる。設計レビューは来週、基本設計書の提出は二週間後である。あなたはインフラ基盤の基本設計を担当するSEである。","frame":{"name":"SPOF特定→選択肢化（松竹梅）→決めるのは顧客、材料はSE","howto":"まず構成図をたどり、冗長化されていない箇所を単一AZのRDSだけでなく、片系にしか置いていないNATゲートウェイやAZ単位の障害まで含めて洗い出す。次にそれぞれの対策を松竹梅の三案にまとめ、月額費用、想定される復旧時間、計画停止を分母に含めるかを決めた上での稼働率とRTO・RPOの案という同じ物差しで並べる。最後に、どれを選ぶかは顧客に委ね、SEは材料と推奨理由の提示に徹し、選ばれた案とその日付を記録に残すところまでを自分の仕事とする。"},"principle":"トレードオフは選択肢と数字にして、選択の記録を残す","interview":["受注管理システムのAWS移行で、稼働率99.9%という要件と、冗長化すると三割超過する費用の板挟みになりました。","私は単一障害点を洗い出して、費用と復旧時間を並べた三案を作りました。理由は、決めるのは顧客で、私の仕事は材料を揃えることだと考えたからです。","結果、予算内の案が選ばれ、残るリスクを議事録と設計書に残せました。以後は、選択肢と一緒に選んだ記録も必ず残すようにしています。"],"questions":[{"no":1,"lead":"","prompt":"稼働率99.9%と予算のどちらも譲れない状況で、基本設計としてどう判断を進めるか。最も適切なものを選べ。","choices":["未定義のRTOとRPO、計画停止を分母に含めるかの定義を先に固めるべきだと考え、設計レビューまでは定義の詰めに時間を使い、構成案の比較検討は定義が確定してから着手することにする。","予算超過は認められないという前提に立ち、単一AZのまま自動バックアップで守る一案だけを顧客に説明し、稼働率99.9%は努力目標とすることの了承をその場で取り付けて設計書に記載する。","構成図から冗長化されていない箇所をRDS以外も含めて洗い出し、計画停止を稼働率に含めるかとRTO・RPOの案を添えた松竹梅の三案を、月額費用と想定復旧時間とともに提示する。","Multi-AZの費用を捻出するため、EC2のインスタンスタイプを一段下げ、監視項目とログの保管期間を削った構成を自分で組み直し、予算内に収まる案として設計書に反映する。"],"answer":2,"explain":"99.9%は年間の停止が約8.76時間という数字だが、計画停止を分母に含めるかで意味が変わり、RTOとRPOが未定義のままでは案の優劣も比べられない。定義の案そのものを三案に添え、構成と定義を顧客に同時に選ばせるのが基本設計の進め方である。単一AZのRDSはパッチ適用時の停止とAZ障害時のスナップショットからの復旧があり、この枠に収まる保証はない。一方で予算も顧客が抱える制約である。相反する制約をSEが単独で切り捨てず、同じ物差しで並べて選択を顧客に返す。痛みもある。三案を数字付きで作る工数がかかり、予算内では99.9%を満たせない可能性という不都合な事実を、自分の口から先に出さなければならない。","others":[{"i":0,"text":"定義を先に固めようとする姿勢そのものは正しい。ただし顧客は、案と費用の数字を見なければRTOもRPOも決められない。定義待ちで二週間の設計期間を使うより、案と数字を並べて定義と選択を同時に引き出す方が順序として先である。来週のレビューに材料なしで臨むことになる点も痛い。"},{"i":1,"text":"予算超過は認められないという前提を、確認しないまま自分で置いている。「予算内で、でも止まるな」という言葉は、どちらを優先するかを示していない。RDSの単一AZ構成はサービス側のSLAでも月間99.5%であり、99.9%を努力目標へ書き換える了承は、他の案と費用を並べて見せた上でもらうべきものである。"},{"i":3,"text":"性能や監視を削る判断は、可用性と同じく顧客が負うリスクに直結する。それを設計担当が単独で決めて設計書に反映するのは、合意を飛ばした手続きになる。費用の組み替え案の一つとして提示するなら筋は通るが、決めた状態で出すのは行き過ぎである。"}]},{"no":2,"lead":"設計レビューの前に、三案の概要と月額費用の差をメールで先に共有した。それを読んだ顧客のB部長から呼ばれ、「冗長化は外せ。予算内で普通に動く構成にしてほしい」と言われ、単一AZで進めることが事実上決まった。","prompt":"顧客が冗長化を外すと明言した状況で、基本設計の担当としてどう対応するか。最も適切なものを選べ。","choices":["方針を覆すべきだと考え、松竹梅の三案を作り直してMulti-AZ案の優位性を費用対効果で示し、選び直してもらうための場をレビューとは別に設定して再提案する。","単一AZで進める前提を受け入れ、パッチ適用時とAZ障害時に想定される停止時間を数字で示し、99.9%は保証できない旨を設計書の前提条件に明記してレビューで確認する。","Multi-AZを外す代わりに、別AZへリードレプリカを用意して障害時に昇格させる方式を採用し、切替手順書と定期リハーサルの計画まで作り込んだうえで設計書に反映する。","稼働率の目標値を99.5%へ下方修正した設計書を担当者の判断で作成し、レビューでは単一AZ構成の妥当性と、運用でカバーする方法だけを説明することにする。"],"answer":1,"explain":"変わった前提は一つで、費用差を見た顧客が、可用性より予算を優先すると自ら選んだことである。選択が済んだ以上、SEの仕事は選択肢を並べ直すことではなく、選ばれた案に付いてくる条件を確定させることに移る。単一AZのRDSはパッチ適用時に停止が発生し、AZ障害時はスナップショットからの復旧となって数時間規模になり得るため、99.9%を満たせない可能性が高い。この見込みを数字で示し、設計書の前提条件として書いたうえでレビューで確認をもらう。痛みは小さくない。顧客の決定に水を差す形になり、レビューが長引いて工数も増えるが、後で「聞いていない」と言われる状態を残すよりは安く済む。","others":[{"i":0,"text":"作り直して再提案する動きは熱心だが、顧客は費用差を見たうえで予算優先を選んでいる。前提が変わったのに前の判断を引きずっており、同じ材料を場を変えて出し直しても決定は動かない。いま必要なのは、選ばれた案に伴う条件を確定させることである。"},{"i":2,"text":"リードレプリカの昇格は非同期レプリケーションのためデータ欠損が起こり得るうえ、待機用インスタンスの費用もMulti-AZの待機系と大差なく、予算を外すという目的に合うとは限らない。その成立性を確かめる前に切替手順書とリハーサル計画まで作り込むのは、工数の使い方として早い。"},{"i":3,"text":"目標値の書き換えは要件に触れる変更であり、設計担当が単独で行ってよい手続きではない。数字を下げること自体が悪いのではなく、下げた事実を顧客が承認していない状態のまま設計書が独り歩きすることが問題になる。"}]},{"no":3,"lead":"設計レビューで単一AZ構成が承認され、基本設計は予算内で固まった。稼働開始後にRDSの障害で数時間止まり、顧客から「そんな話は聞いていない」と言われる展開は容易に想像できる。基本設計書の提出まではあと数日ある。","prompt":"この構成で障害が起きたときに「聞いていない」と言われないため、設計段階で打つべき布石はどれか。","choices":["口頭では停止の可能性を説明して承認も得ているため、設計書には確定した構成図とパラメータのみを載せ、代替案や費用差の経緯は自分の作業メモとして手元に残す整理とする。","停止時間そのものを短くすることが最大の備えだと考え、CloudWatchアラームの整備、自動スナップショットの取得設定の見直し、復旧手順書の整備と復旧訓練に設計工数を投入する。","後からMulti-AZへ変更できる構成にしておき、リスク一覧には必要になればMulti-AZ化で対応可能とだけ記載し、切り替えるかどうかは障害が起きた時点で判断する。","設計書の前提条件欄とリスク一覧に、単一AZを選んだ経緯、想定される停止時間、代替案と費用差を明記し、レビュー議事録に決定内容と決定者、日付を残して顧客の承認を取得する。"],"answer":3,"explain":"「聞いていない」が起きるのは、説明しなかったときだけではなく、説明した記録が残っていないときである。残すべきは単一AZを選んだという結果だけではない。代替案があったこと、費用差がいくらだったこと、その構成では何時間止まり得ることの三点を設計書の前提条件欄とリスク一覧に書き、誰がいつ決めたかを議事録に残して承認をもらう。ここまでやって初めて、障害時の会話が責任の押し付け合いではなく、決めた通りの復旧の話になる。代償として、文書化と承認の取り付けに工数がかかり、顧客からは念を押しすぎだと受け取られることもある。それでも、後から取り返せない種類のリスクを先に潰す方を選ぶ。","others":[{"i":0,"text":"口頭で説明し承認も得ているなら、その場では話が通っている。ただし承認の中身が設計書にもリスク一覧にも残らず、手元のメモにしかない。人が入れ替われば、単一AZを選んだのは顧客の判断だったという事実そのものが消える。"},{"i":1,"text":"監視と復旧手順の作り込みは実務として正しく、やる価値も十分にある。ただし、どれだけ短くしても停止はゼロにはならず、その残りを顧客が承知しているかは別の問題である。合意の布石を後回しにしている点で順位が下がる。"},{"i":2,"text":"後からMulti-AZへ変更できること自体は事実で、変更は標準機能として大きな停止を伴わずに実施できる。しかしそれは技術的な可否の話にすぎず、追加費用の承認も実施の時期も決まっていない。判断を障害の最中まで先送りすれば、その場で費用の承認を取ることになり間に合わない。"}]}],"aim":"予算と可用性のトレードオフを、誰にどう決めさせるか"},{"id":6,"field":"基本設計","title":"「バックアップはちゃんと」","scenario":"A社の受注管理システムをオンプレミスからAWSへ移行する案件で、B部のインフラ担当として基本設計を担当している。構成はALB配下のEC2二台とRDS for MySQLのMulti-AZで、日中はオンライン受注、夜間に締め処理が動く。要件定義書のバックアップに関する記述は「バックアップはちゃんと取っておくこと」の一文だけで、RTOもRPOも数値が書かれていない。候補として、RDSの自動バックアップとPITR、手動スナップショットの世代保管、AWS Backupによる別リージョンへのコピーが挙がっている。現行機では夜間にテープへ日次バックアップを取り、七世代を保管しているが、実際に復元した記録は残っておらず、当時の担当者は既に異動している。基本設計書の提出期限は二週間後で、PMからは「方式を一つ決めて書いてくれ」と言われている。","frame":{"name":"RTO/RPOからの逆算（未定義なら定義させる材料を作る）","howto":"まず復旧シナリオをハード障害と誤削除・論理破壊に分け、それぞれで何分前まで戻れるか（RPO）と何時間で戻し終えるか（RTO）を書き出す。次に候補方式ごとに、復元の実作業時間にアプリの再接続と整合性確認までを積み上げて所要時間を見積もる。数値が未定義なら方式を選ぶ手前で止め、この積み上げを比較表にして、決める権限のある側にRTOとRPOを選ばせる。"},"principle":"バックアップは取り方でなく、戻し方から設計する","interview":["移行案件でバックアップ設計を任されたのですが、要件はバックアップはちゃんと、の一文だけで、RTOもRPOも決まっていませんでした。","私は方式を先に選ばずに、戻し方から決めるべきだと判断しました。復旧時間の目標がないと、どの方式でも十分だとは言えないからです。","結果、RPOは一時間、RTOは四時間で合意でき、移行前に復元を一度通せました。以後は戻せる時間を測るまで設計を終わりにしないようにしています。"],"questions":[{"no":1,"lead":"","prompt":"候補は三つ挙がっており、提出期限は二週間後である。あなたは方式を選ぶ前に、まず何をするか。","choices":["方式の選定より先に、ハード障害と誤削除の二つの復旧シナリオで、候補方式ごとの復元所要時間とデータ損失幅を試算した比較表を作り、PM経由で業務部門がRTOとRPOを決める場を設定する。","二週間の大半を実測に充て、三つの候補方式を検証環境に構築して本番相当のデータ量で復元時間を測り、最も速く戻せる方式を実測値と選定理由を添えて基本設計書の採用方式として記載する。","現行機の夜間テープが日次七世代であることから同等水準を踏襲すると決め、RDSの自動バックアップの保持期間を七日に設定した構成を、現行と同等の世代数という選定理由とともに基本設計書に記載する。","保護レベルが最も高い別リージョンへのコピーまで含めた構成を採用方式として基本設計書に記載し、費用面は提出後の設計レビューで調整できると見て、提出期限内に収まるよう確定させる。"],"answer":0,"explain":"バックアップ方式はRTOとRPOが決まって初めて優劣がつく。RTOが四時間ならスナップショットからの復元で足りるが、一時間なら足りない。RPOが一日でよいなら日次スナップショットで済むが、一時間ならPITRが要る。数値が未定義のまま方式を選べば、数値が決まった時点で設計をやり直すことになる。ここでやるべきは、決める人が決められる材料を作ることである。復旧シナリオをハード障害と誤削除に分け、方式ごとの所要時間と損失幅を数字で並べれば、業務部門は感覚ではなく数値で選べる。代償として、比較表の作成と確認の場の設定で数日を使い、提出期限は厳しくなる。PMには決めてもらわないと書けないと一度押し返すことになり、それは歓迎されないこともある。","others":[{"i":1,"text":"実測そのものは正しく、いずれ必要になる作業でもある。ただし何分で戻れば合格かの基準がない状態で測っても、速い遅いは分かるが十分かどうかは判定できない。目標値が決まってからなら一方式で済む実測を、順序を逆にしたために三方式ぶん行うことになり、二週間の大半を費やしてしまう。"},{"i":2,"text":"現行踏襲は説明しやすく、選定理由も書けるため実務でもよく採られる。ただし現行の日次七世代が業務の許容範囲を満たしていたという確認は取れておらず、復元実績の記録も担当者も残っていない。満たしていたか不明なものを満たしていた前提で引き継ぐと、根拠の空白がそのまま新システムに移る。"},{"i":3,"text":"保護を厚めに取る判断自体は安全側で、費用を後で詰める進め方も現場では起こる。ただし提出後のレビューは費用の可否を見る場で、どのRTOとRPOを満たすために選んだかを決め直す場ではない。方式の選定は本来、業務部門とPMの合意事項であり、設計者が単独で確定する範囲を超えている。"}]},{"no":2,"lead":"比較表を出した結果、業務部門とRPOは一時間、RTOは四時間、誤削除に気づくまでの猶予として直近七日ぶんは戻せること、で合意できた。その翌日、PMから「予算が縮小した。バックアップ関連の月額費用を提示額の半分以下に抑えてほしい。ただし合意した数値は動かせない」と言われた。","prompt":"合意したRTOとRPOは変えられない条件のまま、費用だけを半分以下にする必要がある。あなたはどう設計を見直すか。","choices":["費用水準ごとに達成できるRTOとRPOを並べた比較表をもう一度作り、いったん合意を白紙に戻してどの水準まで要件を落とせるかを翌週の定例で業務部門に選び直してもらう場を設定し、その書面での承認を得てから構成を確定する。","費用条件を満たすため保持期間七日は維持したままPITRの利用をやめ、深夜二時取得の日次スナップショットからの復元に一本化し、別リージョンへのコピーも取りやめて、月額を提示額の四割まで下げた試算をPMに報告する。","別リージョンへのコピーを構成から外して月額を提示額の四割まで下げ、削減額と残した構成を試算表つきでPMに報告して了承を得たうえで、設計書には採用した方式と保持期間の設定値を整理して記載し、この案で確定する。","合意した数値を満たす最小構成は自動バックアップとPITRの保持期間七日を軸とし、別リージョンへのコピーはDBの日次スナップショットに絞って月額が半分以下に収まることを試算し、落ちる保護範囲をPMの承認付きで明記する。"],"answer":3,"explain":"前提が変わったのは費用条件だけで、RTOとRPOは合意済みである。したがって論点は要件をいくらで満たすかに移っており、要件そのものを選び直す段階には戻らない。RDSの自動バックアップは保持期間の範囲でPITRが使え、合意したRPO一時間を満たす土台としては費用効率がよい。一方、別リージョンへのコピーは転送料と転送先の保管料が積み上がるため、対象をDBに絞ると削減幅が大きい。絞ったうえで月額が条件を満たすことを試算で確かめるところまでが設計側の仕事であり、削れば足りるだろうという見込みで確定しない。代償として、広域障害からの復旧はDBのデータに限られ、EC2側は再構築が前提になる。守れなくなった範囲をPMの承認付きで設計書に残すところまでが、この見直しの一部である。","others":[{"i":0,"text":"材料を作って決めてもらう進め方は問1では正しく、誠実にも見える。ただし今回変わったのは費用条件だけで、RTOとRPOはすでに合意されている。決着した論点を業務部門へ差し戻すと、設計側が担うべき同じ要件を安く満たす工夫を飛ばすことになり、承認を待つぶん期限もまた延びる。"},{"i":1,"text":"費用を下げる方向は求められたとおりで、七日という見えやすい合意も守れており、削減額も試算して報告している。ただしPITRをやめて日次スナップショットに一本化すると直近一日ぶんの更新が失われ、破れるのはRPO一時間の側である。費用最小はここでは目的ではなく制約であり、合意済みの数値を下回ってよいという前提には置き換わらない。"},{"i":2,"text":"削る対象の選び方は妥当で、費用条件を確実に満たす点ではむしろ堅い。ただし別リージョンのコピーを外すことは保護範囲を狭める設計変更であり、削減額の報告と採用方式の記載だけでは何を捨てたかが特定できない。広域障害が起きたとき、そういう想定で合意したと示す根拠が残らない。"}]},{"no":3,"lead":"方式は決まり、設計レビューも通った。移行スケジュールは押しており、PMから「リストア試験は本番稼働が落ち着いてからでよい。手順書は書いてあるのだから今回は省略したい」と言われた。試験には検証環境の確保と二人日程度が要る。","prompt":"移行前のリストア試験を省略したいというPMの提案に対し、あなたは設計担当としてどう対応するか。","choices":["採用した復元パターンを網羅する試験計画を作って課題票に記録し、検証環境の確保を含め四人日は要ると見積もったうえで移行日を後ろへずらすようPMに求め、日程が取れるまで移行判定を保留する。","スナップショットが毎日深夜二時に取得できていることはRDSのイベント通知とコンソールの一覧で確認できており、手順書も公開されている手順に沿っているため、試験なしでもRTO四時間は満たせると判断する。","試験範囲を絞り、本番相当のデータ量でのPITR復元を一度だけ計測してKMSキーとIAM権限を含む手順を通し、未検証で残る復元パターンは実施期限と担当を決めて課題票と設計書に記録する。","移行前の実施は見送り、稼働後の初回定例までに試験を終える期限を決めて運用チームの課題一覧へ共有し、結果が出た時点で設計書を改訂することとして、移行判定は予定どおりの日程で進める。"],"answer":2,"explain":"リストア試験で分かるのは戻せるかどうかではなく、何時間で戻せるかと誰の権限で戻せるかである。取得できていることは復元できることを保証しない。暗号化されたスナップショットの復元にはKMSキーへのアクセスが要り、キーが別アカウントや別リージョンにあると途中で止まる。手順書に書かれていない権限不足も、実際に通して初めて表に出る。一方で、押した日程の中で全パターンを試すのは現実的でない。だから範囲を絞り、RTOの根拠が崩れる一本、すなわち本番相当データでのPITR復元だけを通す。代償として移行前に半日から一日は取られ、PMに一度押し返すことになる。それでも試さなかった範囲は残るので、期限と担当を付けて記録に残す。","others":[{"i":0,"text":"網羅的な試験は本来望ましく、課題票に記録も残しており手続きは踏んでいる。ただし判断材料を一つも出さないうちに日程変更を先に求めており、順序が逆である。移行日を動かす影響は試験未実施のリスクより大きいことが多く、全部やるか何もしないかで迫ると、結局は何もしない側に倒れやすい。"},{"i":1,"text":"取得成否の通知を受けていること自体は必要で、そこまで確認している点は評価できる。ただし取れていることと戻せることは別で、復元にかかる実時間もKMSキーやIAM権限の通り方も未確認のままである。確認できていない事実を確定として扱った時点で、合意したRTO四時間の根拠は成立しなくなる。"},{"i":3,"text":"稼働後に回す判断はあり得るし、期限と共有先を決めている点は口約束よりよい。ただし共有先が運用チームに留まり、移行判定を下すPMと業務部門にはRTOが未検証のまま出ることが伝わらない。試験の目的は移行前にRTOの根拠を確かめることであり、稼働後の期限では判定に間に合わない。"}]}],"aim":"方式を選ぶ前に決めるべきことと、省いてはいけない検証"},{"id":7,"field":"基本設計","title":"全部Administratorでいいでしょ","scenario":"A社の販売管理システムをオンプレミスからAWSへ移行する案件で、基本設計の途中である。構成はALB配下のEC2によるWeb・APサーバ、RDS for MySQLのMulti-AZ、環境構築はCloudFormationで行う。運用は社内のC課が担当し、本番アカウントのIAM設計は今回が初めてとなる。C課のリーダからは、運用メンバ五名全員にAdministratorAccess相当の権限を付けてほしい、権限を絞ると障害のたびに手が止まって運用が回らない、と要求されている。前システムの運用手順書は残っているが、どのAPIを使うかまで整理された資料はなく、実際にどの操作で詰まったかの記録も確認できていない。監査部門からは本番アカウントの権限一覧を四半期ごとに提出するよう求められている。設計レビューは来週、基本設計書の提出は二週間後である。あなたは基盤の基本設計を担当するSEである。","frame":{"name":"最小権限×運用実効性／例外は期限と記録付き","howto":"まず運用手順書をたどり、実際に必要な操作とその頻度を洗い出して、日常の権限はそこに合わせて絞る。次に、絞ったせいで手が止まる場面を運用チームと突き合わせ、緊急時に昇格するための経路をMFAと記録を条件に別途用意する。広い権限をどうしても常時渡す場合は、対象者と範囲に加えて終了日と延長時の承認者を先に決め、期限日に使用実績を棚卸しして継続の可否を判断するところまでを設計に書き込む。"},"principle":"権限の例外は、期限と記録を付けて貸す","interview":["販売管理システムのAWS移行で、運用チームの五名全員に管理者相当の権限をくれと求められました。","私は日常は絞り、緊急時だけMFA付きで昇格する経路を用意すると判断しました。過去に手が止まったのは昇格の道が無かったからです。","結果、例外は二名に三か月の期限付きで残し、期限日に棚卸しして返してもらえました。以後は、権限の例外には終了日と記録を付けています。"],"questions":[{"no":1,"lead":"","prompt":"運用チームが実質AdministratorAccessを要求している状況で、本番アカウントのIAM設計をどう進めるか。最も適切なものを選べ。","choices":["運用が回らないという現場の実感は重いので、まずはAdministratorAccessで開始し、三か月後に絞り込む方針をC課リーダと合意したうえで、IAM設計書には当面の付与内容を記載する。","前システムの運用手順書を精読し、五名それぞれの担当範囲に合わせた最小権限ポリシーを設計期間いっぱいで作り込んで設計書に記録し、緊急時の権限の扱いは運用開始後に改めて検討する。","IAM Access AnalyzerにCloudTrailの実績を読ませて必要な権限のポリシーを生成させ、生成された内容をそのまま本番の運用ロールに適用し、設計レビューではその結果を説明する。","運用手順書から必要な操作を洗い出して日常の権限を絞り、足りない場面に備えて昇格用ロールへのAssumeRoleを用意し、MFAと申請、CloudTrailでの記録を条件として設計書に反映する。"],"answer":3,"explain":"運用チームが求めているのは権限そのものではなく、手が止まらないことである。だから日常の権限を手順書から洗い出して絞る作業と、絞ったことで詰まる場面のための昇格経路を用意する作業は、片方だけでは成立しない。昇格用ロールはMFAを必須にし、セッション時間を短く区切り、AssumeRoleがCloudTrailに残る形にして事後レビューとセットにする。アカウント全体の上限はSCPやPermissions Boundaryで別に切っておく。痛みもある。必要な操作の洗い出しには設計工数がかかり、運用チームからは一手間増えたと嫌がられる。本番はまだ稼働していないため初期の権限は不足しがちで、稼働後に実績を見て絞り直す前提で出すことになる。","others":[{"i":0,"text":"現場の実感を出発点にする姿勢は正しく、絞り込む時期まで合意している点も口約束よりはよい。ただし何を根拠に何をどこまで絞るのかが決まっておらず、広い権限は付与された瞬間から既得権になる。後で絞るという合意は、絞る基準がないかぎり実行されない。"},{"i":1,"text":"最小権限を担当範囲まで落として設計するのは本筋で、時間をかける価値もある。ただしどの操作で詰まったかの記録が残っていない以上、手順書だけから必要な権限を出し切れる保証はない。緊急時の扱いを後回しにすると、足りなかったときに広い権限を渡す以外の逃げ道がなくなる。"},{"i":2,"text":"ポリシーの自動生成は有効な手段だが、本番アカウントはまだ稼働しておらず、読ませるだけの実績が存在するという前提の確認が抜けている。生成されるポリシーは出発点であって対象外のサービスもあり、そのまま本番の運用ロールに当てる使い方は想定されていない。"}]},{"no":2,"lead":"設計レビューでC課リーダが、前システムで深夜二時にバッチが停止した際、権限が足りずEC2の再起動ができず朝まで復旧できなかった記録を持ち出した。当時は権限申請の窓口が日中しか動いておらず、承認者にも連絡がつかなかったという。","prompt":"深夜の権限不足で復旧が遅れた過去の記録を根拠に広い権限を求められた。IAM設計の担当としてどう応じるか。","choices":["その記録は広い権限が常時要る根拠ではなく昇格経路が無かった証拠だと整理し、承認を待たず本人がMFAで発動できる昇格用ロールに改め、発動時の通知と理由の記録、翌営業日の事後レビューを条件として設計する。","申請して上長の承認を得てから昇格する設計はそのまま維持し、承認者を三名に増やしたうえで緊急連絡先の一覧と呼び出し順を設計書に記録し、深夜でも誰かにはつながる体制にして対応する。","深夜のオンコール担当二名にAdministratorAccessを常時付与する案をレビューで提案し、実施した操作はCloudTrailに残るため、月次でその内容を確認する運用を併せて設計書に記載する。","深夜に人の判断を挟まずに済むことが本質だと考え、バッチ停止を検知してEC2を自動で再起動する仕組みをEventBridgeとSystems Managerで作り込み、権限の設計はその後で議論する。"],"answer":0,"explain":"変わった前提は一つで、深夜は承認者に連絡がつかないという事実が実績として示された点である。問1の設計は申請と承認を前提にしていたため、このままでは同じ時間帯に同じ詰まり方をする。持ち出された記録は、広い権限を常時渡すべき根拠ではなく、昇格する経路を用意していなかった証拠として読み替えるのが筋である。承認を待たず本人がMFAで発動できる形に改め、発動を検知して通知し、理由の記録と翌営業日のレビューを義務づけて、事前承認を事後確認に置き換える。代償は小さくない。深夜に一人で広い権限を持てる状態を認めることになり、誤操作も内部不正も止められるのは事後だけになる。監査部門にはこの設計思想を自分から説明して通す必要がある。","others":[{"i":1,"text":"承認経路を厚くする方向は堅実で、連絡先と呼び出し順を設計書に記録した点も実務的である。ただし人を増やしても、深夜二時に三人とも取れない可能性は残る。今回の記録が示しているのは承認者の人数不足ではなく、人の応答を待つ設計そのものが夜間に成立しないことである。"},{"i":2,"text":"CloudTrailに残るから後から確認する、という考え方自体は正しい。ただし常時付与には終了日も見直しの期日もなく、監査部門への四半期報告にも説明のつかない一覧が出る。期限と記録を付けずに例外を渡す点で、手続きの設計が抜けている。"},{"i":3,"text":"自動復旧は有効で、いずれ作るべきものでもある。しかし作れるのは既に起きた一つの事象への対処であり、次の深夜障害が同じ形とは限らない。未知の事象で昇格できない状態は残るため、昇格経路の設計より先に置くと順序を誤る。"}]},{"no":3,"lead":"レビューの結果、C課の五名は昇格用ロールを使う設計で合意した。ただし移行直後の三か月に限り、オンコール担当二名には広い権限を常時付与することが例外として決まった。監査部門への四半期の権限一覧報告は来月が初回である。","prompt":"三か月の例外付与を受け入れるにあたり、基本設計の担当として何を残しておくべきか。最も適切なものを選べ。","choices":["広い権限で壊されないことが先だと考え、本番リソースの削除や停止をPermissions Boundaryで落とすガードレールの作り込みに設計工数を充て、例外の記録は運用開始後に整えることにする。","例外の対象者と範囲、開始日と終了日、延長する場合の承認者を設計書と権限台帳に明記し、終了日に使用実績を棚卸しして継続の可否を判断することまで決めたうえで、監査部門へは初回報告を待たずに説明する。","三か月経てば運用も落ち着くとみて、設計書には期間限定の例外である旨と対象者を記載し、延長するかどうかの承認はその時点でC課のリーダに判断してもらう形にして、返却時期の管理も任せる。","例外の付与は移行チーム内で決裁して設計を先に進め、監査部門へは四半期報告のタイミングで権限一覧に載せる形で結果として伝えることとし、報告の様式と提出時期は現行のまま維持する。"],"answer":1,"explain":"広い権限を認めた時点で、誤操作の影響範囲は本番全体に広がり、内部不正はログを後から読むまで見えなくなる。これらは設計で消せない。消せないからこそ残せるのは、例外を例外のまま終わらせる仕組みだけである。誰に、どこまで、いつからいつまで、延長するなら誰が認めるのかを設計書と権限台帳に書き、終了日に使用実績を棚卸しして継続の可否を判断するところまで先に決める。監査部門には初回報告の前に自分から伝えておく。痛みは自分に返ってくる。三か月後に権限を剥がす交渉をするのは自分であり、C課からは信用されていないと受け取られることもある。それでも期限のない例外は既得権になり、次の設計では誰も剥がせなくなる。","others":[{"i":0,"text":"技術的なガードレールは有効で、いずれ入れる価値がある。ただし付与するのはAdministratorAccess相当でIAM操作を含むため、境界そのものを外せる余地が残り、これ単独では歯止めにならない。何より、記録を後回しにすると来月の監査報告に例外の存在が載らない。"},{"i":2,"text":"期限付きの例外として設計書に書く形にはなっており、延長の承認者も決めている。ただし終了日も棚卸しの手順もなく、承認する側に返せと言い出す動機がない。自然に返上されるという見込みは、期限を決めなくてよい理由にはならない。"},{"i":3,"text":"移行チームで決裁して前に進める判断は、期限の中では起こりうる。ただし監査部門は四半期ごとの一覧で初めて例外を知ることになり、こちらから説明する機会を自分で捨てている。報告の場で初めて出てくる例外は、内容の当否より先に、なぜ黙っていたのかを問われる。"}]}],"aim":"権限を絞る／貸すの線引きと、例外の出し方"},{"id":8,"field":"詳細設計","title":"現行踏襲のおかしな値","scenario":"A社の在庫管理システムの基盤更改案件である。現行環境はAWS上で稼働しており、ALB配下のEC2に載るAPサーバ4台と、RDS for PostgreSQLのMulti-AZ構成からなる。OSとDBエンジンのバージョンアップに伴い、同等の構成で新環境を作り直す。移行方針は現行踏襲であり、パラメータは原則現行値を引き継ぐ。設計書を書き起こす過程で、APサーバのDB接続プール最大値が1台あたり2000に設定されていることに気付いた。4台合計では8000となるが、移行先に想定しているメモリ16GiBのインスタンスクラスでは、既定のパラメータグループでメモリ量から算出される最大接続数は1800程度にとどまる見込みである。この値を2000にした理由の記録はなく、当時の担当者はすでに異動している。詳細設計書の提出は今週末、設計レビューは来週である。あなたはパラメータ設計を担当するSEである。","frame":{"name":"踏襲は思考停止の免罪符ではない：指摘は義務、変更は合意","howto":"まず、踏襲という言葉で確認を省かない。現行値がおかしいと感じたら、実測値や上限との関係を数字にして、なぜ過大に見えるのかを言える状態にする。次にその内容を、課題管理表や設計レビュー記録など、後から第三者が追える場所に出す。ここまでが担当の義務である。最後に、実際に値を変えるかどうかは所定の承認者の判断に委ね、変えないと決まった場合は、その判断と残るリスクを設計書の前提条件欄に書き残す。"},"principle":"おかしいと思ったら、直すのではなく記録に残る形で指摘する","interview":["在庫管理システムの基盤更改で、DB接続プールの最大値が二千という、割当メモリから見て明らかに過大な設定を見つけました。","私は自分で直さずに、実測した接続数を添えて課題管理表に起票しました。理由は、変えるかどうかを決めるのは私ではないからです。","結果、値は据え置きになりましたが、残るリスクは設計書に書けました。以後は、おかしいと思った点は記録に残る形で出すようにしています。"],"questions":[{"no":1,"lead":"","prompt":"現行踏襲という方針の下で、この接続プール最大値2000をどう扱うか。あなたはまず何をするか。","choices":["移行後に接続エラーを起こさない適正値を確定させるため、新環境で同時実行数を段階的に上げる負荷試験を計画し、応答時間と待ちの発生状況から妥当なプール数を導き出したうえで、根拠資料とともに提案する。","CloudWatchのDatabaseConnectionsとPerformance Insightsで現行の実接続数を数日分取り、移行先の上限との差を課題管理表に起票して設計レビューの議題に載せる。","現行で接続エラーが起きていない以上は実害がないという前提に立ち、プール最大値は2000のまま引き継いだうえで、移行先のパラメータグループで最大接続数を引き上げ、4台合計の8000を受けられるよう整合させる。","詳細設計書の提出まで日がないため、まず現行踏襲の方針を決めたPMの席に行って口頭で相談し、値を変えるか踏襲するかをその場で決めてもらい、決まった内容だけをパラメータ一覧に反映して先に進む。"],"answer":1,"explain":"1台あたり2000というプール最大値は、4台合計で8000となり、移行先のメモリ16GiBのインスタンスクラスで既定式から算出される最大接続数を大きく上回る。ただし過大に見えるというだけでは議題にならない。CloudWatchのDatabaseConnectionsとPerformance Insightsから現行の実接続数を取れば、上限と実際に使われている数の差が数字になり、現行踏襲という方針の下でも検討対象として扱われる。この案の代償は、納期が迫るなかで計測と整理に時間を使うこと、そして方針を決めた側に疑義を呈する形になることである。しかも指摘したところで、変えるかどうかを決めるのは自分ではない。","others":[{"i":0,"text":"実測に基づく適正値の算出は本来やるべき作業だが、新環境での負荷試験を組んでいては詳細設計書の提出に間に合わない。この場面で先に必要なのは正しい値そのものではなく、現行値が妥当でない可能性を期限内に場へ出すことである。精度を上げる作業は、検討が始まってからでも遅くない。"},{"i":2,"text":"現行で接続エラーが起きていないことは、値が妥当であることの証明にはならない。プール最大値は上限であって実際の接続数ではなく、上限に達していなかっただけという可能性を確認していない。その前提のまま最大接続数を引き上げると、接続あたりのメモリ消費で別の問題を招きやすい。"},{"i":3,"text":"口頭で相談する動きの速さ自体は悪くない。ただし記録に残らない指摘は、後から見たときに無かったことと区別がつかない。踏襲方針を決めたのがPMだとしても、パラメータ変更の承認者が誰かは別に確かめる必要がある。速さと引き換えに、手続きの跡が残らない。"}]},{"no":2,"lead":"起票の翌日、PMから「今回の目的はバージョンアップであって、パラメータは現行踏襲が方針だ。値は変えない。課題管理表の起票も取り下げてほしい」と言われた。取得した実測値では、接続数はピーク時でも1台あたり40前後にとどまっていた。","prompt":"値は変えないという方針が示された状況で、パラメータ設計の担当としてどう対応するか。最も適切なものを選べ。","choices":["実測でピーク40前後という材料が揃った以上は判断の根拠が変わったと考え、課題管理表の起票は取り下げずに維持し、次の設計レビューで改めて議題に上げて方針そのものの見直しを求める。","接続数が上限に近づいた場合に備え、DatabaseConnectionsのアラームと接続エラー時の切り分け手順、再接続の運用手順を整えることに残りの設計工数を充て、パラメータは現行値のまま据え置く。","値を変えない判断はPMのものとして受け入れ、実測値と移行先の最大接続数の関係、および接続エラーが起きうる条件を詳細設計書の前提条件欄とリスク一覧に記載し、設計レビューでその記載の承認を得る。","値を変えない判断はPMの承認が出たものとして受け止め、設計書には現行値2000をそのまま記載し、何かあれば示せるよう経緯とやり取りを自分の作業メモにまとめて手元に保管しておく。"],"answer":2,"explain":"変わった前提は一つで、値を変えるかどうかを決める側が変えないと決めたことである。フレームのとおり、指摘は担当の義務だが、変更は合意の産物であり、合意が得られなかったなら次に残すのは記録である。実測がピーク40前後でも、上限は4台合計で8000のまま残る。接続のリークやリトライの重なりでプールが伸びれば、移行先の最大接続数を超えて接続エラーになりうる。その条件を設計書の前提条件欄とリスク一覧に書き、レビューで承認を得ておけば、構築担当と運用担当が同じ前提を共有できる。代償はある。PMの決定にわざわざ注釈を付ける形になり、蒸し返していると受け取られかねない。それでも、記録のない指摘は無かったことと変わらない。","others":[{"i":0,"text":"材料が揃ったのは事実だが、前提はすでに変わっている。決定権を持つ側が判断を示した後に同じ論点を出し直すのは、指摘ではなく押し返しになる。担当が引きずるべきは前の判断ではなく、決定に伴って残るリスクをどう扱うかである。"},{"i":1,"text":"監視と手順の整備は実務として正しく、後で効いてくる投資でもある。ただし、この構成では接続エラーが起きうるという前提を関係者が共有する前に運用側の作り込みを進めるのは順序が逆である。合意の記録を先に置いてから、備えを厚くする。"},{"i":3,"text":"経緯を残す意図は正しく、PMの判断を承認として受け止める整理も筋は通る。ただし残す場所が個人の側にある。作業メモやチャットの履歴は成果物ではなく、この設計書を後から読む構築担当や運用担当には届かない。記録は、探しに行かなくても目に入る場所に置いて初めて機能する。"}]},{"no":3,"lead":"設計レビューでリスクの記載は承認され、プール最大値は2000のまま確定した。作業を進めるなかで同僚から、「どうせ誰も見ていない。設計書のその一行を100に直しておけば接続エラーの芽は消えるし、誰も困らないのでは」と言われた。構築の着手まではまだ数日ある。","prompt":"黙って妥当な値に直してしまうという選択について、担当としてどう考えるべきか。最も適切なものを選べ。","choices":["技術的に正しくても、承認を経た設計から黙って外れることはしない。変えるべきだと考えるなら実測値と接続エラーが起きうる条件を添えて変更提案として出し直し、承認者の判断に従う。","値の妥当性は数字で示せており、下げる方向は安全側の変更である。100に修正したうえで設計書の変更履歴に記載し、軽微な修正として次回の設計レビューで報告し、事後に承認を得る形に整える。","直すかどうかを判断する前に、新環境でプールが上限まで伸びる状況を作って接続エラーが実際に再現するかを確かめ、再現した場合に限って変更提案を出すこととし、それまでは現行の記載を維持する。","同僚の提案は受け入れないが、同じことを他の担当がやりかねないため、パラメータ一覧の該当行に変更禁止と注記し、この値は確定済みであることを構築担当にも周知して、以後の議論を打ち切る。"],"answer":0,"explain":"黙って直せば接続エラーの芽は確かに消えるが、設計書は承認を経て確定した合意の記録であり、そこから外れた値で作れば、後からこの設計書を読む人には何が正で何が誤りかを判断できなくなる。踏襲は思考停止の免罪符ではないが、その裏返しとして、正しさは単独で決めてよい根拠にもならない。変えるべきだと考えるなら、実測値と接続エラーが起きうる条件を添えて変更提案として出し直し、承認者に判断してもらう。捨てるものははっきりしている。提案が通らなければ、過大だと分かっている値のまま構築することになるし、同僚からは融通が利かないと見られる。それでも、設計書と実機が食い違う状態を残すよりは安く済む。","others":[{"i":1,"text":"下げる方向だから安全という判断も、軽微だという判断も、担当が単独で下している。承認済みの成果物を先に変えて後から報告する形は、次に同じ場面が来たときの前例にもなる。値の正しさと、変えてよい手続きかどうかは分けて扱う必要がある。"},{"i":2,"text":"再現試験で裏を取る姿勢は誠実だが、構築着手まで数日しかなく、待っている間に変更提案を出せる窓が閉じる。実測値と上限の関係という材料はすでに手元にあり、提案を出すのに再現までは要らない。精度を上げる作業は提案の後でもできる。"},{"i":3,"text":"レビューで承認されたのは今回は変えないという判断であって、2000という値が妥当だという結論ではない。変更禁止と注記して議論を打ち切ると、次の更改や増強のときに見直す余地まで閉じてしまう。確定していない事実を確定として扱っている。"}]}],"aim":"現行踏襲の不審な値を、納期の中でどう扱うか"},{"id":9,"field":"詳細設計","title":"とりあえず80%でいい？","scenario":"B社の受注管理システムをオンプレミスからAWSへ移行する案件である。移行先はALB配下のEC2に載るAPサーバ2台と、RDSのMulti-AZ構成からなる。あなたは詳細設計工程で監視設計を担当し、CloudWatchアラームのパラメータを決める立場にある。業務部門とは画面応答3秒以内という目標を共有しているが、性能試験は来月であり、AWS上での負荷実績はまだ一件もない。現行オンプレの監視ツールにCPU使用率の実績が残っているはずだが、その環境を見ていた運用要員は先月異動しており、データを取り出せるかどうかは確認できていない。詳細設計書の提出期限は3日後で、設計レビューはその翌日に予定されている。先輩からは「CPU使用率はとりあえず80%でいいんじゃないか、細かいところは後で運用が調整するから」と言われている。","frame":{"name":"設計値には根拠（実測・推奨値・逆算）のどれかを付ける","howto":"まず、その値を実測・推奨値・逆算のどれで置けるかを確認する。実測が取れない工程なら、業務影響からの逆算か類似構成の運用実績で仮に置き、どちらで置いたかを設計書の根拠欄に書く。三つのどれも用意できない値は暫定と明記し、実測が取れる時期を見直し時期として同じ行に残す。値を変えるときも、変更後の値だけでなく、変更した根拠を書き足す。"},"principle":"とりあえずの値は、根拠と見直し時期をセットで残す","interview":["移行案件の詳細設計で監視設計を担当していたのですが、性能試験前で負荷の実績が一つもない状態でした。","私は暫定値を置くこと自体は認めて、代わりに根拠と見直し時期を設計書に必ず書くと決めました。値だけ残ると、次の担当者が確定値だと読んでしまうからです。","結果、稼働後に誤報が続いた時も、緩めてよい値かどうかを記録から判断できました。以後は暫定値には見直し時期を必ず添えています。"],"questions":[{"no":1,"lead":"","prompt":"提出期限は3日後である。あなたはCPU使用率のしきい値をどう置き、設計書にどう記載するか。","choices":["実測がない旨を前提に、応答時間目標から逆算した水準と類似構成の運用実績を根拠として暫定値を置き、性能試験後に実測で見直す時期まで設計書に明記してレビューで合意する。","先輩の助言どおり一般的な推奨値として80%を採用することを先輩と合意し、設計書にはしきい値の値だけを記載する。見直しは稼働後に運用チームが必要に応じて調整すればよいと整理する。","実績のない値は設計値にできないと考え、設計書の提出期限の延期を申し出る。異動した現行担当者の連絡先をたどってオンプレ監視の実績データを入手し、それが揃ってから全しきい値を確定する。","来月の性能試験で本番相当の負荷が確認できる以上、そこで出た最大値に余裕を加えれば正しい値になると考え、設計書には80%を仮置きし、根拠欄には性能試験後に確定と記載してレビューに提出する。"],"answer":0,"explain":"設計値に十分な根拠が付かないこと自体は、この時点では避けられない。実測は性能試験まで取れず、期限は3日後である。問題は、根拠がないまま値だけが確定値として残ることだ。応答3秒という業務目標から許容できる使用率を逆算する、類似構成の運用実績を借りる、といった形なら、精度は粗くても何をもって80%としたかは書ける。そのうえで暫定であることと、性能試験後に実測で見直す時期をレビューで合意しておけば、次に設計書を読む人は値の性格を誤解しない。代償はある。逆算の作業と見直し時の再設計工数が増え、レビューでは、なぜ今確定できないのかを説明させられる。それでも、根拠のない確定値を一つ残すより安い。","others":[{"i":1,"text":"推奨値を出発点にすること自体は実務で普通にあり、先輩と合意も取っている。ただし合意した相手はしきい値の決定者ではなく、80%がこのシステムの応答3秒とどう結び付くのかも示していない。値だけが残れば、次に見る人はそれを検討済みの設計値として扱う。"},{"i":2,"text":"実績データを取りに行く姿勢は四つの中で最も誠実だが、優先順位を外している。詳細設計全体を止めるほどの精度がこの工程で必要とは限らず、暫定値と見直し時期があれば先へ進める。期限延期は他の設計項目と後続のテスト日程にも波及し、失う時間に見合わない。"},{"i":3,"text":"性能試験で実測を取ってから確定させる筋道は正しく、根拠欄にその旨を書いた点も空欄よりはよい。ただし試験までの一か月間、80%という値の当否を誰も判断できないまま運用に渡ることになる。見直す時期を決めていない仮置きは、そのまま固定値になりやすい。"}]},{"no":2,"lead":"本番稼働から2週間が経過した。夜間のバッチ処理帯を中心に、CPU使用率80%超のアラームが週20件以上発報しているが、業務影響が出た回数はゼロである。運用チームからは、毎晩起こされているのでしきい値を90%に上げてほしいと要望が来ている。","prompt":"発報が夜間バッチ帯に集中していることは分かっている。あなたはこの要望に対し、まず何を見て判断するか。","choices":["稼働2週間の実測がそろったのだから根拠を実測に置き換えるべきだと考え、実測の最大値から逆算してしきい値を90%に改訂し、次の見直し時期を半年後と明記したうえで設計書の再レビューを依頼する。","値を動かす前に発報の内訳を確認する。夜間帯に偏り業務影響が出ていないなら、しきい値ではなく評価期間とデータポイント数、対象メトリクスの選び方を疑い、その変更を運用と合意する。","運用チームの負担が限界に近いため、まず該当アラームのアクションを停止して夜間の発報を止めることを運用と合意する。落ち着いてから原因を調べ、適切な設定に直したうえでアクションを戻す。","夜間バッチ帯の負荷そのものを下げるのが本筋だと考え、インスタンスタイプの引き上げやバッチ時間帯だけのスケールアウトを検討し、負荷が下がってから改めてしきい値の妥当性を判断する。"],"answer":1,"explain":"前提が変わっている。問1の時点では実測がなかったが、いまは2週間分の実績があり、しかも夜間帯に偏り業務影響ゼロという分布まで見えている。この分布が示しているのは値が低すぎることではなく、評価条件が実態に合っていないことだ。CloudWatchアラームは、しきい値だけでなく、評価期間、アラームとするデータポイント数、欠測時の扱いの組み合わせで判定する。短時間のスパイクで鳴るなら、5分を1回で判定していたものを5分を3回にするほうが、値を上げるより検知したい事象を保ちやすい。代償として、この判断は即効性がない。設定変更後も数日は様子を見る必要があり、運用チームには今夜も鳴るかもしれないと伝えて我慢してもらうことになる。","others":[{"i":0,"text":"問1で正しかった手続きを、前提が変わった場面にそのまま持ち込んでいる。根拠を実測に置き換えて記録を残すこと自体は正しいが、順序が違う。何が鳴らしているのかを見る前に値だけ90%へ動かすと、夜間帯以外で本当に必要な検知まで一緒に鈍る。"},{"i":2,"text":"毎晩起こされる状態を止めること自体は急ぐ必要があり、運用と合意も取っている。ただし合意の中身が止めることだけで、いつ戻すか、その間に本物の異常をどう拾うかが決まっていない。止めた通知は、戻す期限を決めないかぎり戻らない。"},{"i":3,"text":"負荷そのものを下げる方向は根本的で筋も通るが、この場面では優先順位が下がる。業務影響が一度も出ていない負荷に対して費用のかかる構成変更を先に置くことになり、検討と実施が終わるまでの間、誤報は鳴り続ける。"}]},{"no":3,"lead":"検討の結果、評価期間を5分平均の連続3回に変更し、あわせてしきい値を85%へ緩めることにした。変更内容は運用チームと合意済みで、今夜から適用できる。運用チームからは、これでようやく静かになると歓迎されている。","prompt":"今夜から適用できる状態だが、この緩和で捨てたものに対して、あなたはどう手当てしてから変更を完了とするか。","choices":["変更はCloudWatchアラームの設定変更で完結するため、アラームの説明欄に変更日と経緯を書いて反映する。設計書の改訂は次回の定期改訂でまとめて行うこととし、当面は設定側の記録だけで運用する。","85%かつ連続3回でも本当に危険な状態であれば発報するはずだと考え、緩和後はしばらく様子を見ることを運用と合意する。実際に見逃しが起きた時点で、その事象に合わせて条件を戻す運用とする。","連続15分に満たない急峻な負荷を捨てることになるため、CPUに加えてメモリ、ディスクI/O、ALBの応答時間など主要メトリクスを網羅的にアラーム化し、多層で検知できる体制を作ってから適用する。","緩めた理由と根拠にした実測データ、次の見直し時期を設計書と運用手順書に残す。連続15分に満たない急峻な負荷を捨てたことを明記し、その事象はALBの応答時間のアラームで補うことを合意する。"],"answer":3,"explain":"緩和そのものは、根拠がある以上おかしくない。危ないのは、緩和した事実だけが設定に残り、なぜ緩めたかが消えることだ。半年後にこの85%を見た担当者は、それが実測に基づく設計値なのか、うるさいから上げた値なのかを区別できない。だから記録には三つを揃える。緩めた理由、その根拠になった実測データ、次にこの値を見直す時期である。あわせて、何を検知できなくなったかを言葉にしておく。5分を3回で判定する以上、15分に満たずに終わる急峻な負荷は原理的に拾いにくい。それを捨てたと書いたうえで、応答時間側のアラームで補うところまでを合意する。代償として、運用チームの確認対象は減らず、記録と設定の手間だけが増える。","others":[{"i":0,"text":"設定側に経緯を書くこと自体は有効だが、手続きとして片肺である。設計書には80%が根拠付きで残ったままになり、次の改訂まで設計値と実運用値が食い違う。設計書を読んで判断する人と、コンソールを見る人が別であることが、この手当ての弱点である。"},{"i":1,"text":"緩めた条件でも重い異常なら拾えるという見立ては、たいていの場合は当たる。運用との合意もある。ただし合意した中身が様子を見ることだけで、何を捨てたのかも、どうなったら戻すのかも決まっていない。見逃しが起きて初めて気付く設計は、その一回を代償にする。"},{"i":2,"text":"捨てた範囲を正しく名指ししており、多層で拾う発想も正しい。ただし今夜から適用できる変更に対し、主要メトリクスを網羅的に設計し直すのは規模が釣り合わず、その間は現行の誤報が続く。まず一本で補い、網羅は次の見直しに回すほうが早い。"}]}],"aim":"根拠のない設計値の置き方と、誤報が出た後の直し方"},{"id":10,"field":"テスト","title":"性能試験が目標未達","scenario":"A社の受注管理システムをAWSへ移行する案件である。新環境はALB配下のEC2に載るAPサーバ2台と、RDS for PostgreSQLのMulti-AZ構成である。本番リリースは2週間後で、日程は業務部門の期末処理の都合で動かせない。テスト計画書の性能目標は、主要3業務のオンライン応答時間が95パーセンタイルで3秒以内である。受注登録は1.2秒、出荷照会は2.4秒で目標を満たしたが、受注一覧検索はピーク相当条件で5.8秒と未達であった。CloudWatchではRDSのCPU使用率は40%前後で、DatabaseConnectionsが上限に近い値で推移していたが、ボトルネックは特定できていない。試験条件の同時実行数80は計画書に記載があるが、その根拠資料は見つかっていない。テストリーダーからは、同時実行数を下げれば合格にできると言われた。あなたは性能試験の実施と報告を担当している。","frame":{"name":"試験は合格させるためでなく事実を測るため：事実と判断の分離","howto":"まず、測った事実を解釈を混ぜずに書き出す。どの条件で、どの業務が、目標何秒に対して何秒だったかを、そのままの形で並べる。次に、自分の見立てや対処案は事実とは別の欄に置き、どこまでが測定でどこからが意見かを読み手が区別できるようにする。条件そのものを見直す必要があるときは、結果の書き換えではなく計画の変更として扱い、根拠と承認者、旧条件での結果を並べて残す。そのうえで合否の判定は、材料を揃えて判定権限を持つ者に委ねる。"},"principle":"試験結果は曲げない。判断は材料を揃えて委ねる","interview":["リリースの2週間前に行った性能試験で、受注一覧検索だけが目標3秒に対して5.8秒と未達になりました。","私は、結果そのものは曲げず、未達の内訳と試験条件の根拠が確認できない点を書面で出すと判断しました。合否を決めるのは私ではないからです。","結果、条件は承認を取ったうえで見直し、残った未達は緩和策と期限を付けて合意しました。以後は試験条件の根拠を計画の段階で確かめています。"],"questions":[{"no":1,"lead":"","prompt":"リリースまで2週間、ボトルネックも試験条件の根拠も未確定である。あなたは性能試験の結果をどのように報告するか。","choices":["報告の前に原因を押さえるべきだと考え、Performance Insightsの待機イベントとスロークエリログの分析に数日を充て、ボトルネックと対策案の見通しが立った段階でまとめて報告する。","テスト計画書の判定基準に照らせば不合格であるため、報告書には同時実行数80で目標未達、判定は不合格とだけ記載し、原因分析と対策の検討は開発チーム側の課題として起票して引き継ぐ。","同時実行数を40に下げて再試験し、そこで得た結果を正式な試験結果として報告書に記載する。80での未達は参考値の扱いとし、テストリーダーには口頭で伝えて共有にとどめる。","未達を業務別の内訳で示し、同時実行数80の根拠が確認できていない事実とボトルネックの当たりを併記し、条件の再定義、改善、未達のままリリースの三案をテストリーダーとPMに書面で報告する。"],"answer":3,"explain":"性能試験の役割は合格印を出すことではなく、この構成がどこまで捌けるのかという事実を測ることである。まず測った事実を業務別、条件別に崩さず出し、そのうえで同時実行数80の根拠が確認できていないという未確定の事実も隠さずに添える。合否の判定も条件変更の可否も、テストリーダーとPM、最終的には業務部門が決める事項であり、材料を揃えて委ねるのが基盤担当の役割である。三案を並べるのは、報告を受けた側が困ったで止まらずに済むようにするためである。この案には代償がある。リリース延期の可能性が公になり、日程調整の負荷がPMにかかる。試験条件の根拠を計画時に確かめなかったという自分側の不備も、同時に表に出ることになる。","others":[{"i":0,"text":"原因究明そのものは必要であり、進め方としても誠実に見える。ただし残り2週間という制約の下では、未達という事実を早く知らせるほうが先である。分析に数日を使ってから報告すると、条件の再定義もリリース判断も、選べる幅が狭まってから届くことになる。分析は報告と並行して進められる。"},{"i":1,"text":"判定基準どおりの処理で手続き上は正しいが、条件80が妥当だという未確認の前提を確定したものとして扱っている。根拠資料が見つかっていないという事実と未達の内訳が落ちるため、受け取った側は条件の再定義という選択肢の存在に気付けない。"},{"i":2,"text":"試験条件の変更が正当な場合は実際にあるが、それは根拠と承認があり、旧条件での結果も残る場合である。承認を経ずに条件を下げ、80での結果を口頭にとどめると、誰が何を根拠に判断したのかを後から追えなくなる。結果を曲げたのと同じ形になる。"}]},{"no":2,"lead":"報告の翌日、テストリーダーが要件定義時の業務部門ヒアリング記録を持ってきた。そこにはピーク時の同時利用者は最大40名と書かれており、80はテスト計画作成時に安全率2倍を掛けた値だと説明された。ただし安全率2倍の根拠と、その値を承認した記録は残っていない。条件を現実的な値に直すだけだ、と言われている。","prompt":"同時利用者40名という記録が出てきた一方で、80の安全率には承認の記録がない。あなたは試験条件の扱いをどのように進めるか。","choices":["条件の妥当性は基盤担当が判断することではないと考え、提示された記録を添付したうえで、80での未達をそのまま試験結果として報告し、条件を変えるかどうかの判断はPMに委ねる。","40という値は妥当だと判断してテスト計画を先に改訂し、そのまま40で再試験を実施する。計画の改訂と承認は結果が出てから、再試験の報告とあわせてPMに一括で得ることにする。","記録の出所と作成時期、80が安全率2倍の暫定値であった経緯を整理し、条件変更をテスト計画の変更としてPMと業務部門の承認を得る。承認後に40で再試験し、報告書には80での結果も併記する。","要件定義時の記録はリリース後の利用拡大を織り込んでいないため条件は80のまま据え置き、RDSのインスタンスクラス引き上げとコネクション設定の見直しによって3秒以内を目指す方針に切り替える。"],"answer":2,"explain":"試験条件の変更が正当化される場面は実際にある。ただし正当化に要るものは三つで、根拠の出所が示せること、変更を承認する権限を持つ者の承認があること、そして旧条件での結果が消えずに残ることである。今回は業務部門のヒアリング記録という根拠が出てきたのだから、頭から拒む理由はない。一方で80も安全率を掛けた暫定値であって誤りとは限らず、承認記録がないという弱さは変更側と現行側の双方に等しく効く。だからこそ経緯を書いて承認を取り、結果は両条件を併記する。代償として、承認の取得に数日を要してリリースまでの残り時間をさらに削ることになり、そこまで手間をかけるのかとも言われる。それでも、条件を下げた経緯を後から誰も説明できない状態を作るよりは安い。","others":[{"i":0,"text":"問1と同じ振る舞いだが、前提のほうが変わっている。根拠資料という新しい事実が出た以上、その出所と時期を確かめて材料に組み込むところまでが基盤担当の仕事である。記録を添えるだけで判断を渡すと、PMは安全率の経緯も分からないまま条件を決めることになる。"},{"i":1,"text":"再試験そのものは必要であり、先に手を動かす順序も一見合理的に見える。しかし承認を結果の後に回すと、合格という結果を見てから条件を追認する形になり、条件変更の妥当性を結果と切り離して判断できなくなる。承認は結果を知る前に取るから意味を持つ。"},{"i":3,"text":"将来の利用増を見込む視点は正しく、改善もいずれ必要になる。ただし残り2週間で改善の効果が出る保証はなく、条件の是非を棚上げしたまま改善に着手すると、判断の期限だけが過ぎていく。まず条件を確定させ、必要な改善量はその上で決めるほうが順序として合う。"}]},{"no":3,"lead":"承認を得て同時実行数40で再試験したところ、受注一覧検索は3.4秒となり、目標3秒に対して依然として未達であった。恒久対策となるインデックス追加とクエリ改修は開発側で2か月を要する見込みで、リリース日は動かせないとPMから改めて示された。","prompt":"未達を残したままリリースする方向で調整が進んでいる。あなたは何を揃えたうえでリリース判定に臨むべきか。","choices":["未達が残るのは受注一覧検索のピーク時3.4秒だけだと範囲を特定し、影響する業務、暫定の緩和策、恒久対策の実施期限を一組にして示し、PMと業務部門の合意を議事録と課題票に残す。","リリース前にRDSのインスタンスクラスを引き上げて再測定し、3秒を切ることを確認できた時点で目標達成として判定会議に報告し、恒久対策の実施期限は開発チームの計画に合わせて設定する。","目標3秒に対して3.4秒であり利用者の体感差は小さいと考え、判定会議には実用上問題ない水準と報告したうえで、恒久対策は次期リリースの改善課題として起票して合意を得ることにする。","リリース前に少しでも効果を出すため、開発チームにインデックス追加だけでも先行して適用するよう依頼し、その効果測定の結果が出てから判定会議に諮ることとして、報告の時期を後ろにずらす。"],"answer":0,"explain":"未達のままリリースするという判断自体は、あり得ない選択ではない。ただし成立させるには揃えるものがある。どの業務がどの条件で何秒未達かを限定すること、その間を凌ぐ暫定の緩和策、恒久対策の実施期限、判定権限を持つ者と業務部門の合意であり、これらを記録に残すことである。緩和策としては、RDSのインスタンスクラス引き上げ、ピーク時間帯の照会業務の分散、応答時間のCloudWatchアラームによる監視強化が考えられる。捨てるものもはっきりしている。引き上げた分の費用は毎月かかり続け、業務部門にはピーク時間帯の使い方に制約を飲んでもらう。監視当番の負担も増える。それでも、誰が何を条件に未達を許容したのかが残っていれば、後から守れる。","others":[{"i":1,"text":"測って良くなるなら手を打つという判断は現場では自然で、恒久対策の期限にも触れている。ただしその期限は開発チームの都合に合わせただけで、業務がいつまで遅い検索に耐えるのかから逆算されていない。加えて、条件を変えずに設備で数字を作ると、なぜ遅かったのかが未解明のまま残る。"},{"i":2,"text":"体感差の見立てそのものは的外れとは限らない。しかし実用上問題ないという判定は、試験を実施した側が単独で下してよい判断ではない。測った事実に解釈を混ぜて報告すると、判定権限を持つ者が未達を承知で許容したという記録が、どこにも残らなくなる。"},{"i":3,"text":"恒久対策を少しでも前倒しする姿勢は誠実であり、インデックス追加が効く可能性も現にある。ただし日程が動かない中で報告を後ろ倒しにすると、効果が出なかった場合に代替案を用意する時間が消える。先行適用は、合意を取った後からでも進められる。"}]}],"aim":"都合の悪い試験結果の報告の仕方と、条件変更の是非"},{"id":11,"field":"テスト","title":"SIT期間を半分にしてくれ","scenario":"A社の販売管理システムを刷新し、オンプレミスからAWSへ移行する案件である。新環境はALB配下のEC2に載るAPサーバとRDS for PostgreSQLのMulti-AZ構成で、在庫システムとは夜間のファイル連携、会計システムとはAPI連携でつながっている。SITは試験項目800件を4週間、実施要員4名、テスト環境1面で回す計画であった。ところが開発工程が2週間遅れ、リリース日は業務部門の期末処理の都合で動かせないため、SITは2週間に短縮された。PMからは、期間は半分だが品質は落とすなと言われている。項目一覧には業務名の記載はあるが、今回の改修でどの機能に手が入ったかとの対応付けは整理されていない。前回リリースでの障害発生箇所の記録も、探せば出てくるはずだが手元にはない。あなたはSITの計画と実施を担当するインフラ担当者である。","frame":{"name":"リスクベースドテスト（業務影響度×変更度）","howto":"まず800件の各項目に、その業務が止まったときの影響度と、今回どれだけ手を入れたかの変更度を二軸で付ける。次に両方が高い帯を必ず実施する必須群、片方だけの帯を要点に絞る短縮群、どちらも低い帯を後回し群に分け、群ごとの件数と所要工数を並べて示す。そのうえで後回し群を落とすと何が確認されないままになるかを業務の言葉で書き、削る範囲と残るリスクをPM、業務部門、品質保証と合意する。落とした項目はリリース後のいつ実施するかまで決めて記録に残す。"},"principle":"削る時は、何を削って何のリスクが残るかを合意してから削る","interview":["販売管理システムの移行案件で、試験項目が800件あるSITの期間が、開発の遅れで4週から2週に短縮されました。","私は闇雲に間引かず、業務影響度と変更度で800件を層別してから削ると判断しました。理由は、削った範囲が特定できないと後で守れないからです。","結果、520件は期間内に消化しましたが、後回しにした領域から障害が出ました。以後は削る前に、残るリスクを言葉にして合意を取っています。"],"questions":[{"no":1,"lead":"","prompt":"SITの期間が4週から2週に短縮され、試験項目は800件のままである。あなたはSITの計画をどのように立て直すか。","choices":["削減が本当に必要かを先に見極めるべきだと考え、800件を一件ずつ再見積りし、並列実行や自動化でどこまで詰められるかを数日かけて洗い出し、その結果をもってPMと削る範囲を合意する。","800件を業務影響度と変更度で層別し、必須、短縮、後回しの三群の件数と工数を示したうえで、削る範囲と残るリスクをPM、業務部門、品質保証と合意して計画を改訂する。","前回のリリースで問題が出なかった既存機能は安定しているとみなし、その領域の回帰試験を一律に落として、浮いた工数を今回の改修で追加または変更した機能の試験に振り向ける計画に変更する。","削る項目は事前に決めず、優先度の高いものから順に消化して2週で回せた分を結果とし、テスト計画書には期間の短縮だけを反映して、個々の項目の打ち切りは実施状況を見て現場で判断する。"],"answer":1,"explain":"期間が半分になった以上、800件をそのまま2週で消化する前提は成り立たない。削る対象は勘や消化順ではなく、業務影響度と変更度の二軸で決める。基幹業務に関わり今回手を入れた箇所と連携I/Fは必須群として残し、変更のない画面の再確認や低頻度業務、既存回帰の一部を後回し群に落とす。削るだけに頼らず、テスト環境の増設、回帰の自動化、要員追加という詰める手も併せて出す。要は、どの項目を落としてどのリスクが残るかを文書にし、PMと業務部門と品質保証の合意を得てから削ることである。代償は小さくない。層別と合意に2日を使うため実施日数は実質8日に減り、環境増設と要員追加には費用が伴う。業務部門には後回し分のリスクを飲んでもらう説明も要る。","others":[{"i":0,"text":"削らずに詰める手を先に探す姿勢は正しく、最後にPMと合意も取っている。ただし再見積りに数日を使えば、2週間しかないSITのうち相当量を消費する。詰める工夫は層別と並行して進められるもので、削る判断を止めてまで先に置く作業ではない。"},{"i":2,"text":"回帰を絞る発想自体はリスクベースドテストの考え方に沿う。ただし前回のリリースで問題が出なかったという記録は手元になく、未確認の事実を確定として扱っている。今回の改修が既存機能に及ぼす影響も見ていないため、変更度が低いという判断の裏付けもない。"},{"i":3,"text":"消化できる分から着手する進め方は、現場では実際に取られる。しかし削る項目を事前に決めず、計画書に期間短縮しか残らないと、何を実施しなかったかを後から特定できない。合意も記録もないまま品質を落とした形になり、障害が出たときに誰も判断を説明できない。"}]},{"no":2,"lead":"層別案を持ち込んだ翌日、PMから、削る範囲の合意には業務部門との調整が要り時間がかかると告げられた。そのうえで、結果票は800件すべて実施済みで記載し、実際には重要な項目だけ回せばよい、期間短縮の経緯は自分が押さえておくから問題ないと言われた。テストリーダーも、前にもそうしたことがあると言っている。","prompt":"合意を取る時間はないとして、全項目を実施済みとする記載を求められている。あなたはこの求めにどう応じるか。","choices":["実施していない項目を実施済みと書くことはできないと伝え、層別結果を当日中に示し、まずPMと品質保証で削減案を仮承認し、業務部門には要点を絞った資料で翌日説明する手順を提案する。","当初の方針どおり業務部門を含む三者の合意が要ると考え、調整に必要な日数を確保するようPMに求め、合意が整うまでは削減対象を確定させず、SITの本格的な着手を後ろ倒しにする。","結果票の記載方法はPMの権限で決まる事項であり、PMの承認があれば足りると考えて指示に従い、実施できなかった項目の一覧は自分の手控えに残し、リリース後に個別に追試する形にする。","記録の改ざんに当たると考え、PMにはその場での回答を保留したまま、品質保証部門の責任者に依頼の内容をそのまま報告し、SITの進め方をどうするかの判断をそちらに委ねることにする。"],"answer":0,"explain":"実施していない試験を実施済みと記録することは、期間短縮の是非とは別の問題である。試験結果の記録は、後で誰かが品質を判断するための唯一の材料であり、そこが崩れると削った範囲も残るリスクも検証できなくなる。だから記載は断る。ただし断って終わりにすると、合意に時間がかかるというPMの困りごとは残ったままで、同じ話が形を変えて戻ってくる。そこで合意の粒度と順序を組み替え、全員をそろえた会議ではなく、まずPMと品質保証で仮承認し、業務部門には後回し群のリスクを業務の言葉で書いた資料で説明する短縮案を同時に出す。代償として、PMとは一度緊張した会話になり、資料の作成でその日の実施は止まる。それでも記録さえ守られていれば、判断は後から直せる。","others":[{"i":1,"text":"手続きとしては正しく、問1で選んだ道でもある。ただし前提のほうが変わっている。ここで問われているのは記載の是非であり、そこに触れずに日数だけを求めると、断ったつもりが相手に伝わらない。着手を待つ分だけ実施できる日も減り、削減の必要はかえって大きくなる。"},{"i":2,"text":"記載方法の決定権がPMにあるという整理には形式上の筋がある。ただし承認できるのは進め方であって、実施していない試験を実施したことにする権限は誰も持たない。手控えは成果物ではなく、追試が終わるまでの間、判定に使われるのは事実と違う結果票のほうである。"},{"i":3,"text":"断る判断そのものは正しく、品質保証を巻き込む必要も実際にある。ただし当事者であるPMに代替案を示す前に外へ持ち出すと、時間がないという本当の困りごとには何も答えていない。順序としては、まず代替を出し、それでも記載を求められた段階で持ち出すほうが早い。"}]},{"no":3,"lead":"削減案は合意され、優先度の高い520件を期間内に消化してリリースした。3週間後、後回し群に残した280件のうち、在庫システムとの夜間ファイル連携のエラー処理に不具合が見つかり、翌朝の在庫数が2時間更新されない障害となった。原因は改修範囲外とみなしていた既存処理にあった。PMからは、なぜそこを削ったのかと問われている。","prompt":"後回しにした項目の領域から本番障害が出た。あなたはこの結果をどう受け止め、振り返りにどのように臨むか。","choices":["削減はPMと業務部門の合意に基づく決定であることを振り返りの場で説明し、合意記録と当時の判断材料を示したうえで、再発防止は開発側の改修範囲の見極めの課題として整理することにする。","まず障害の原因を最後まで突き止めるべきだと考え、当該ファイル連携のエラー処理を全パターン洗い出して恒久対策の設計を仕上げ、削減判断が妥当だったかの議論はその後に回すことにする。","合意記録から当該項目を後回しに置いた理由をたどり、変更度の評価を誤ったのか合意した受容範囲の中なのかを切り分けて示し、同じ評価で後回しにした残り項目の前倒しを諮る。","同じ連携I/Fに関わる後回し項目を自分で選び出し、運用の空き時間に本番相当のデータで順次実施して、結果は一通り終えた段階でPMと業務部門にまとめて報告する形で挽回する。"],"answer":2,"explain":"削った項目から障害が出たとき、問われるのは合意があったかどうかだけではない。合意済みリスクの顕在化と、層別そのものの誤りは、外から見ると同じ形をしている。分かれ目は、その項目をどの理由で後回しにしたかが記録から特定できるかである。今回は夜間ファイル連携を改修範囲外と見て変更度を低く評価した。その評価が誤りだったのか、影響度は高いと承知のうえで受容した範囲だったのかを、記録を開いて切り分ける。切り分けたら、同じ評価軸で後回しにした残りの項目に同じ穴がないかを点検し、前倒しの実施を諮る。この案には痛みがある。変更度の見立てを誤ったのは自分だと、記録を根拠に自ら明らかにすることになり、前倒しの実施には追加の工数と費用も要る。","others":[{"i":0,"text":"合意記録を示すこと自体は必要で、その記録があるからこそ議論が成り立つ。ただし合意があったことと、層別の評価が正しかったこととは別である。変更度を低く見た評価の当否を確かめないまま開発側の課題に寄せると、同じ評価で後回しにした他の項目が手つかずで残る。"},{"i":1,"text":"原因を突き止める姿勢は誠実で、恒久対策もいずれ必要になる。ただし同じ評価軸で後回しにした項目はまだ多く残っており、そこに同じ穴が空いていないかの点検が先である。原因究明は開発側と分担でき、残項目の点検と並行して進めることができる。"},{"i":3,"text":"残りを早く消化しようとする判断は前向きで、時間の使い方としても合理に見える。しかし対象の選定を単独で行い、終わってからまとめて報告する形は、削る時と同じ手続きの飛ばし方である。本番相当のデータを扱う以上、範囲と時期の承認を先に取るほうが結局は早い。"}]}],"aim":"試験を削る時の削り方と、合意の残し方"},{"id":12,"field":"導入設計","title":"切り戻すなら何時まで？","scenario":"A社の受注管理システムをオンプレミスからAWSへ移行する切替を担当している。新環境はALB配下のEC2に載るAPサーバとMulti-AZ構成のRDSで、利用者は社内DNSのCNAMEを旧環境から新環境へ向け替える方式である。前日夜にデータの最終移行を終え、当日3時に切替を実施した。切替手順書には、切り戻し可否を6時までに判断し、判断者は移行責任者とすると記されている。5時の現在、取引先からのファイル受信が断続的に失敗しており、原因は特定できていない。一方で早番の担当者が新環境で入力を始めており、DBには既に数十件の更新が入っている。DNSのTTLを事前に短縮したかどうかは、作業記録に残っていない。移行責任者は待機室で仮眠中で、まだ連絡していない。業務開始は9時である。あなたは当日の作業リーダーである。","frame":{"name":"切り戻しは当日決めない：基準・期限・判断者を事前定義","howto":"切替の計画段階で、戻す条件と、戻すと決める期限と、決める人の三点を書き出しておく。条件は「9時に主要業務が使えるか」のように業務の言葉で書き、期限はDNSのキャッシュ残存やデータ差分の巻き戻しを含めた切り戻し所要時間から逆算して時刻で置く。判断者は一名に決め、当日その時刻に判断できる体制を用意する。当日は基準に照らして判定するだけにし、基準がないまま当日を迎えてしまったときは、原因調査より先に暫定の基準を合意して記録する。"},"principle":"戻る条件は、進む前に決めておく","interview":["オンプレからAWSへ切り替えた当日の早朝、業務開始まで四時間という時点で、外部連携だけが不安定になりました。","私は原因究明より先に、切り戻しに何分かかるかを逆算して判断の期限を出しました。理由は、DNSのキャッシュが残る分、遅れるほど戻れなくなるからです。","結果、期限内に続行と判断でき、業務部門に代替手段を用意してもらえました。以後は戻す条件と期限を計画段階で決めています。"],"questions":[{"no":1,"lead":"","prompt":"業務開始まで4時間である。作業リーダーとして、あなたがいま最初に判断すべきことは何か。","choices":["受信失敗のログ解析に要員を集中させ、原因が特定できてから切り戻すか続行するかを決めることとし、業務部門への連絡は原因が判明した時点でまとめて行う。","社内DNSのTTLは短いはずで戻せば数分で旧環境に収束すると見込み、切り戻し時間の計算より先に、外部連携の暫定回避策の適用を要員に指示する。","切り戻しに要する時間を実際のTTLと新環境に入った更新分から逆算して判断期限を割り出し、判断者である移行責任者に期限と基準を共有する。","作業リーダーの判断で7時を切り戻しの期限と決めて要員に準備を指示し、移行責任者と業務部門へは準備が整った段階で内容を共有する。"],"answer":2,"explain":"当日まず決めるべきは、事象の正体ではなく、何時までに決めれば戻れるかである。DNS切替は、事前にTTLを短縮していなければキャッシュが残り、切り戻しても利用者が旧環境に戻り切るまで時間を要する。保持の実際はリゾルバにも左右されるため、実測で確かめるほかない。さらに新環境には早番の更新が入っており、戻すなら差分の扱いが所要時間に上乗せされる。手順書の6時は、これらを織り込まない前提の数字であり、置き直さなければ判断の根拠にならない。判断者に本当の期限と基準を渡すのが、この場面の順序である。代償として調査要員は割かれ、仮眠中の責任者を起こすことになり、再計算した期限が6時より前に来れば余裕は減る。期限を失えば選ぶこと自体ができなくなる。","others":[{"i":0,"text":"原因が分かれば判断は楽になり、姿勢としても誠実に見える。ただし原因究明は終わる時刻の読めない作業である。読めない作業に要員を集中させている間に、読める作業である切り戻し所要時間の逆算と判断者の確保が後回しになる。業務部門への連絡を原因判明まで止める点も、通知に必要な猶予を削る。"},{"i":1,"text":"暫定回避で切り抜けられれば最も傷が浅く、その見込み自体は否定できない。しかしTTLを短縮したかどうかは作業記録になく、確定していない事実である。短いはずだという前提のまま回避策から入ると、実際にキャッシュが長く残っていた場合に、戻せる時間を読み違えたまま時間だけが過ぎる。"},{"i":3,"text":"期限を先に切る発想そのものは正しく、共有もしている。ただし決めたのが判断者ではなく作業リーダーで、共有も準備が整った後になっている。手順書は判断者を移行責任者と定めており、起こしにくい相手であることは、決める人を替えてよい理由にはならない。"}]},{"no":2,"lead":"移行責任者と連絡がつき、状況を共有した。ところが手順書に書かれているのは判断の期限と判断者だけで、何をもって切り戻すかの判定条件は書かれておらず、事前の合意もなかったことが分かった。責任者からは、現場が一番見えているのだから君の判断でよいと言われている。","prompt":"切り戻しの基準が事前に決まっていないと分かった。残り時間の中で、あなたはどう進めるべきか。","choices":["切り戻し所要時間の逆算をさらに精緻化して判断期限を分単位で確定し、その時刻までは原因調査に専念して、期限が来た時点で改めて判断することにする。","責任者から一任された以上は自分の中に基準を置いて調査を続け、切り戻しが必要になった時点で実行することとし、文面化と業務部門への共有は落ち着いてから行う。","基準を決めるにも事象の正体が要ると考え、まず外部連携の失敗の切り分けを完了させ、原因が判明した段階で切り戻しの判定条件を関係者と合意する。","9時に主要業務が回るかどうかを判定条件に置き、切り戻しの条件と期限と判断者を短い文面にまとめ、移行責任者と業務部門の当番の合意を取る。"],"answer":3,"explain":"基準がないまま期限だけを精密にしても、その時刻に何を見て判断するのかが決まっていない以上、時間切れで惰性の続行に流れる。基準は技術的な閾値ではなく、9時に業務が回るかどうかという業務側の言葉で書くと、判断者も業務部門も同じ物差しを持てる。責任者から一任されても判断者は責任者のままに置き、条件と期限と判断者の三点を短い文面にして合意を取り、記録に残す。長い文書は要らないが、口頭だけで済ませてもいけない。代償は、残り時間から20分から30分を調整に使うこと、そして現場からは今それどころではないと思われることである。それでも、基準のない判断は後から検証も説明もできず、続行しても切り戻しても結果論で評価されることになる。","others":[{"i":0,"text":"問1で取った逆算をそのまま延長する形で、一見すると筋は通っている。ただし基準がないという前提の変化に手が付いていない。期限の精度を上げても判定条件がなければ、その時刻に照らすものがなく、結局はその場の空気で続行が選ばれる。時刻だけを守っても判断したことにはならない。"},{"i":1,"text":"任された者が現場で決めるという進め方は、実務では珍しくない。しかし一任は責任の移転ではなく、判断者を変えるには相応の手続きが要る。基準を頭の中だけに置き、記録も業務部門への共有もしないと、続行しても切り戻しても後から妥当性を確かめられない。合意は短くてよいが省けない。"},{"i":2,"text":"切り分けを終えてから基準を決める順序は、丁寧で正しく見える。ただし切り分けに要する時間は読めず、基準の合意に要する時間は読める。読める作業を後ろに置くと、残り時間が減った状態で合意を取ることになり、選べる幅が狭まってから決める羽目になる。順序が逆である。"}]},{"no":3,"lead":"合意した基準に照らし、7時の時点で主要業務は新環境で動作し、外部連携のファイル受信だけが復旧していないと判定した。移行責任者は業務影響が限定的だとして続行を選んだ。DNSのキャッシュ残存と新環境に入った更新分を考えると、安全に戻せる時刻は過ぎつつある。","prompt":"続行を選んだ結果として捨てたものを踏まえ、業務開始までの2時間であなたは何をすべきか。","choices":["外部連携が止まったままでは続行の意味がないと考え、要員を集めて受信処理の恒久対策をこの場で設計し、業務開始前に新環境へ適用して復旧を図る。","外部連携の代替受領と再送の手順、9時以降の縮退運用の範囲を業務部門と決め、続行を選んだ理由と再判断の条件を記録したうえで関係者へ周知する。","更新分が入った以上もう戻せないと関係者に伝え、これ以上動かして混乱させないため、9時までは要員を新環境の監視強化に充てて経過を観察する。","続行は移行責任者の判断であるから記録と業務部門への周知は責任者に任せ、自分は日勤要員への引き継ぎと監視体制の組み直しに専念する。"],"answer":1,"explain":"続行を選ぶとは、安全に戻れる時間と、戻すために確保していた要員の余力を捨てることである。捨てた分は、業務側の代替手段と縮退運用の範囲で埋めるほかない。ファイル受信が止まっている間の受領方法、復旧後に再送する手順、9時以降どこまで手作業で回すかを業務部門と決め、続行を選んだ理由、その判断が有効な期限、どうなれば再判断するかを記録して、業務開始前に周知する。ここで作る記録は、後で経緯を説明するためだけでなく、日中に事態が悪化したときに次の判断を早くするための材料でもある。代償は小さくない。業務部門に手作業を頼み、疲れた要員を張り付け、朝一番でなぜ戻さなかったのかと問われる立場を自ら引き受けることになる。","others":[{"i":0,"text":"恒久対策はいずれ必要で、原因に正面から向き合う点も誠実である。ただし業務開始までの2時間で設計して本番へ入れる作業ではない。設計と適用に人を集めている間、業務部門は代替手段を知らないまま9時を迎える。恒久対策は続行を決めた後の宿題であり、いま先に片づけるものではない。"},{"i":2,"text":"戻れないと割り切って監視に寄せる判断は、混乱を増やさない点では理にかなう。しかし戻せるかどうかは更新分の件数と巻き戻し手順を確認して初めて言えることで、現時点では確定していない。不可能と断じて監視だけに寄せると、代替手段の準備も業務部門への通知もないまま9時になる。"},{"i":3,"text":"判断者が責任者である以上、周知も責任者からという整理は筋が通って見える。ただし誰がいつ業務部門に何を伝えるかを決めずに任せると、通知そのものが落ちる。要員の交代と監視体制の組み直しは必要だが、通知の宛先と期限を自分の側で確定させてから着手する順序である。"}]}],"aim":"切り戻し判断の基準・期限・判断者をどう扱うか"}];
+
+const SYM = ["ア", "イ", "ウ", "エ"];
+const FIELD_ORDER = ["障害対応", "基本設計", "詳細設計", "テスト", "導入設計"];
+const FIELD_NOTE = {
+  "障害対応": "壊れている最中に、何を先にやるか",
+  "基本設計": "決められない条件の中で、どう決めさせるか",
+  "詳細設計": "根拠のない数字を、どう扱うか",
+  "テスト": "都合の悪い事実を、どう扱うか",
+  "導入設計": "戻れなくなる前に、何を決めておくか"
+};
+
+const state = {
+  view: "home",
+  caseId: null,
+  qIndex: 0,
+  picks: [],
+  pick: null,
+  reason: "",
+  results: new Map(),
+  logs: []
+};
+
+const app = document.getElementById("app");
+const toastEl = document.getElementById("toast");
+let toastTimer = null;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { toastEl.classList.remove("on"); }, 1800);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+function today() {
+  const d = new Date();
+  const p = function (n) { return String(n).padStart(2, "0"); };
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+function getCase(id) {
+  for (let i = 0; i < CASES.length; i++) if (CASES[i].id === id) return CASES[i];
+  return null;
+}
+
+function copyText(text) {
+  const done = function () { toast("コピーしました"); };
+  const fallback = function () {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (ok) { done(); } else { toast("長押しで選択してコピーしてください"); }
+    } catch (e) {
+      toast("長押しで選択してコピーしてください");
+    }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+/* ---------------- home ---------------- */
+
+function renderHome() {
+  const undone = CASES.filter(function (c) { return !state.results.has(c.id); });
+  let html = '<div class="view">';
+
+  html += '<header class="masthead">' +
+    '<div class="label">CASE DRILL / 全12ケース・連問3問</div>' +
+    '<h1>インフラ判断ドリル</h1>' +
+    '<p class="sub">同じ知識量でも差がつくのは、優先順位と前提の置き方と手続きの踏み方である。' +
+    '選ぶだけでなく、選んだ理由を毎回1行で言語化する。' +
+    '記録は残らないので、終わったらログ行をコピーして持ち出すこと。</p>' +
+    '</header><div class="rule-thin"></div>';
+
+  html += '<button class="random" id="btn-random">' +
+    '<span class="big">ランダムに1問</span>' +
+    '<span class="cap">' + (undone.length > 0
+      ? "まだ解いていない " + undone.length + " ケースから1つ選びます"
+      : "全ケース終了。全12ケースから選び直します") + '</span></button>';
+
+  FIELD_ORDER.forEach(function (field) {
+    const list = CASES.filter(function (c) { return c.field === field; });
+    if (!list.length) return;
+    html += '<div class="field-head"><span class="name">' + esc(field) + '</span>' +
+      '<span class="count mono">' + list.length + " CASES</span></div>";
+    html += '<div class="label" style="letter-spacing:.06em;font-weight:400;font-size:.76rem;color:var(--ink-2);line-height:1.7">' +
+      esc(FIELD_NOTE[field] || "") + "</div>";
+    html += '<div class="case-list">';
+    list.forEach(function (c) {
+      const r = state.results.get(c.id);
+      html += '<button class="case" data-case="' + c.id + '">' +
+        '<span class="num">' + String(c.id).padStart(2, "0") + "</span>" +
+        "<span><span class=\"t\">" + esc(c.title) +
+        (r ? '<span class="done">' + r.mark + "</span>" : "") + "</span>" +
+        '<span class="aim">' + esc(c.aim) + "</span></span></button>";
+    });
+    html += "</div>";
+  });
+
+  if (state.logs.length) {
+    html += '<div class="logbox"><h2>今回のログ（' + state.logs.length + "件）</h2>" +
+      '<div class="logrows"><pre>' + esc(state.logs.join("\n")) + "</pre></div>" +
+      '<div class="actions" style="margin-top:.9rem"><button class="btn" id="btn-copyall">まとめてコピー</button></div></div>';
+  }
+
+  html += '<div class="foot">解答も理由も端末には保存されない。ページを閉じると消える。' +
+    "判断原則と評価は、ログ行をコピーして自分の記録に貼ること。</div>";
+
+  html += "</div>";
+  app.innerHTML = html;
+
+  document.getElementById("btn-random").onclick = function () {
+    const pool = undone.length ? undone : CASES;
+    startCase(pool[Math.floor(Math.random() * pool.length)].id);
+  };
+  Array.prototype.forEach.call(app.querySelectorAll("[data-case]"), function (b) {
+    b.onclick = function () { startCase(parseInt(b.dataset.case, 10)); };
+  });
+  const ca = document.getElementById("btn-copyall");
+  if (ca) {
+    ca.onclick = function () {
+      copyText("| 日付 | 分野 | 判断原則 | 評価 |\n| --- | --- | --- | --- |\n" + state.logs.join("\n"));
+    };
+  }
+  window.scrollTo(0, 0);
+}
+
+/* ---------------- question ---------------- */
+
+function startCase(id) {
+  state.view = "q";
+  state.caseId = id;
+  state.qIndex = 0;
+  state.picks = [];
+  state.pick = null;
+  state.reason = "";
+  render();
+}
+
+function renderQuestion() {
+  const c = getCase(state.caseId);
+  const q = c.questions[state.qIndex];
+  let html = '<div class="view">';
+
+  html += '<div class="qbar"><button class="backlink" id="btn-back">← ケース一覧</button><div class="steps">';
+  for (let i = 0; i < 3; i++) {
+    const cls = i === state.qIndex ? "now" : (i < state.qIndex ? "done" : "");
+    html += "<span" + (cls ? ' class="' + cls + '"' : "") + ">" + (i + 1) + "</span>";
+  }
+  html += "</div></div>";
+
+  html += '<h2 class="case-title">' + esc(c.title) + "</h2>";
+  html += '<div class="case-meta mono">' + esc(c.field) + " ／ CASE " + String(c.id).padStart(2, "0") +
+    " ／ 設問" + (state.qIndex + 1) + "</div>";
+
+  if (state.qIndex === 0) {
+    html += '<div class="panel"><span class="label">状況</span><p>' + esc(c.scenario) + "</p></div>";
+  } else {
+    html += '<details class="panel recap"><summary>状況（再掲）</summary><p>' +
+      esc(c.scenario) + "</p></details>";
+  }
+
+  if (q.lead && q.lead.trim()) {
+    html += '<div class="panel lead"><span class="label">前提の変化</span><p>' + esc(q.lead) + "</p></div>";
+  }
+
+  html += '<div class="prompt">設問' + (state.qIndex + 1) + "　" + esc(q.prompt) + "</div>";
+
+  html += '<div class="choices" role="group" aria-label="選択肢">';
+  q.choices.forEach(function (t, i) {
+    html += '<button class="choice" data-i="' + i + '" aria-pressed="' + (state.pick === i) + '">' +
+      '<span class="sym">' + SYM[i] + "</span><span>" + esc(t) + "</span></button>";
+  });
+  html += "</div>";
+
+  html += '<div class="reason" id="reason-block"' + (state.pick === null ? ' style="display:none"' : "") + ">" +
+    '<span class="label">なぜそれを選んだか（1行）</span>' +
+    '<p class="hint">面接で口に出す練習である。15字以上で次へ進める。うまく書けないなら、まだ選んだ理由が自分でも分かっていない。</p>' +
+    '<textarea id="reason-input" rows="3" placeholder="例：まず影響範囲を確定しないと、対処の大きさが決められないから。">' +
+    esc(state.reason) + "</textarea>" +
+    '<div class="counter"><span id="counter-txt">0 / 15字</span><span>' +
+    (state.qIndex === 2 ? "次で講評" : "残り " + (2 - state.qIndex) + "問") + "</span></div>" +
+    '<button class="next" id="btn-next" disabled>' + (state.qIndex === 2 ? "講評を見る" : "次の設問へ") + "</button></div>";
+
+  html += "</div>";
+  app.innerHTML = html;
+
+  document.getElementById("btn-back").onclick = function () {
+    state.view = "home";
+    render();
+  };
+
+  Array.prototype.forEach.call(app.querySelectorAll(".choice"), function (b) {
+    b.onclick = function () {
+      state.pick = parseInt(b.dataset.i, 10);
+      Array.prototype.forEach.call(app.querySelectorAll(".choice"), function (o) {
+        o.setAttribute("aria-pressed", String(parseInt(o.dataset.i, 10) === state.pick));
+      });
+      const rb = document.getElementById("reason-block");
+      rb.style.display = "";
+      updateCounter();
+      rb.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+  });
+
+  const ta = document.getElementById("reason-input");
+  ta.oninput = function () {
+    state.reason = ta.value;
+    updateCounter();
+  };
+  document.getElementById("btn-next").onclick = function () {
+    if (state.reason.trim().length < 15 || state.pick === null) return;
+    state.picks.push({ choice: state.pick, reason: state.reason.trim() });
+    state.pick = null;
+    state.reason = "";
+    if (state.qIndex === 2) {
+      finishCase();
+    } else {
+      state.qIndex += 1;
+      render();
+    }
+  };
+  updateCounter();
+  window.scrollTo(0, 0);
+}
+
+function updateCounter() {
+  const el = document.getElementById("counter-txt");
+  const btn = document.getElementById("btn-next");
+  if (!el || !btn) return;
+  const n = state.reason.trim().length;
+  el.textContent = n + " / 15字";
+  el.className = n >= 15 ? "ok" : "";
+  btn.disabled = !(n >= 15 && state.pick !== null);
+}
+
+/* ---------------- review ---------------- */
+
+function finishCase() {
+  const c = getCase(state.caseId);
+  let correct = 0;
+  state.picks.forEach(function (p, i) {
+    if (p.choice === c.questions[i].answer) correct += 1;
+  });
+  const mark = ["✗", "△", "○", "◎"][correct];
+  const line = "| " + today() + " | " + c.field + " | " + c.principle + " | " + mark + " |";
+  state.results.set(c.id, { mark: mark, correct: correct });
+  state.logs = state.logs.filter(function (l) { return l.indexOf("| " + c.principle + " |") === -1; });
+  state.logs.push(line);
+  state.view = "review";
+  render();
+}
+
+const VERDICT = {
+  3: "3問とも通った。前提が変わっても軸がぶれていない。",
+  2: "軸は立っている。外した1問で、何を優先したかを見直すこと。",
+  1: "方向は合っているが、優先順位か手続きのどちらかが抜けている。",
+  0: "選択そのものより、判断の順番を組み直したほうが早い。"
+};
+
+function renderReview() {
+  const c = getCase(state.caseId);
+  const res = state.results.get(c.id);
+  const line = "| " + today() + " | " + c.field + " | " + c.principle + " | " + res.mark + " |";
+
+  let html = '<div class="view">';
+  html += '<div class="qbar"><button class="backlink" id="btn-back">← ケース一覧</button>' +
+    '<div class="case-meta mono" style="margin:0">' + esc(c.field) + " ／ CASE " + String(c.id).padStart(2, "0") + "</div></div>";
+  html += '<h2 class="case-title">' + esc(c.title) + "</h2>";
+  html += '<div class="case-meta mono">講評</div>';
+
+  html += '<div class="score"><span class="mark">' + res.mark + "</span>" +
+    '<div class="n">3問中 ' + res.correct + " 問正解</div>" +
+    '<div class="verdict">' + esc(VERDICT[res.correct]) + "</div></div>";
+
+  c.questions.forEach(function (q, qi) {
+    const p = state.picks[qi];
+    const hit = p.choice === q.answer;
+    html += '<section class="qreview"><h3><span>設問' + (qi + 1) +
+      '<span class="chip ' + (hit ? "c" : "y") + '" style="margin-left:.5rem">' + (hit ? "正解" : "不正解") + "</span></span>" +
+      '<span class="tag">あなた ' + SYM[p.choice] + " ／ 正解 " + SYM[q.answer] + "</span></h3>";
+    html += '<p class="qtext">' + esc(q.prompt) + "</p>";
+
+    html += '<div class="myreason"><span class="label">あなたが書いた理由</span><p>' + esc(p.reason) + "</p></div>";
+
+    q.choices.forEach(function (t, ci) {
+      const isC = ci === q.answer;
+      const isY = ci === p.choice;
+      const cls = "opt" + (isC ? " correct" : "") + (isY && !isC ? " yours" : "");
+      html += '<div class="' + cls + '"><div class="head"><span class="sym">' + SYM[ci] + "</span>" +
+        (isC ? '<span class="chip c">正解</span>' : "") +
+        (isY ? '<span class="chip y">あなたの選択</span>' : "") + "</div>" +
+        '<div class="body">' + esc(t) + "</div>";
+      if (isC) {
+        html += '<div class="why">' + esc(q.explain) + "</div>";
+      } else {
+        const o = (q.others || []).filter(function (x) { return x.i === ci; })[0];
+        if (o) html += '<div class="why">' + esc(o.text) + "</div>";
+      }
+      html += "</div>";
+    });
+    html += "</section>";
+  });
+
+  html += '<div class="box"><span class="label">使うべき判断フレーム</span>' +
+    "<h4>" + esc(c.frame.name) + "</h4><p>" + esc(c.frame.howto) + "</p></div>";
+
+  html += '<div class="box"><span class="label">面接でそのまま使える3行</span>' +
+    '<ul class="lines">' + c.interview.map(function (l) { return "<li><span>" + esc(l) + "</span></li>"; }).join("") +
+    "</ul></div>";
+
+  html += '<div class="principle"><span class="label">今日の判断原則</span><p>' + esc(c.principle) + "</p></div>";
+
+  html += '<div class="box"><span class="label">記録用ログ行</span>' +
+    '<button class="copyrow" id="btn-copy"><code>' + esc(line) + "</code></button>" +
+    '<div class="taphint">タップでコピー。閉じると消えるので、自分の記録に貼ること。</div></div>';
+
+  html += '<div class="actions">' +
+    '<button class="btn primary" id="btn-retry">このケースをもう一度</button>' +
+    '<button class="btn" id="btn-next-case">次のケースへ（ランダム）</button>' +
+    '<button class="btn" id="btn-home">ケース一覧に戻る</button></div>';
+
+  html += "</div>";
+  app.innerHTML = html;
+
+  document.getElementById("btn-copy").onclick = function () { copyText(line); };
+  document.getElementById("btn-back").onclick = document.getElementById("btn-home").onclick = function () {
+    state.view = "home";
+    render();
+  };
+  document.getElementById("btn-retry").onclick = function () { startCase(c.id); };
+  document.getElementById("btn-next-case").onclick = function () {
+    const undone = CASES.filter(function (x) { return !state.results.has(x.id); });
+    const pool = undone.length ? undone : CASES.filter(function (x) { return x.id !== c.id; });
+    startCase(pool[Math.floor(Math.random() * pool.length)].id);
+  };
+  window.scrollTo(0, 0);
+}
+
+/* ---------------- router ---------------- */
+
+function render() {
+  if (state.view === "home") renderHome();
+  else if (state.view === "q") renderQuestion();
+  else renderReview();
+}
+
+render();
+</script>
