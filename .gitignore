@@ -29,3 +29,7 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# python bytecode (skill scripts)
+__pycache__/
+*.pyc
