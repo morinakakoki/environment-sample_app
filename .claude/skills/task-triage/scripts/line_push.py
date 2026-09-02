@@ -38,9 +38,12 @@ def chunk(text: str, limit: int = MAX_UNITS - SAFETY) -> list[str]:
     out, cur = [], ""
     for line in text.splitlines(keepends=True):
         while utf16_len(line) > limit:            # a single over-long line
+            if cur:                               # flush what is buffered first
+                out.append(cur)
+                cur = ""
             cut = limit // 2                      # every code point is <= 2 units
-            out.append(cur + line[:cut]) if cur else out.append(line[:cut])
-            cur, line = "", line[cut:]
+            out.append(line[:cut])
+            line = line[cut:]
         if utf16_len(cur + line) > limit and cur:
             out.append(cur)
             cur = ""
