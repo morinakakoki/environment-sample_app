@@ -1098,9 +1098,11 @@ function poolRecent(){
    引き継いでしまうため。 */
 function maxNumericId(){
   var m = 0;
+  /* 安全整数の範囲だけを見る。2^53 以上の id が1つ紛れると ++nextId が
+     丸めで増えなくなり、以後「id を省いた追加」が永久に重複扱いで弾かれる。 */
   var bump = function(v){
     var n = Number(v);
-    if(!isNaN(n) && n > m) m = n;
+    if(!isNaN(n) && n > m && n < Number.MAX_SAFE_INTEGER) m = n;
   };
   QUESTIONS.forEach(function(q){ bump(q.id); });
   try{
@@ -2390,7 +2392,8 @@ function addCheck(){
 
 /* 自分自身を新しいバージョンとして保存できるか */
 function canPublish(){
-  return !!(document.getElementById('appStyle') &&
+  return !!(document.getElementById('appTitle') &&
+            document.getElementById('appStyle') &&
             document.getElementById('bodyTpl') &&
             document.getElementById('appScript') &&
             window.claude && typeof window.claude.use === 'function');
@@ -2403,6 +2406,11 @@ function canPublish(){
 function appTitle(){
   var t = document.getElementById('appTitle');
   return (t && t.textContent.trim()) || document.title;
+}
+
+/* HTML に文字として差し込むためのエスケープ。& を先に逃がすこと。 */
+function escText(s){
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function buildDocument(rawData){
@@ -2424,7 +2432,11 @@ function buildDocument(rawData){
     '<meta charset="UTF-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
     '<meta name="color-scheme" content="light dark">',
-    '<title id="appTitle">' + appTitle() + '<' + '/title>',
+    /* タイトルもエスケープする。ここは元々そのまま差し込んでいた唯一の箇所だった。
+       title は RCDATA なので textContent は実体参照が解けた形で返る。ビルド時は
+       ただの文字だったものが、自己保存を1回した瞬間に生タグに化けて、公開版で
+       本物の script として動いてしまう。& も逃がさないと世代ごとに1層ずつ解ける。 */
+    '<title id="appTitle">' + escText(appTitle()) + '<' + '/title>',
     '<style id="appStyle">' + st.textContent + '<' + '/style>',
     '</head>',
     '<body>',
@@ -2438,6 +2450,34 @@ function buildDocument(rawData){
   ].join('\n');
 }
 
+/* 発行しようとしている HTML の検算。問題があれば理由を返す（無ければ ''）。
+   要素が1個ずつ揃っていること、script がちょうど3つで閉じていること、
+   埋め込みデータが読み戻せること、大きすぎないこと。 */
+function publishProblem(html){
+  var C = '<' + '/script>';
+  /* 個数を数えるのはアプリ本体より前だけ。buildDocument が同じ id を
+     文字列リテラルとして持っているので、全文で数えると必ず複数になる。 */
+  var head = '<' + 'script id="appScript">';
+  var at = html.lastIndexOf(head);
+  if(at < 0) return 'HTML の組み立てに失敗しました（アプリ本体が見つかりません）。';
+  var shell = html.slice(0, at + head.length);
+  var ids = ['appTitle','appStyle','quizData','bodyTpl','root','appScript'];
+  for(var i = 0; i < ids.length; i++){
+    var n = shell.split('id="' + ids[i] + '"').length - 1;
+    if(n !== 1) return 'HTML の組み立てに失敗しました（' + ids[i] + ' が ' + n + ' 個）。';
+  }
+  if(html.split(C).length - 1 !== 3) return 'HTML の組み立てに失敗しました（script の閉じ方）。';
+  var m = html.match(/id="quizData">([\s\S]*?)<\/script>/);
+  if(!m) return 'HTML の組み立てに失敗しました（データ部分が見つかりません）。';
+  try{
+    var back = JSON.parse(m[1]);
+    var list = Array.isArray(back) ? back : (back && back.questions);
+    if(!Array.isArray(list) || !list.length) return '埋め込むデータが空になりました。';
+  }catch(e){ return '埋め込むデータが壊れています。'; }
+  if(html.length > 12000000) return 'データが大きすぎます（' + Math.round(html.length / 1048576) + 'MB）。';
+  return '';
+}
+
 function addSave(){
   if(!addPending) return;
   var btn = $('addSaveBtn');
@@ -2446,7 +2486,18 @@ function addSave(){
 
   var html = buildDocument(addPending);
   if(!html){
-    addMsg('ng', 'この画面では保存できません。'); 
+    addMsg('ng', 'この画面では保存できません。');
+    hide($('addSaveWrap')); show($('addManual'));
+    btn.disabled = false; btn.textContent = 'この内容で保存';
+    return;
+  }
+
+  /* 出す前に自分で検算する。ここで壊れた版を発行すると、アプリが白紙になって
+     アプリ内から直せなくなる。ビルド側（build-artifact.mjs）と同じ検査を掛ける。 */
+  var bad = publishProblem(html);
+  if(bad){
+    addMsg('ng', '保存を中止しました。', [bad,
+      '下の「追記後の JSON 全文をコピー」でファイルに反映してください。']);
     hide($('addSaveWrap')); show($('addManual'));
     btn.disabled = false; btn.textContent = 'この内容で保存';
     return;

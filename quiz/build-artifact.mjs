@@ -48,10 +48,18 @@ if (scriptAt < 0) throw new Error('<body> 内に <script> が見つかりませ�
 const markup = bodyRaw.slice(0, scriptAt).trim();
 const script = bodyRaw.slice(scriptAt + '<script>'.length, bodyRaw.lastIndexOf('</' + 'script>'));
 
-// script 要素の中身に </script が現れると、そこで途中終了してしまう
-for (const [name, text] of [['本文マークアップ', markup], ['アプリ本体', script]]) {
+// 埋め込む部品はすべて検査する。title と style も対象。
+// title は RCDATA なので、ここを素通りさせると、アプリが自分を再発行したときに
+// 実体参照が解けて生タグに化け、公開版で本物の script として動いてしまう。
+for (const [name, text] of [['タイトル', title], ['スタイル', style],
+                            ['本文マークアップ', markup], ['アプリ本体', script]]) {
   if (/<\/script/i.test(text)) throw new Error(`${name} に </script が含まれています（分割して書いてください）`);
+  // "<!--" のあとに "<script" が来ると double escaped state に入り、閉じタグが効かなくなる
+  const c = text.indexOf('<!--');
+  if (c >= 0 && /<script/i.test(text.slice(c)) && !/-->/.test(text.slice(c, text.search(/<script/i))))
+    throw new Error(`${name} に「閉じていない <!-- のあとの <script」があります`);
 }
+if (/[<>&]/.test(title)) throw new Error(`タイトルに < > & は使えません: ${title}`);
 
 const C  = '</' + 'script>';
 const SO = '<' + 'script';
@@ -83,7 +91,17 @@ for (const id of ['appTitle', 'appStyle', 'quizData', 'bodyTpl', 'appScript', 'r
 }
 if (!out.includes('function buildDocument')) throw new Error('自己保存のコードが含まれていません');
 if (JSON.parse(json) === undefined) throw new Error('埋め込みJSONが壊れています');
-if (json.includes(C) || json.includes(SO) || json.includes('<!--')) throw new Error('埋め込みJSONに生のタグが残っています');
+// 生の "<" が1つも残っていないこと（= すべて < に逃げたこと）を直接見る。
+// "</script" 等を探す形だと、逃がしたあとでは原理的に真にならず検査として死ぬ。
+if (json.indexOf('<') >= 0) throw new Error('埋め込みJSONに生の < が残っています');
+if (out.split(C).length - 1 !== 3) throw new Error('script の閉じタグが3つではありません');
+// 個数を数えるときはアプリ本体を除く。buildDocument が同じ id を
+// 文字列リテラルとして持っているので、全文で数えると必ず複数になる。
+const shell = out.replace(script, '');
+for (const id of ['appTitle', 'appStyle', 'quizData', 'bodyTpl', 'appScript', 'root']) {
+  const n = shell.split(`id="${id}"`).length - 1;
+  if (n !== 1) throw new Error(`id="${id}" が ${n} 個あります（1つであるべき）`);
+}
 
 fs.writeFileSync(path.join(dir, 'artifact.html'), out);
 

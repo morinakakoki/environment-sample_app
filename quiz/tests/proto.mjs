@@ -200,6 +200,60 @@ console.log('\n【9】マップが素の {} に戻っていないか（実装の
      + (bad.length ? ': ' + bad.join(', ') : ''));
 }
 
+console.log('\n【10】自己再発行: タイトルがエスケープされる（生タグに化けない）');
+{
+  const { c, p } = await open([Q({ id: 1 })]);
+  const out = await p.evaluate(() => {
+    // 実際の buildDocument を、title が汚染された状態で走らせる
+    const t = document.getElementById('appTitle')
+           || Object.assign(document.createElement('title'), { id: 'appTitle' });
+    if (!t.parentNode) document.head.appendChild(t);
+    t.textContent = 'データ基盤 & 復習クイズ </title><script>window.__PWNED=1;<\/script>';
+    const html = window.buildDocument ? window.buildDocument([{ id: 1, q: 'x',
+      options: ['a','b','c','d'], answer: 0, explanation: 'e', addedAt: '2026-01-01' }]) : null;
+    return html;
+  });
+  if (out === null) {
+    ok(true, 'buildDocument は外から呼べない（内部関数）— HTML の目視検査はスキップ');
+  } else {
+    ok(!/<\/title><script>/.test(out), 'タイトルから生の </title><script> が出ない');
+    ok(out.split('id="appTitle"').length - 1 === 1, 'appTitle がちょうど1つ');
+  }
+  // 実装の見張り: エスケープが外れていないか
+  const src = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');
+  ok(/escText\(appTitle\(\)\)/.test(src), 'buildDocument がタイトルをエスケープしている');
+  ok(/getElementById\('appTitle'\)\s*&&/.test(src), 'canPublish が appTitle も見ている');
+  await c.close();
+}
+
+console.log('\n【11】巨大な id を混ぜても、以後の「id 省略の追加」が壊れない');
+{
+  const { c, p, errs } = await open([Q({ id: 1 }), Q({ id: 9007199254740992, q: '巨大idの問題' })]);
+  await p.locator('#addBtn').click();
+  await p.locator('#addTa').fill(JSON.stringify([{
+    chapter: 1, tag: '#1', method: '構成・前提', q: 'id を省いた新しい問題',
+    options: ['ま', 'み', 'む', 'め'], answer: 0, explanation: '解説',
+    source: 'https://example.com/', addedAt: '2026-09-01' }]));
+  await p.locator('#addCheckBtn').click();
+  await p.locator('#addResult').waitFor({ timeout: 3000 });
+  const cls = await p.locator('#addResult').getAttribute('class');
+  const txt = await p.locator('#addResult').innerText();
+  ok(/ok/.test(cls || ''), 'id を省いた追加が通る: ' + txt.split('\n')[0]);
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
+console.log('\n【12】ビルドはタイトルの < > & を拒む');
+{
+  const src = fs.readFileSync(path.join(QUIZ, 'build-artifact.mjs'), 'utf8');
+  ok(/\[<>&\]/.test(src), 'build-artifact.mjs がタイトルの < > & を弾く');
+  ok(/const shell = out\.replace\(script, ''\)/.test(src),
+     'id の個数検査がアプリ本体を除いて数えている（誤検知しない）');
+  ok(/json\.indexOf\('<'\) >= 0/.test(src), '埋め込みJSONに生の < が無いことを直接見ている');
+  const app = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');
+  ok(/function publishProblem/.test(app), '発行前に自分でも検算している');
+}
+
 await b.close();
 console.log('\n' + (f.length ? `FAILURES (${f.length}):\n - ` + f.join('\n - ') : 'ALL PASS'));
 process.exit(f.length ? 1 : 0);
