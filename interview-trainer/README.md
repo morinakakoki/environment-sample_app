@@ -101,19 +101,48 @@ K系（逆質問）だけはタイマーを使わず、「この会社に対し�
 
 ## 制約として守っていること
 
-- **保存APIを一切使わない** — `localStorage` / `sessionStorage` / `indexedDB` はコード中に存在しない。
-  状態はメモリ内だけ。閉じると消えるので、記録はコピーして外に出すこと
-- **外部fetchなし** — 質問データはHTMLの中。ネットワークを止めても全機能が動く
-  （Google Fonts だけは読むが、落ちても字が変わるだけで動作に影響しない）
+- **保存APIを一切使わない** — `localStorage` / `sessionStorage` / `indexedDB` / Cookie は
+  コード中に存在しない。状態はメモリ内だけ。閉じると消えるので、記録はコピーして外に出すこと
+- **外部fetchなし** — 質問データはHTMLの中。`fetch` / `XHR` / `WebSocket` / `sendBeacon` は不使用。
+  ネットワークを止めても全機能が動く
 - **フレームワーク・外部ライブラリなし** — 素のJS
-- **スマホ縦画面前提** — 1カラム、タイマーは大きく、ボタンは縦積みで全部44px以上
+- **スマホ縦画面前提** — 1カラム、タイマーは大きく、ボタンは全部44px以上
+
+唯一の外部通信は Google Fonts（`fonts.googleapis.com` / `fonts.gstatic.com`）。
+ページを開いた事実と IP・UA が Google に渡る。落ちても字が変わるだけで動作に影響はない。
+**「次にやること」の入力欄だけは Web フォントを使わない。** Google Fonts は
+unicode-range でサブセット分割されているため、珍しい文字を打つと新しいサブセット取得要求が
+飛び、入力した文字種が外部に漏れうるため。同じ理由で入力欄は
+`spellcheck="false" autocomplete="off"` を指定し、ブラウザのクラウド校正やオートフィルにも渡さない。
+
+外部通信を完全にゼロにしたい場合は、`index.html` 冒頭の `<link>` 3行を消せばよい。
+端末内のフォントで描画され、機能はすべてそのまま動く。
+
+## セキュリティ
+
+質問バンクは**信頼できない入力として扱っている**（他人が作った JSON を貼る運用があるため）。
+
+- 描画は全経路で `esc()`（`& < > " '`）を通す。質問文・ID・カテゴリ名・出典タグ・
+  基準ラベル、および「次にやること」の入力を、テキスト・属性値の両文脈で検証済み
+- `embed-bank.py` は `< > & /` を JSON エスケープに置き換えてから埋め込む。
+  これで `</script>` / `<!--` / `<!--<script>`（script data double escaped）/
+  `/* BANK:END */` の偽装がいずれも成立しない。U+2028・U+2029 もエスケープする。
+  埋め込み後にマーカーの一意性と `json.loads(payload) == 元JSON` を検証してから書き込む
+  （エスケープは JSON の `\uXXXX` 表記なので、デコードされる値は一字も変わらない）
+- JSON 由来の文字列をキーにする辞書は `Object.create(null)` を使う。
+  `toString` や `constructor` というカテゴリIDで組み込みプロパティを拾わない
+
+`node test/security.js` が、悪意ある質問バンク9種（マーカー偽装・`</script>`・
+`<!--<script>`・`<img onerror>` など）を埋め込み1〜3回で流し込み、
+任意JSが実行されないこととアプリが起動し続けることを確認する。
 
 ## 動作確認
 
 ```
 npm i playwright
-node test/test.js       # 本編の通し操作（74項目）
-node test/variants.js   # JSONの形が違う14ケース（199項目）
+node test/test.js       # 本編の通し操作
+node test/variants.js   # JSONの形が違う15ケース
+node test/security.js   # 悪意ある質問バンクからの攻撃9種
 ```
 
 `test/wrap.js` は Artifacts の公開時ラッパー（doctype / head / リセットCSS）を再現する。
