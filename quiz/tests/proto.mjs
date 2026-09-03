@@ -243,6 +243,26 @@ console.log('\n【11】巨大な id を混ぜても、以後の「id 省略の�
   await c.close();
 }
 
+console.log('\n【11b】貼り付けに null が混ざっても止まらない（形式エラーとして数える）');
+{
+  for (const [label, body] of [
+    ['[null, 正常1問]', [null, Q({ chapter: 1, q: '正常な問題', options: ['あ', 'い', 'う', 'え'] })]],
+    ['null 単体', null],
+    ['{"questions":[null]}', { questions: [null] }],
+  ]) {
+    const { c, p, errs } = await open([Q({ id: 1 })]);
+    await p.locator('#addBtn').click();
+    await p.locator('#addTa').fill(JSON.stringify(body));
+    await p.locator('#addCheckBtn').click();
+    await p.waitForTimeout(400);
+    const cls = (await p.locator('#addResult').getAttribute('class')) || '';
+    ok(/ok|ng/.test(cls), `${label}: 何かしらの結果が出る（無反応にならない）: class="${cls}"`);
+    ok(!errs.some(e => /Cannot read properties of null/.test(e)),
+       `${label}: null の例外が出ない` + (errs.length ? ': ' + errs[0] : ''));
+    await c.close();
+  }
+}
+
 console.log('\n【12】ビルドはタイトルの < > & を拒む');
 {
   const src = fs.readFileSync(path.join(QUIZ, 'build-artifact.mjs'), 'utf8');

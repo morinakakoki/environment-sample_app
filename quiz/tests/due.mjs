@@ -188,6 +188,67 @@ console.log('\n【7】lastAt が壊れていても期限切れにしない（誤
   await c.close();
 }
 
+console.log('\n【7b】Notion 同期で streak が消えない（同期のたびに間隔が3日に戻っていた）');
+{
+  const LOGVIEW = 'c68a3cb4';
+  const row = (at, pairs) => ({
+    '記録': 'x', '日時': at.slice(0, 10), 'モード': '全範囲', '出題数': pairs.length,
+    '正解数': pairs.filter(x => x[1]).length, '正答率': 1,
+    '明細': '@' + at + '|' + pairs.map(x => x[0] + ':' + (x[1] ? 1 : 0)).join(','),
+  });
+  const openWithRemote = async (stats, rows) => {
+    const c = await b.newContext({ viewport: { width: 375, height: 812 } });
+    const p = await c.newPage();
+    const errs = []; p.on('pageerror', e => errs.push(e.message));
+    await p.addInitScript(([view, rs, st]) => {
+      localStorage.setItem('gcpQuiz.v1', JSON.stringify({ version: 1, stats: st, sessions: [] }));
+      window.claude = { use: n => Promise.resolve(
+        n === 'artifact' ? { publish: () => Promise.resolve() } :
+        n === 'mcp' ? {
+          callTool: (s, t, i) => {
+            if (t === 'notion-create-pages') return Promise.resolve({ payload: { pages: [] } });
+            if (i && i.data && i.data.view_url && i.data.view_url.indexOf(view) >= 0)
+              return Promise.resolve({ payload: { has_more: false, results: rs } });
+            return Promise.resolve({ payload: { results: [], has_more: false } });
+          }, watchTool: () => () => {}, listTools: () => Promise.resolve([]) } : null) };
+    }, [LOGVIEW, rows, stats]);
+    await p.route('**/quiz-data.json', r =>
+      r.fulfill({ contentType: 'application/json', body: JSON.stringify([Q(1)]) }));
+    await p.goto('http://localhost:8777/index.html', { waitUntil: 'networkidle' });
+    await p.locator('#screenHome:not(.hidden)').waitFor();
+    await p.locator('#syncLine.ok').waitFor({ timeout: 5000 }).catch(() => {});
+    const st = await p.evaluate(() => JSON.parse(localStorage.getItem('gcpQuiz.v1')).stats['1']);
+    await c.close();
+    return { st, errs };
+  };
+
+  // (a) 手元が新しい: リモートは自分が送った古い分だけ → streak は手元の値のまま
+  {
+    const { st, errs } = await openWithRemote({ 1: okStat(0.1, 4) }, [row(ago(1), [[1, true]])]);
+    ok(st && st.streak === 4, '手元が新しければ手元の streak を保つ: ' + (st && st.streak));
+    ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  }
+  // (b) リモートが新しい（別端末で解いた）: リモート明細から数え直す。
+  //     自分が送った分も明細に含まれるので二重には数えない
+  {
+    const { st } = await openWithRemote({ 1: okStat(1, 2) },
+      [row(ago(2), [[1, true]]), row(ago(1), [[1, true]]), row(ago(0.5), [[1, true]])]);
+    ok(st && st.streak === 3, '別端末の正解を足して 3: ' + (st && st.streak));
+  }
+  // (c) リモートの直近が間違い → 0 に戻る
+  {
+    const { st } = await openWithRemote({ 1: okStat(1, 4) },
+      [row(ago(1), [[1, true]]), row(ago(0.5), [[1, false]])]);
+    ok(st && st.streak === 0 && st.last === 'wrong', '直近が間違いなら 0: ' + JSON.stringify(st));
+  }
+  // (d) リモートにしか無い id: 明細から数えた値になる
+  {
+    const { st } = await openWithRemote({},
+      [row(ago(3), [[1, false]]), row(ago(2), [[1, true]]), row(ago(1), [[1, true]])]);
+    ok(st && st.streak === 2, 'リモートだけの記録は明細から数えて 2: ' + (st && st.streak));
+  }
+}
+
 console.log('\n【8】間隔の定義（実装の見張り）');
 {
   const src = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');

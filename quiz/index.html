@@ -566,7 +566,7 @@ python3 -m http.server 8000
         <button class="btn btn-primary" id="revealBtn" type="button">答えを見る</button>
       </div>
       <div id="qVerdict" class="hidden" role="status" aria-live="polite"></div>
-      <div id="qSelfWrap" class="hidden">
+      <div id="qSelfWrap" class="hidden" tabindex="-1">
         <p class="exhint" style="margin-top:14px">いまの説明は、この解説と同じことを言えていましたか？</p>
         <div class="selfrow">
           <button class="btn btn-primary" id="selfOkBtn" type="button">説明できた</button>
@@ -909,7 +909,7 @@ function normAnswer(a, options){
 }
 
 /* 貼り付けられたJSONを、いまのデータに触れずに検証するため副作用なしにしてある。
-   グローバルへ反映するのは下の normalize()。 */
+   グローバルへ反映するのは boot() → applyQuestions()。 */
 function parseData(raw){
   var list = [];
   var chapTitles = {};
@@ -1492,7 +1492,9 @@ function buildProgress(){
     points: points,
     nowCover: nowCover, nowRetain: nowRetain,
     truncated: truncated,
-    incomplete: !!last && (last.cover < nowCover)   // 履歴が切り詰められている
+    /* 曲線が現在の値と食い違いうる条件。cover のズレだけでは、明細が切れた
+       セッションによる定着率のズレを拾えない。 */
+    incomplete: !!last && (last.cover < nowCover || truncated)
   };
 }
 
@@ -1772,7 +1774,10 @@ function reveal(){
   v.appendChild(back);
   show(v);
   show($('qSelfWrap'));
-  $('selfOkBtn').focus({ preventScroll:true });
+  /* ボタンにはフォーカスを置かない。置くと、4択の癖で押す Enter がそのまま
+     「説明できた」の活性化になり、申告していないのに記録される。
+     枠（tabindex=-1）に置けば Enter は何も起こさず、1/2 キーと Tab は使える。 */
+  $('qSelfWrap').focus({ preventScroll:true });
   try{ v.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(e){ /* 古いブラウザは無視 */ }
 }
 
@@ -1793,6 +1798,7 @@ function selfReport(ok){
 
 function answer(i){
   if(locked) return;
+  if(session && session.explain) return;   // 説明モードでは 4択として記録しない（保険）
   locked = true;
 
   var q  = session.list[session.idx];
@@ -1903,10 +1909,12 @@ function finish(){
 
   // 履歴に保存
   var nowIso = new Date().toISOString();
-  /* 説明モードの明細は残さない。明細は Notion から取り込むとき stats に反映されるので、
-     自己申告の結果が 4択の成績に混ざってしまう。件数と正解数だけ記録に残す。 */
+  /* 説明モードは明細を空にする。明細は Notion から取り込むとき stats に反映されるので、
+     自己申告の結果が 4択の成績に混ざってしまう。ただし detail を '' にすると
+     送信対象から外れて Notion に一切残らない。"@<日時>|" の形（信用できる・中身なし）
+     にしておけば、件数と正解数は Notion に送られ、stats は汚れない。 */
   var rec = { at:nowIso, mode:session.mode, label:session.label, total:total, correct:corr,
-              detail: session.explain ? '' : encodeDetail(nowIso, session.answers) };
+              detail: encodeDetail(nowIso, session.explain ? [] : session.answers) };
   state.sessions.unshift(rec);
   trimSessions(null);
   saveState();
@@ -2005,9 +2013,14 @@ function finish(){
       box.appendChild(chips);
       box.appendChild(el('div', 'rq', q.q));
       var ans = el('div', 'ans');
-      var l1 = el('span', 'l', 'あなたの解答');
-      ans.appendChild(l1);
-      ans.appendChild(el('span', 'you', LETTERS[a.picked] + '. ' + q.options[a.picked]));
+      /* 説明モードは選んでいない（picked が -1）。「あなたの解答 undefined」を出さない。 */
+      if(a.picked >= 0){
+        ans.appendChild(el('span', 'l', 'あなたの解答'));
+        ans.appendChild(el('span', 'you', LETTERS[a.picked] + '. ' + q.options[a.picked]));
+      }else{
+        ans.appendChild(el('span', 'l', '自己申告'));
+        ans.appendChild(el('span', 'you', '説明できなかった'));
+      }
       ans.appendChild(el('br'));
       var l2 = el('span', 'l', '正解'); l2.style.marginTop = '6px';
       ans.appendChild(l2);
@@ -2023,6 +2036,9 @@ function finish(){
 
   var rwBtn = $('retryWrongBtn');
   rwBtn.disabled = (poolWrong().length === 0);
+  /* 説明モードの結果で「間違いだけ解く」を出すと、4択で間違えた別の問題が出て混乱する。
+     （poolWrong は 4択の成績しか見ない） */
+  if(ex) hide(rwBtn); else show(rwBtn);
   /* 同じモードで出題できるものが残っているときだけ押せるようにする */
   var again = $('againBtn');
   again.disabled = (buildSession(session.mode, session.chapter).list.length === 0);
@@ -2117,14 +2133,28 @@ function mergeRemoteLog(rows){
       mode: '',
       label: String(r[LOG.cols.mode] || ''),
       total: Number(r[LOG.cols.total]) || 0,
-      correct: Number(r[LOG.cols.correct]) || 0
+      correct: Number(r[LOG.cols.correct]) || 0,
+      /* 明細も持っておく。他の端末で解いたぶんが学習の記録の曲線に載るようになる。
+         アプリが書いた形（trusted）のものだけ。 */
+      detail: d.trusted ? String(r[LOG.cols.detail] || '') : undefined
     });
     d.pairs.forEach(function(pr){
-      var t = tmp[pr.id] || (tmp[pr.id] = { seen:0, correct:0, wrong:0, last:null, lastAt:null });
+      var t = tmp[pr.id] || (tmp[pr.id] = { seen:0, correct:0, wrong:0, last:null, lastAt:null, hist:[] });
       t.seen++;
       if(pr.ok) t.correct++; else t.wrong++;
       if(!t.lastAt || at > t.lastAt){ t.lastAt = at; t.last = pr.ok ? 'correct' : 'wrong'; }
+      t.hist.push({ at:at, ok:pr.ok });
     });
+  });
+
+  /* 連続正解（streak）はリモートの明細から時系列で数え直す。
+     行はビューの順で来るので、id ごとに並べ直してから末尾の正解を数える。 */
+  Object.keys(tmp).forEach(function(id){
+    var r = tmp[id], k = 0, i;
+    r.hist.sort(function(a, b){ return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
+    for(i = r.hist.length - 1; i >= 0 && r.hist[i].ok; i--) k++;
+    r.streak = k;
+    delete r.hist;
   });
 
   var changed = false;
@@ -2132,16 +2162,23 @@ function mergeRemoteLog(rows){
     var r = tmp[id];
     var l = state.stats[id];
     if(!l){ state.stats[id] = r; changed = true; return; }
+    var remoteNewer = !l.lastAt || (r.lastAt && r.lastAt > l.lastAt);
     var merged = {
       seen   : Math.max(l.seen | 0, r.seen),
       correct: Math.max(l.correct | 0, r.correct),
       wrong  : Math.max(l.wrong | 0, r.wrong),
       last   : l.last,
-      lastAt : l.lastAt
+      lastAt : l.lastAt,
+      /* streak を落とすと、同期のたびに間隔が3日に戻って 7日以降に到達できなくなる。
+         リモートが新しければリモートの明細から数えた値（自分が送った分も含まれる
+         ので二重に数えない）、そうでなければ手元の値。間違いで終わっていれば 0。 */
+      streak : remoteNewer ? (r.streak | 0) : streakOf(l)
     };
-    if(!l.lastAt || (r.lastAt && r.lastAt > l.lastAt)){ merged.last = r.last; merged.lastAt = r.lastAt; }
+    if(remoteNewer){ merged.last = r.last; merged.lastAt = r.lastAt; }
+    if(merged.last === 'wrong') merged.streak = 0;
     if(merged.seen !== (l.seen|0) || merged.correct !== (l.correct|0) ||
-       merged.wrong !== (l.wrong|0) || merged.last !== l.last){ changed = true; }
+       merged.wrong !== (l.wrong|0) || merged.last !== l.last ||
+       merged.streak !== streakOf(l)){ changed = true; }
     state.stats[id] = merged;
   });
 
@@ -2552,6 +2589,7 @@ function addCheck(){
      あとから消す手段が無い（アーティファクト版はデータが埋め込みのため）。 */
   var KEEP = ['id','chapter','tag','method','q','options','answer','explanation','source','addedAt'];
   incoming = incoming.map(function(r){
+    if(!r || typeof r !== 'object') return r;   // null 等は後段の parseData が「形式エラー」に数える
     var out = {}, i;
     for(i = 0; i < KEEP.length; i++) if(r[KEEP[i]] !== undefined) out[KEEP[i]] = r[KEEP[i]];
     return out;

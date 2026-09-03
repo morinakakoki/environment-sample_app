@@ -116,6 +116,9 @@ console.log('\n【3】結果画面が説明モードの文言になる');
   ok(/説明できた率/.test(t), '「説明できた率」と出る（正答率ではない）');
   ok(!/正答率/.test(t), '「正答率」とは書かない');
   ok(/説明できなかった問題/.test(t), '振り返りの見出しも説明モード向け');
+  ok(!/undefined/.test(t), '振り返りに「undefined」が出ない');
+  ok(/自己申告/.test(t) && /説明できなかった/.test(t), '「あなたの解答」ではなく自己申告として出る');
+  ok(await p.locator('#retryWrongBtn').isHidden(), '「間違いだけ解く」は出さない（4択の間違いとは別物）');
   await c.close();
 }
 
@@ -131,10 +134,48 @@ console.log('\n【4】説明モードの記録は Notion 経由で stats に混�
   await p.locator('#screenResult:not(.hidden)').waitFor();
   const s = await store(p);
   const rec = s.sessions[0];
-  ok(rec.detail === '', '明細を残さない（取り込み時に stats へ反映されないように）: '
-     + JSON.stringify(rec.detail));
+  /* '' にすると送信対象から外れて Notion に一切残らない。
+     "@<日時>|"（信用できる形・中身なし）なら送られるが stats は汚れない。 */
+  ok(/^@[^|]+\|$/.test(rec.detail), '明細は「信用できる形で中身なし」: ' + JSON.stringify(rec.detail));
   ok(rec.total === 1 && rec.correct === 1, '件数と正解数は残る');
   ok(/説明/.test(rec.label), 'ラベルで説明モードと分かる: ' + rec.label);
+  await c.close();
+}
+
+console.log('\n【4b】説明モードのセッションも Notion に送られる（明細なしで）');
+{
+  const LOGVIEW = 'c68a3cb4';
+  const c = await b.newContext({ viewport: { width: 375, height: 812 } });
+  const p = await c.newPage();
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript((view) => {
+    window.__PUSHED = [];
+    window.claude = { use: n => Promise.resolve(
+      n === 'artifact' ? { publish: () => Promise.resolve() } :
+      n === 'mcp' ? {
+        callTool: (s, t, i) => {
+          if (t === 'notion-create-pages') { window.__PUSHED.push(i); return Promise.resolve({ payload: { pages: [] } }); }
+          return Promise.resolve({ payload: { results: [], has_more: false } });
+        }, watchTool: () => () => {}, listTools: () => Promise.resolve([]) } : null) };
+  }, LOGVIEW);
+  await p.route('**/quiz-data.json', r =>
+    r.fulfill({ contentType: 'application/json', body: JSON.stringify([Q(1)]) }));
+  await p.goto('http://localhost:8777/index.html', { waitUntil: 'networkidle' });
+  await p.locator('#screenHome:not(.hidden)').waitFor();
+  await turnOnExplain(p);
+  await p.locator('#modeAll').click();
+  await p.locator('#screenQuiz:not(.hidden)').waitFor();
+  await p.locator('#revealBtn').click();
+  await p.locator('#selfOkBtn').click();
+  await p.locator('#nextBtn').click();
+  await p.locator('#screenResult:not(.hidden)').waitFor();
+  await p.waitForFunction(() => window.__PUSHED.length > 0, null, { timeout: 5000 }).catch(() => {});
+  const pushed = await p.evaluate(() => window.__PUSHED);
+  ok(pushed.length === 1, 'notion-create-pages が呼ばれる: ' + pushed.length + '回');
+  const props = pushed[0] && pushed[0].pages && pushed[0].pages[0] && pushed[0].pages[0].properties;
+  ok(!!props && /説明/.test(String(props['モード'] || '')), '送られた行のモードに「説明」: ' + (props && props['モード']));
+  ok(!!props && /^@[^|]+\|$/.test(String(props['明細'] || '')), '明細は中身なし: ' + (props && props['明細']));
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
   await c.close();
 }
 
@@ -197,10 +238,20 @@ console.log('\n【7】申告せずに次へ進めない');
   await p.locator('#qSelfWrap:not(.hidden)').waitFor();
   const before = await p.locator('#qCount').textContent();
   await p.keyboard.press('Enter');                       // 申告前の Enter は無視
+  await p.keyboard.press(' ');
   await p.waitForTimeout(200);
   ok(await p.locator('#qCount').textContent() === before,
      '申告するまで進まない: ' + before + ' → ' + await p.locator('#qCount').textContent());
   ok(await p.locator('#screenQuiz').isVisible(), 'クイズ画面のまま');
+  /* 4択の癖で押す Enter が、フォーカスの乗ったボタンを活性化して「できた」を
+     勝手に記録していた。申告欄が出たままで、記録も空のままであること。 */
+  ok(await p.locator('#qSelfWrap').isVisible(), 'Enter/Space を押しても申告欄は出たまま');
+  const s7 = (await store(p)) || {};   // まだ何も保存していなければ null
+  ok(Object.keys(s7.explain || {}).length === 0,
+     'Enter/Space では申告が記録されない: ' + JSON.stringify(s7.explain));
+  const active = await p.evaluate(() => document.activeElement && document.activeElement.id);
+  ok(active !== 'selfOkBtn' && active !== 'selfNgBtn',
+     '答えを見た直後にボタンへフォーカスが乗っていない: ' + active);
   await c.close();
 }
 
@@ -250,8 +301,10 @@ console.log('\n【11】実装の見張り');
   const src = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');
   ok(/state\.explain\[q\.id\] = e/.test(src), '自己申告は state.explain に書く');
   ok(!/recordAnswer\(q, ok\);\s*\n\s*recordExplain/.test(src), '4択と二重には記録しない');
-  ok(/session\.explain \? '' : encodeDetail/.test(src),
-     '説明モードのセッションは明細を残さない');
+  ok(/encodeDetail\(nowIso, session\.explain \? \[\] : session\.answers\)/.test(src),
+     '説明モードのセッションは明細を「中身なし」で残す（送信はされる）');
+  ok(/if\(session && session\.explain\) return;/.test(src),
+     'answer() に説明モードの保険が入っている');
 }
 
 await b.close();
