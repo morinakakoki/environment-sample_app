@@ -42,9 +42,13 @@ ok(await p.locator('#addSaveWrap').isVisible(),'保存ボタンが出る（publi
 await p.locator('#addSaveBtn').click();
 await p.waitForFunction(()=>window.__PUBLISHED,null,{timeout:5000});
 const published=await p.evaluate(()=>window.__PUBLISHED);
-ok(published.startsWith('<!doctype html>'),'保存されるHTMLは doctype から始まる完全なドキュメント');
+/* 保存される HTML は「断片」。器（doctype/html/head/body）は公開時にホストが付ける。
+   build-artifact.mjs も同じ形を出すので、ビルドした版とアプリが保存した版が一致する。 */
+ok(!/^\s*<!doctype/i.test(published),'保存されるHTMLは断片（器は公開時に付く）');
+ok(published.trimStart().startsWith('<title id="appTitle">'),'title から始まる');
+ok(!/<\/?(html|head|body)[\s>]/i.test(published),'器のタグを含まない');
 ok(!/screenAdd" class="hidden"[\s\S]{0,50}addTa[^>]*>.{5,}</.test(published),'貼り付けたテキストが保存版に残っていない');
-fs.writeFileSync(D+'/rt1.html', published);
+fs.writeFileSync(D+'/rt1.html', wrap(published));
 ok(errs.length===0,'1周目エラーなし'+(errs.length?': '+errs[0]:''));
 
 console.log('\n== 2周目: 保存されたHTMLをそのまま開く ==');
@@ -67,7 +71,7 @@ await p2.locator('#addResult.ok').waitFor({timeout:3000});
 await p2.locator('#addSaveBtn').click();
 await p2.waitForFunction(()=>window.__PUBLISHED,null,{timeout:5000});
 const pub2=await p2.evaluate(()=>window.__PUBLISHED);
-fs.writeFileSync(D+'/rt2.html', pub2);
+fs.writeFileSync(D+'/rt2.html', wrap(pub2));
 // データ部分以外が1周目と一致するか（＝自己再生産が安定している）
 const strip=h=>h.replace(/id="quizData">[\s\S]*?<\/script>/,'id="quizData">DATA</script>');
 ok(strip(pub2)===strip(published),'データ以外の構造が完全に一致（自己再生産が安定）');

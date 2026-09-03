@@ -310,6 +310,23 @@ h1,h2,h3{line-height:1.4;margin:0}
 .notice b{color:var(--warn)}
 .empty{text-align:center;color:var(--muted);font-size:14px;padding:22px 8px;line-height:1.8}
 
+/* 説明モード */
+.modesw{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;margin:0 0 13px;
+  border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card-2);cursor:pointer}
+.modesw input{position:absolute;opacity:0;width:0;height:0}
+.modesw .sw{flex:none;width:40px;height:23px;border-radius:999px;background:var(--line-strong);
+  position:relative;transition:background .15s;margin-top:1px}
+.modesw .sw::after{content:'';position:absolute;top:2px;left:2px;width:19px;height:19px;
+  border-radius:50%;background:#fff;transition:transform .15s;box-shadow:var(--shadow-sm)}
+.modesw input:checked + .sw{background:var(--accent)}
+.modesw input:checked + .sw::after{transform:translateX(17px)}
+.modesw input:focus-visible + .sw{outline:2px solid var(--accent);outline-offset:2px}
+.modesw .swtxt{font-size:12.5px;line-height:1.65;color:var(--muted)}
+.modesw .swtxt b{display:block;font-size:14px;color:var(--fg);margin-bottom:2px}
+.exhint{font-size:13px;color:var(--fg-soft);line-height:1.75;margin:14px 0 11px;text-align:center}
+.selfrow{display:flex;gap:9px}
+.selfrow .btn{flex:1;justify-content:center;text-align:center}
+
 /* 学習の記録 */
 .chartbox{width:100%;overflow-x:auto}
 .chartbox svg{display:block;width:100%;height:auto}
@@ -449,14 +466,27 @@ python3 -m http.server 8000
 
     <div class="card">
       <h2>出題モード</h2>
+      <label class="modesw" for="explainSw">
+        <input type="checkbox" id="explainSw">
+        <span class="sw" aria-hidden="true"></span>
+        <span class="swtxt">
+          <b>説明モードで解く</b>
+          <span>選択肢を隠して出題します。声に出して説明してから答えを見て、
+                説明できたかを自分で申告します。4択の成績とは別に記録されます。</span>
+        </span>
+      </label>
       <div style="display:flex;flex-direction:column;gap:9px">
         <button class="btn" id="modeAll" type="button">
           <span class="ico" aria-hidden="true">🎯</span>
-          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">間違えた問題 → 未挑戦 → 正解済み の順に出題</span><span class="cnt" id="cntAll"></span></span>
+          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">間違い → そろそろ忘れる頃 → 未挑戦 → 済み の順に出題</span><span class="cnt" id="cntAll"></span></span>
         </button>
         <button class="btn" id="modeWrong" type="button">
           <span class="ico" aria-hidden="true">🔁</span>
           <span class="bodytxt"><span class="ttl">間違いのみ</span><span class="sub">直近で不正解だった問題だけを解き直す</span><span class="cnt" id="cntWrong"></span></span>
+        </button>
+        <button class="btn" id="modeDue" type="button">
+          <span class="ico" aria-hidden="true">⏳</span>
+          <span class="bodytxt"><span class="ttl">そろそろ復習</span><span class="sub">正解してから時間が経った問題。正解が続くほど間隔が伸びます</span><span class="cnt" id="cntDue"></span></span>
         </button>
         <button class="btn" id="modeRecent" type="button">
           <span class="ico" aria-hidden="true">🆕</span>
@@ -520,7 +550,19 @@ python3 -m http.server 8000
       </div>
       <h1 class="qtext" id="qText"></h1>
       <div class="opts" id="qOpts" role="group" aria-label="選択肢"></div>
+      <div id="qExplainWrap" class="hidden">
+        <p class="exhint">頭の中で、あるいは声に出して説明してみてください。<br>
+          <b>言えたと思ってから</b>答えを見ます。</p>
+        <button class="btn btn-primary" id="revealBtn" type="button">答えを見る</button>
+      </div>
       <div id="qVerdict" class="hidden" role="status" aria-live="polite"></div>
+      <div id="qSelfWrap" class="hidden">
+        <p class="exhint" style="margin-top:14px">いまの説明は、この解説と同じことを言えていましたか？</p>
+        <div class="selfrow">
+          <button class="btn btn-primary" id="selfOkBtn" type="button">説明できた</button>
+          <button class="btn btn-ghost" id="selfNgBtn" type="button">できなかった</button>
+        </div>
+      </div>
       <div id="qNextWrap" class="hidden">
         <button class="btn btn-primary" id="nextBtn" type="button" style="margin-top:12px">次の問題へ</button>
       </div>
@@ -579,11 +621,17 @@ python3 -m http.server 8000
       <div class="stats">
         <div class="stat"><b id="pgCover">–</b><span>カバー率</span></div>
         <div class="stat is-ok"><b id="pgRetain">–</b><span>定着率</span></div>
+        <div class="stat"><b id="pgExplain">–</b><span>説明できた</span></div>
         <div class="stat"><b id="pgSessions">0</b><span>セッション</span></div>
       </div>
+      <div id="pgGapCard" class="notice hidden">
+        <b>4択では取れるのに、説明できなかった問題があります。</b>
+        <span id="pgGapList"></span>
+      </div>
       <p class="hint" style="text-align:left">
-        <b>カバー率</b>＝一度でも正解できた問題の割合。<b>定着率</b>＝いま「直近正解」の状態にある割合。
-        忘れると下がるので、復習どきの目安になります。
+        <b>カバー率</b>＝一度でも正解できた問題の割合。単調に増えます。<br>
+        <b>定着率</b>＝いま覚えている見込みの割合。正解しても<b>間隔（3日→1週→2週→1か月…）を過ぎると
+        外れる</b>ので、放っておくと下がります。下がった分は「そろそろ復習」に出てきます。
       </p>
     </div>
 
@@ -743,7 +791,10 @@ function isProtoKey(k){
    ============================================================ */
 var storageOK = true;
 
-function blankState(){ return { version:1, stats:bare(), sessions:[] }; }
+/* explain は「説明モード」の自己申告。4択の成績（stats）とは別に持つ。
+   選択肢を見て選べることと、何も無いところから説明できることは別の能力なので、
+   混ぜると 4択の正答率が濁る。 */
+function blankState(){ return { version:1, stats:bare(), sessions:[], explain:bare() }; }
 
 function loadState(){
   try{
@@ -759,14 +810,17 @@ function loadState(){
       return x && typeof x === 'object' && typeof x.at === 'string' && x.at
         && (x.detail === undefined || typeof x.detail === 'string');
     }) : [];
-    var stats = bare();
-    if(p.stats && typeof p.stats === 'object'){
-      Object.keys(p.stats).forEach(function(k){
-        var v = p.stats[k];
-        if(v && typeof v === 'object') stats[k] = v;
-      });
-    }
-    return { version:1, stats:stats, sessions:sessions };
+    var pick = function(src){
+      var out = bare();
+      if(src && typeof src === 'object'){
+        Object.keys(src).forEach(function(k){
+          var v = src[k];
+          if(v && typeof v === 'object') out[k] = v;
+        });
+      }
+      return out;
+    };
+    return { version:1, stats:pick(p.stats), sessions:sessions, explain:pick(p.explain) };
   }catch(e){
     storageOK = false;
     try{ console.warn('[quiz] 履歴の読み込みに失敗しました:', e); }catch(_){}
@@ -938,15 +992,6 @@ function parseData(raw){
   return { list:list, warnings:warnings, chapters:chapters, titles:titles };
 }
 
-/* parseData の結果をアプリのグローバルに反映する */
-function normalize(raw){
-  var r = parseData(raw);
-  loadWarnings    = r.warnings;
-  CHAPTERS        = r.chapters;
-  CHAPTER_TITLES  = r.titles;
-  return r.list;
-}
-
 function chapterLabel(n){
   if(!n) return '章未設定';
   return '第' + n + '章';
@@ -979,13 +1024,75 @@ function accuracyOf(id){
   return s.correct / s.seen;
 }
 
+/* 「そろそろ忘れる頃」の判定。
+
+   間違い優先だけで並べると、一度正解した問題は次に間違えるまで永久に「済み」に
+   なる。3週間前に1回当てただけの問題と、今日3回続けて当てた問題が同じ扱いになり、
+   忘れかけの問題が出てこない。正解が続くほど間隔を伸ばす。 */
+var DUE_DAYS = [3, 7, 14, 30, 60, 120];
+function dueSpan(streak){
+  var i = (streak | 0) - 1;
+  if(i < 0) i = 0;
+  if(i >= DUE_DAYS.length) i = DUE_DAYS.length - 1;
+  return DUE_DAYS[i];
+}
+/* iso からの経過日数。時刻が壊れていたら 0（＝まだ期限ではない）扱い。 */
+function daysSince(iso, nowMs){
+  var t = Date.parse(iso);
+  if(isNaN(t)) return 0;
+  var d = ((nowMs === undefined ? Date.now() : nowMs) - t) / 86400000;
+  return d > 0 ? d : 0;
+}
+/* 連続正解回数。streak を持たない古い記録は、直近正解なら1回とみなす。
+   まだ一度も解いていない（seen が 0）なら 0。 */
+function streakOf(s){
+  if(!s || !s.seen) return 0;
+  if(s.streak === undefined) return s.last === 'wrong' ? 0 : 1;
+  return s.streak | 0;
+}
+/* 期限をどれだけ過ぎたか（日）。過ぎていなければ負。 */
+function dueOver(id, nowMs){
+  var s = statOf(id);
+  if(!s || !s.seen || s.last === 'wrong') return -1;
+  return daysSince(s.lastAt, nowMs) - dueSpan(streakOf(s));
+}
+/* 直近は正解だが、間隔を過ぎた問題 */
+function isDue(id, nowMs){ return dueOver(id, nowMs) >= 0; }
+
+/* 説明モードの自己申告を記録する。stats とは別枠。 */
+function recordExplain(q, ok){
+  var e = state.explain[q.id];
+  if(!e || typeof e !== 'object') e = { seen:0, ok:0, last:null, lastAt:null };
+  e.seen   = (e.seen | 0) + 1;
+  e.ok     = (e.ok | 0) + (ok ? 1 : 0);
+  e.last   = ok ? 'ok' : 'ng';
+  e.lastAt = new Date().toISOString();
+  state.explain[q.id] = e;
+  saveState();
+}
+function explainOf(id){
+  var e = state.explain[id];
+  return (e && typeof e === 'object') ? e : null;
+}
+/* 「4択では取れるが、説明はできない」問題。次に設計書へ戻るべき場所。 */
+function poolCantExplain(){
+  return QUESTIONS.filter(function(q){
+    var e = explainOf(q.id);
+    return e && e.seen && e.last === 'ng';
+  });
+}
+
 function recordAnswer(q, ok){
   var s = state.stats[q.id];
   if(!s || typeof s !== 'object') s = { seen:0, correct:0, wrong:0, last:null, lastAt:null };
+  /* streak は last を書き換える前に読む。あとで読むと今回の結果が混ざって1回多く数える。 */
+  var prevStreak = streakOf(s);
   s.seen    = (s.seen | 0) + 1;
   s.correct = (s.correct | 0) + (ok ? 1 : 0);
   s.wrong   = (s.wrong | 0) + (ok ? 0 : 1);
   s.last    = ok ? 'correct' : 'wrong';
+  /* 連続正解の回数。間違えたら 0 に戻す。次の復習までの間隔をこれで決める。 */
+  s.streak  = ok ? (prevStreak + 1) : 0;
   s.lastAt  = new Date().toISOString();
   state.stats[q.id] = s;
   saveState();
@@ -1003,17 +1110,21 @@ function shuffle(a){
   return arr;
 }
 
-/* 間違い優先の並び替え：間違い → 未挑戦 → 正解済み（正解済みは正答率の低い順） */
+/* 出題順：間違い → そろそろ忘れる頃 → 未挑戦 → 済み（済みは正答率の低い順）。
+   忘れかけを未挑戦より前に置くのは、覚え直しの方が急ぐため。 */
 function prioritize(list){
-  var wrong = [], fresh = [], done = [];
+  var wrong = [], due = [], fresh = [], done = [];
+  var now = Date.now();
   list.forEach(function(q){
     var st = statusOf(q.id);
     if(st === 'wrong') wrong.push(q);
     else if(st === 'new') fresh.push(q);
+    else if(isDue(q.id, now)) due.push(q);
     else done.push(q);
   });
+  due  = shuffle(due).sort(function(a,b){ return dueOver(b.id, now) - dueOver(a.id, now); });
   done = shuffle(done).sort(function(a,b){ return accuracyOf(a.id) - accuracyOf(b.id); });
-  return shuffle(wrong).concat(shuffle(fresh), done);
+  return shuffle(wrong).concat(due, shuffle(fresh), done);
 }
 
 /* 選択肢を毎回シャッフルして返す（元の問題オブジェクトは書き換えない）。
@@ -1044,15 +1155,10 @@ function methodList(){
   return out.concat(Object.keys(seen).sort());
 }
 function poolWrong(){ return QUESTIONS.filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
-/* id は文字列で持っているので、そのまま比べると "9" > "38" になってしまう。
-   数字どうしは数値で、そうでなければ文字列で比べる。 */
-function compareId(a, b){
-  var na = Number(a), nb = Number(b);
-  var bothNum = a !== '' && b !== '' && !isNaN(na) && !isNaN(nb);
-  if(bothNum) return na - nb;
-  return a < b ? -1 : (a > b ? 1 : 0);
+function poolDue(){
+  var now = Date.now();
+  return QUESTIONS.filter(function(q){ return isDue(q.id, now); });
 }
-
 /* 「最近追加された問題」の並び。
    追加日の新しい順。同じ日の中では【未挑戦 → 間違い → 正解済み】の順にする。
 
@@ -1112,6 +1218,9 @@ function buildSession(mode, chapter){
   }else if(mode === 'wrong'){
     list  = prioritize(poolWrong()).slice(0, SESS_MAX);
     label = '間違いのみ';
+  }else if(mode === 'due'){
+    list  = prioritize(poolDue()).slice(0, PICK_N);
+    label = 'そろそろ復習';
   }else if(mode === 'method'){
     list  = prioritize(poolMethod(chapter)).slice(0, SESS_MAX);   // chapter に方式名が入る
     label = String(chapter);
@@ -1121,8 +1230,16 @@ function buildSession(mode, chapter){
   }else{
     list = []; label = '';
   }
-  return { mode:mode, chapter:(chapter === undefined ? null : chapter), label:label,
+  var ex = explainMode();
+  return { mode:mode, chapter:(chapter === undefined ? null : chapter),
+           label:label + (ex ? '（説明）' : ''), explain:ex,
            list:list.map(withShuffledOptions), idx:0, answers:[] };
+}
+
+/* 説明モードのオン・オフ。ホームのスイッチが唯一の入口。 */
+function explainMode(){
+  var sw = $('explainSw');
+  return !!(sw && sw.checked);
 }
 
 /* ============================================================
@@ -1176,11 +1293,14 @@ function renderHome(){
 
   // モードごとの件数
   var nWrong = poolWrong().length;
+  var nDue   = poolDue().length;
   var nNew   = QUESTIONS.filter(function(q){ return statusOf(q.id) === 'new'; }).length;
-  $('cntAll').textContent    = '間違い ' + nWrong + ' / 未挑戦 ' + nNew;
+  $('cntAll').textContent    = '間違い ' + nWrong + ' / 復習 ' + nDue + ' / 未挑戦 ' + nNew;
   $('cntWrong').textContent  = nWrong + '問';
+  $('cntDue').textContent    = nDue ? nDue + '問' : 'いまはありません';
   $('cntRecent').textContent = Math.min(PICK_N, total) + '問';
   $('modeWrong').disabled = (nWrong === 0);
+  $('modeDue').disabled   = (nDue === 0);
 
   // 方式別ボタン（方式設計書の軸）
   var mb = $('methodBtns');
@@ -1316,29 +1436,43 @@ function buildProgress(){
   });
   runs.sort(function(a, b){ return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
 
-  var everOK = bare(), lastOK = bare(), points = [], truncated = false;
+  /* 定着率は「直近正解」だけでは足りない。それだと一度当てたら永久に定着扱いで、
+     時間が経っても下がらない。各時点で「まだ間隔内か」まで見る。
+     lastAtOf / streakAt はそのために持ち回る。 */
+  var everOK = bare(), lastOK = bare(), lastAtOf = bare(), streakAt = bare();
+  var points = [], truncated = false;
   runs.forEach(function(r){
     if(r.truncated) truncated = true;
+    var nowMs = Date.parse(r.at);
+    if(isNaN(nowMs)) nowMs = 0;
     r.pairs.forEach(function(p){
       if(!inSet[p.id]) return;            // 消された問題は数えない
-      if(p.ok){ everOK[p.id] = true; lastOK[p.id] = true; }
-      else lastOK[p.id] = false;
+      if(p.ok){ everOK[p.id] = true; lastOK[p.id] = true; streakAt[p.id] = (streakAt[p.id] | 0) + 1; }
+      else { lastOK[p.id] = false; streakAt[p.id] = 0; }
+      lastAtOf[p.id] = nowMs;
     });
     var cover = 0, retain = 0, mRetain = bare();
     methods.forEach(function(m){ mRetain[m] = 0; });
     QUESTIONS.forEach(function(q){
       if(everOK[q.id]) cover++;
-      if(lastOK[q.id]){ retain++; if(mRetain[methodOf[q.id]] !== undefined) mRetain[methodOf[q.id]]++; }
+      if(!lastOK[q.id]) return;
+      /* その時点で間隔を過ぎていたら、定着からは外す。
+         ミリ秒に | 0 を使わないこと（32bit に切り詰められて壊れる）。 */
+      var days = (nowMs - (lastAtOf[q.id] || 0)) / 86400000;
+      if(days >= dueSpan(streakAt[q.id] | 0)) return;
+      retain++;
+      if(mRetain[methodOf[q.id]] !== undefined) mRetain[methodOf[q.id]]++;
     });
     points.push({ at:r.at, label:r.label, cover:cover, retain:retain, m:mRetain });
   });
 
   // いまの正（state.stats）。曲線の末尾とズレたら、古い履歴が落ちている印。
+  var nowMs = Date.now();
   var nowCover = 0, nowRetain = 0;
   QUESTIONS.forEach(function(q){
     var s = statOf(q.id);
     if(s && (s.correct | 0) > 0) nowCover++;
-    if(statusOf(q.id) === 'ok') nowRetain++;
+    if(statusOf(q.id) === 'ok' && !isDue(q.id, nowMs)) nowRetain++;
   });
 
   var last = points.length ? points[points.length - 1] : null;
@@ -1437,6 +1571,32 @@ function renderProgress(){
   $('pgRetain').textContent   = pg.total ? pct(pg.nowRetain) + '%' : '–';
   $('pgSessions').textContent = pg.points.length;
 
+  /* 説明モードの成績。4択とは別の能力なので、別の数字として出す。
+     分母は「説明モードで一度でも出した問題」。まだ試していない分は含めない。 */
+  var exSeen = 0, exOK = 0;
+  QUESTIONS.forEach(function(q){
+    var e = explainOf(q.id);
+    if(e && e.seen){ exSeen++; if(e.last === 'ok') exOK++; }
+  });
+  $('pgExplain').textContent = exSeen ? Math.round(exOK / exSeen * 100) + '%' : '–';
+
+  /* 「選べるのに説明できない」ギャップ。ここが設計書に戻るべき場所。 */
+  var gap = poolCantExplain().filter(function(q){ return statusOf(q.id) === 'ok'; });
+  var gc = $('pgGapCard');
+  if(gap.length){
+    var byM = bare(), names = [];
+    gap.forEach(function(q){
+      var m = q.method || '（方式なし）';
+      if(byM[m] === undefined){ byM[m] = 0; names.push(m); }
+      byM[m]++;
+    });
+    $('pgGapList').textContent = ' ' + names.map(function(m){ return m + ' ' + byM[m] + '問'; }).join('、')
+      + '。この方式を設計書で読み直すと効きます。';
+    show(gc);
+  }else{
+    hide(gc);
+  }
+
   var curve = $('pgCurve');
   clear(curve);
   if(pg.points.length < 2){
@@ -1508,6 +1668,8 @@ function startSession(mode, chapter){
   if(!s.list.length){
     window.alert(mode === 'wrong'
       ? '間違えた問題はまだありません。まずは全範囲から解いてみてください。'
+      : mode === 'due'
+      ? '復習どきの問題はまだありません。正解してから数日経つとここに出てきます。'
       : '出題できる問題がありませんでした。');
     return;
   }
@@ -1524,7 +1686,7 @@ function renderQuestion(){
   $('qCount').textContent = n + ' / ' + total;
   $('qBar').style.width = Math.round((session.idx / total) * 100) + '%';
   var got = session.answers.filter(function(a){ return a.ok; }).length;
-  $('qScore').textContent = got + '問正解';
+  $('qScore').textContent = got + (session.explain ? '問できた' : '問正解');
 
   var chapChip = $('qChapter');
   chapChip.textContent = chapterFull(q.chapter);
@@ -1551,7 +1713,72 @@ function renderQuestion(){
 
   hide($('qVerdict'));
   hide($('qNextWrap'));
+  hide($('qSelfWrap'));
+  /* 説明モードでは選択肢を隠す。見えてしまうと「選べるか」を試すことになり、
+     「何も無いところから説明できるか」を試せない。 */
+  if(session.explain){
+    hide(box);
+    show($('qExplainWrap'));
+    $('qHint').innerHTML = '<kbd>Enter</kbd> で答えを表示、そのあと <kbd>1</kbd> できた / <kbd>2</kbd> できなかった';
+  }else{
+    show(box);
+    hide($('qExplainWrap'));
+    $('qHint').innerHTML = '<kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ';
+  }
   $('nextBtn').textContent = (session.idx === total - 1) ? '結果を見る' : '次の問題へ';
+}
+
+/* 説明モード：答えを見る。ここではまだ正誤を決めない（自己申告を待つ）。 */
+function reveal(){
+  if(locked) return;
+  locked = true;
+  var q = session.list[session.idx];
+  hide($('qExplainWrap'));
+
+  // 正解の選択肢だけを、答えとして見せる
+  var box = $('qOpts');
+  show(box);
+  var btns = box.querySelectorAll('.opt');
+  Array.prototype.forEach.call(btns, function(b, bi){
+    b.disabled = true;
+    if(bi === q.answer){
+      b.classList.add('is-correct');
+      b.querySelector('.mark').textContent = '✓';
+    }else{
+      b.classList.add('is-dim');
+    }
+  });
+
+  var v = $('qVerdict');
+  clear(v);
+  v.className = 'verdict';
+  v.appendChild(el('div', 'vtop', '答え'));
+  if(q.explanation) v.appendChild(el('div', 'exp', q.explanation));
+  if(q.source) v.appendChild(sourceLink(q.source));
+  var back = el('div', 'backto');
+  back.appendChild(el('span', null, '戻る先：'));
+  back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+  if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+  v.appendChild(back);
+  show(v);
+  show($('qSelfWrap'));
+  $('selfOkBtn').focus({ preventScroll:true });
+  try{ v.scrollIntoView({ behavior:'smooth', block:'nearest' }); }catch(e){ /* 古いブラウザは無視 */ }
+}
+
+/* 説明モード：自己申告 */
+function selfReport(ok){
+  if(!session || !session.explain) return;
+  if($('qSelfWrap').classList.contains('hidden')) return;
+  var q = session.list[session.idx];
+  session.answers.push({ id:q.id, chapter:q.chapter, tag:q.tag, picked:-1, ok:ok });
+  recordExplain(q, ok);
+  hide($('qSelfWrap'));
+  show($('qNextWrap'));
+  var got = session.answers.filter(function(a){ return a.ok; }).length;
+  $('qScore').textContent = got + '問できた';
+  $('qBar').style.width = Math.round(((session.idx + 1) / session.list.length) * 100) + '%';
+  $('nextBtn').focus({ preventScroll:true });
 }
 
 function answer(i){
@@ -1604,7 +1831,7 @@ function answer(i){
   show($('qNextWrap'));
 
   var got = session.answers.filter(function(a){ return a.ok; }).length;
-  $('qScore').textContent = got + '問正解';
+  $('qScore').textContent = got + (session.explain ? '問できた' : '問正解');
   $('qBar').style.width = Math.round(((session.idx + 1) / session.list.length) * 100) + '%';
 
   $('nextBtn').focus({ preventScroll:true });
@@ -1666,8 +1893,10 @@ function finish(){
 
   // 履歴に保存
   var nowIso = new Date().toISOString();
+  /* 説明モードの明細は残さない。明細は Notion から取り込むとき stats に反映されるので、
+     自己申告の結果が 4択の成績に混ざってしまう。件数と正解数だけ記録に残す。 */
   var rec = { at:nowIso, mode:session.mode, label:session.label, total:total, correct:corr,
-              detail: encodeDetail(nowIso, session.answers) };
+              detail: session.explain ? '' : encodeDetail(nowIso, session.answers) };
   state.sessions.unshift(rec);
   trimSessions(null);
   saveState();
@@ -1676,12 +1905,18 @@ function finish(){
   $('rsCorrect').textContent = corr;
   $('rsTotal').textContent   = total;
   var pct = total ? Math.round(corr / total * 100) : 0;
-  $('rsPct').textContent = '正答率 ' + pct + '%　（' + session.label + '）';
-  $('rsMsg').textContent =
-    pct === 100 ? '全問正解。次の章に進んでOK。' :
-    pct >= 80   ? 'いい感じ。間違えた分だけ章に戻ろう。' :
-    pct >= 50   ? '半分は取れている。下の「戻る章」を読み直そう。' :
-                  'ここは基礎知識ノートに戻る合図。焦らず読み直そう。';
+  var ex  = !!session.explain;
+  $('rsPct').textContent = (ex ? '説明できた率 ' : '正答率 ') + pct + '%　（' + session.label + '）';
+  $('rsMsg').textContent = ex
+    ? (pct === 100 ? '全部を自分の言葉で説明できた。面接でも出せる状態。' :
+       pct >= 80   ? 'ほぼ説明できている。詰まった分だけ設計書に戻ろう。' :
+       pct >= 50   ? '選べるのに説明できない問題がある。そこが next の読み直し先。' :
+                     '4択で取れても説明はまた別。下の「戻る章」から読み直そう。')
+    : (pct === 100 ? '全問正解。次の章に進んでOK。' :
+       pct >= 80   ? 'いい感じ。間違えた分だけ章に戻ろう。' :
+       pct >= 50   ? '半分は取れている。下の「戻る章」を読み直そう。' :
+                     'ここは基礎知識ノートに戻る合図。焦らず読み直そう。');
+  $('rsReviewCard').querySelector('h2').textContent = ex ? '説明できなかった問題' : '間違えた問題';
 
   // 「戻る章」＝間違いのあった章を、正答率の低い順に
   var backs = Object.keys(per)
@@ -2303,6 +2538,15 @@ function addCheck(){
      読み込み時に弾かれるだけとはいえ、残しておくと毎回警告が出続ける。
      id の重複も同じ。1件ずつ見ると重複しようがないので、既出の id を持ち回る。
      （アーティファクト版はデータが埋め込みで、あとから消す手段が無い） */
+  /* 知らないキーは保存データに入れない。ここで入れたものは公開版に永久に焼き込まれ、
+     あとから消す手段が無い（アーティファクト版はデータが埋め込みのため）。 */
+  var KEEP = ['id','chapter','tag','method','q','options','answer','explanation','source','addedAt'];
+  incoming = incoming.map(function(r){
+    var out = {}, i;
+    for(i = 0; i < KEEP.length; i++) if(r[KEEP[i]] !== undefined) out[KEEP[i]] = r[KEEP[i]];
+    return out;
+  });
+
   var before = incoming.length;
   var seenIds = bare(), dupes = 0;
   QUESTIONS.forEach(function(q){ seenIds[String(q.id)] = true; });
@@ -2415,27 +2659,20 @@ function buildDocument(rawData){
      入り、閉じタグが要素を閉じなくなる。そのまま発行すると自分自身を白画面の版で
      上書きしてしまう（アプリ内から復旧できない）。 */
   var json = JSON.stringify(rawData).replace(/</g, '\\u003c');
+  /* 器（doctype/html/head/body）は公開時に付くので、ここでは中身だけ出す。
+     build-artifact.mjs と同じ6要素にそろえる。片方だけ完全文書を返すと、
+     アプリから保存した版とビルドした版で出来上がりが変わる。 */
   return [
-    '<!doctype html>',
-    '<html lang="ja">',
-    '<head>',
-    '<meta charset="UTF-8">',
-    '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
-    '<meta name="color-scheme" content="light dark">',
     /* タイトルもエスケープする。ここは元々そのまま差し込んでいた唯一の箇所だった。
        title は RCDATA なので textContent は実体参照が解けた形で返る。ビルド時は
        ただの文字だったものが、自己保存を1回した瞬間に生タグに化けて、公開版で
        本物の script として動いてしまう。& も逃がさないと世代ごとに1層ずつ解ける。 */
     '<title id="appTitle">' + escText(appTitle()) + '<' + '/title>',
     '<style id="appStyle">' + st.textContent + '<' + '/style>',
-    '</head>',
-    '<body>',
     SO + ' type="application/json" id="quizData">' + json + C,
     SO + ' type="text/plain" id="bodyTpl">' + tp.textContent + C,
     '<div id="root"></div>',
     SO + ' id="appScript">' + ap.textContent + C,
-    '</body>',
-    '</html>',
     ''
   ].join('\n');
 }
@@ -2592,6 +2829,10 @@ function wire(){
 
   $('modeAll').addEventListener('click',    function(){ startSession('all'); });
   $('modeWrong').addEventListener('click',  function(){ startSession('wrong'); });
+  $('modeDue').addEventListener('click',    function(){ startSession('due'); });
+  $('revealBtn').addEventListener('click',  function(){ reveal(); });
+  $('selfOkBtn').addEventListener('click',  function(){ selfReport(true); });
+  $('selfNgBtn').addEventListener('click',  function(){ selfReport(false); });
   $('modeRecent').addEventListener('click', function(){ startSession('recent'); });
 
   $('nextBtn').addEventListener('click', next);
@@ -2645,6 +2886,18 @@ function wire(){
     if(e.metaKey || e.ctrlKey || e.altKey) return;
     var t = e.target;
     if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+
+    /* 説明モードは操作が違う: Enter で答えを見る → 1 できた / 2 できなかった */
+    if(session && session.explain){
+      if(!locked && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); reveal(); return; }
+      if(!$('qSelfWrap').classList.contains('hidden')){
+        if(e.key === '1'){ e.preventDefault(); selfReport(true);  return; }
+        if(e.key === '2'){ e.preventDefault(); selfReport(false); return; }
+        return;   // 申告するまでは次へ進めない
+      }
+      if(locked && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); next(); }
+      return;
+    }
 
     if(!locked && /^[1-6]$/.test(e.key)){
       var i = parseInt(e.key, 10) - 1;

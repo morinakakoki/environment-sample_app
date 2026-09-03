@@ -43,12 +43,16 @@ async function open(sessions, stats) {
   return { c, p, errs };
 }
 
-const statsFrom = (map) => {
+// 「いま」からの相対時刻。定着率は間隔（最短3日）を過ぎると外れるので、
+// 固定日付を使うとテストが時間とともに壊れる。
+const ago = (days) => new Date(Date.now() - days * 86400000).toISOString();
+
+const statsFrom = (map, days) => {
   const st = {};
   Object.keys(map).forEach(id => {
     const good = map[id];
-    st[id] = { seen: 1, correct: good ? 1 : 0, wrong: good ? 0 : 1,
-               last: good ? 'correct' : 'wrong', lastAt: '2026-08-10T00:00:00.000Z' };
+    st[id] = { seen: 1, correct: good ? 1 : 0, wrong: good ? 0 : 1, streak: good ? 1 : 0,
+               last: good ? 'correct' : 'wrong', lastAt: ago(days === undefined ? 0 : days) };
   });
   return st;
 };
@@ -67,7 +71,7 @@ console.log('\n【1】記録が無いとき');
 
 console.log('\n【2】1セッションだけのとき');
 {
-  const s = [sess('2026-08-10T01:00:00.000Z', [[1, true], [2, false]])];
+  const s = [sess(ago(2), [[1, true], [2, false]])];
   const { c, p, errs } = await open(s, statsFrom({ 1: true, 2: false }));
   await p.locator('#progBtn').click();
   await p.locator('#screenProgress:not(.hidden)').waitFor();
@@ -82,9 +86,9 @@ console.log('\n【2】1セッションだけのとき');
 console.log('\n【3】3セッションで曲線が出るか');
 {
   const s = [
-    sess('2026-08-10T01:00:00.000Z', [[1, true], [2, false]]),
-    sess('2026-08-11T01:00:00.000Z', [[2, true], [3, false]]),
-    sess('2026-08-12T01:00:00.000Z', [[3, true], [4, true]]),
+    sess(ago(2), [[1, true], [2, false]]),
+    sess(ago(1), [[2, true], [3, false]]),
+    sess(ago(0.1), [[3, true], [4, true]]),
   ];
   const { c, p, errs } = await open(s, statsFrom({ 1: true, 2: true, 3: true, 4: true }));
   await p.locator('#progBtn').click();
@@ -117,8 +121,8 @@ console.log('\n【3】3セッションで曲線が出るか');
 console.log('\n【4】正答率の推移は出さない（間違い優先で出題するため誤解を生む）');
 {
   const s = [
-    sess('2026-08-10T01:00:00.000Z', [[1, true], [2, false]]),
-    sess('2026-08-11T01:00:00.000Z', [[2, true], [3, false]]),
+    sess(ago(2), [[1, true], [2, false]]),
+    sess(ago(1), [[2, true], [3, false]]),
   ];
   const { c, p } = await open(s, statsFrom({ 1: true, 2: true, 3: false }));
   await p.locator('#progBtn').click();
@@ -134,8 +138,8 @@ console.log('\n【5】履歴が切り詰められているとき、曲線の左�
   // 明細のあるセッションは1件だけ。でも stats では4問すべて正解済み
   // ＝ 古い履歴が落ちている状態。
   const s = [
-    sess('2026-08-11T01:00:00.000Z', [[1, true]]),
-    sess('2026-08-12T01:00:00.000Z', [[2, true]]),
+    sess(ago(1), [[1, true]]),
+    sess(ago(0.1), [[2, true]]),
   ];
   const { c, p } = await open(s, statsFrom({ 1: true, 2: true, 3: true, 4: true }));
   await p.locator('#progBtn').click();
@@ -150,10 +154,10 @@ console.log('\n【6】消した問題は数に入れない / 手書きの明細�
 {
   const s = [
     // id 99 はいまのデータに無い
-    sess('2026-08-10T01:00:00.000Z', [[1, true], [99, true]]),
-    sess('2026-08-11T01:00:00.000Z', [[2, true]]),
+    sess(ago(2), [[1, true], [99, true]]),
+    sess(ago(1), [[2, true]]),
     // アプリが書いたものではない明細（"@" 始まりでない）
-    { at: '2026-08-12T01:00:00.000Z', mode: 'all', label: '手書き',
+    { at: ago(0.1), mode: 'all', label: '手書き',
       total: 4, correct: 4, detail: '1:1,2:1,3:1,4:1' },
   ];
   const { c, p } = await open(s, statsFrom({ 1: true, 2: true }));
@@ -168,7 +172,7 @@ console.log('\n【6】消した問題は数に入れない / 手書きの明細�
 
 console.log('\n【7】ホームに戻れる / 保存件数の上限');
 {
-  const { c, p } = await open([sess('2026-08-10T01:00:00.000Z', [[1, true]])]);
+  const { c, p } = await open([sess(ago(2), [[1, true]])]);
   await p.locator('#progBtn').click();
   await p.locator('#screenProgress:not(.hidden)').waitFor();
   await p.locator('#pgBackBtn').click();
