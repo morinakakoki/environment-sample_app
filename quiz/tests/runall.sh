@@ -25,9 +25,13 @@ for p in 8777 8790; do
   curl -sf -o /dev/null "http://localhost:$p/" || { echo "サーバ $p を起動できませんでした"; exit 1; }
 done
 
+# artifact.html を作り直してから走らせる。7スイート（audit/rt/notion/artifact-test/
+# sync/fixes/evict）は index.html ではなく artifact.html を開くので、ビルドを忘れると
+# 「変更前のアプリ」をテストしたまま全部グリーンになる。
+node "$QUIZ_DIR/build-artifact.mjs" >/dev/null || { echo "build-artifact.mjs が失敗しました"; exit 1; }
 node wrap.mjs >/dev/null 2>&1
 total=0; bad=0
-for t in smoke.mjs audit.mjs rt.mjs notion.mjs artifact-test.mjs sync.mjs evict.mjs src.mjs fixes.mjs round2.mjs method.mjs bias.mjs progress.mjs proto.mjs due.mjs explain.mjs extras.mjs; do
+for t in smoke.mjs audit.mjs rt.mjs notion.mjs artifact-test.mjs sync.mjs evict.mjs src.mjs fixes.mjs round2.mjs method.mjs bias.mjs progress.mjs proto.mjs due.mjs explain.mjs extras.mjs resume.mjs; do
   out=$(node "$t" 2>&1); rc=$?
   nfail=$(printf '%s' "$out" | grep -cE '^ +(FAIL|🐛)')
   npass=$(printf '%s' "$out" | grep -cE '^ +(PASS|ok )')

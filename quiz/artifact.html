@@ -310,6 +310,18 @@ h1,h2,h3{line-height:1.4;margin:0}
 .notice b{color:var(--warn)}
 .empty{text-align:center;color:var(--muted);font-size:14px;padding:22px 8px;line-height:1.8}
 
+/* 中断カード。あるときだけ最上段に乗る一時カードなので、常設カードと見た目を変える */
+.resumecard{border-color:var(--accent);border-width:1.5px}
+.resumecard h2{color:var(--accent)}
+
+/* 章ボタンの中のメーター（「章別の理解度」カードを畳んだもの）。
+   セレクタを .btn .sub.chapsub にしてあるのは、.btn .sub の display:block に
+   負けないため。負けるとメーター（高さ 6px の span）がインラインのまま潰れて、
+   バーが消えたことに気づけない。 */
+.btn .sub.chapsub{display:flex;align-items:center;gap:8px;margin-top:3px}
+.btn .sub.chapsub .meter{flex:none;width:56px}
+.btn .sub.chapsub .chappct{font-variant-numeric:tabular-nums}
+
 /* 出題から外した問題 */
 .hidhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
   font-size:12.5px;color:var(--muted);padding:14px 2px 0;margin-top:4px;
@@ -489,6 +501,21 @@ python3 -m http.server 8000
 
   <!-- ホーム -->
   <section id="screenHome" class="hidden">
+    <div class="card resumecard hidden" id="resumeCard">
+      <h2>中断したところから</h2>
+      <button class="btn" id="resumeBtn" type="button">
+        <span class="ico" aria-hidden="true">▶</span>
+        <span class="bodytxt"><span class="ttl" id="resumeTtl">続きから解く</span><span class="sub" id="resumeSub"></span><span class="cnt" id="resumeCnt"></span></span>
+      </button>
+      <p class="hint" style="text-align:left;margin:10px 2px 0">
+        ここまでの解答は<b>もう成績に入っています</b>。やめても消えません。
+        残っているのは出題の途中経過だけです。
+      </p>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-ghost btn-sm" id="resumeDropBtn" type="button">やめる</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2>これまでの記録</h2>
       <div class="stats">
@@ -537,24 +564,22 @@ python3 -m http.server 8000
     </div>
 
     <div class="card">
-      <h2>方式別に解く</h2>
+      <h2>まず｜章で土台をつくる</h2>
       <p class="hint" style="text-align:left;margin:-4px 0 12px">
-        方式設計書の区分です。<b>新しい方式や機能を作ったら、その方式の問題を足していきます。</b>
-        問題数が少ない方式は、まだ言葉にできていないところです。
+        基礎知識ノートの章です。<b>1章から順に埋めていくのが一番はやい。</b>
+        メーターはその章の正答率（各問の直近の正誤ベース。未挑戦は分母に入りません）。
       </p>
-      <div id="methodBtns" style="display:flex;flex-direction:column;gap:9px"></div>
-    </div>
-
-    <div class="card">
-      <h2>章別に解く</h2>
-      <p class="hint" style="text-align:left;margin:-4px 0 12px">基礎知識ノートの章です。</p>
       <div id="chapBtns" style="display:flex;flex-direction:column;gap:9px"></div>
     </div>
 
     <div class="card">
-      <h2>章別の理解度</h2>
-      <div class="chaplist" id="chapStats"></div>
-      <p class="hint">正答率は「各問の直近の正誤」ベース。未挑戦の問題は分母に入りません。</p>
+      <h2>つぎに｜方式で説明できるようにする</h2>
+      <p class="hint" style="text-align:left;margin:-4px 0 12px">
+        方式設計書の区分です。<b>方式はどれも複数の章にまたがります</b>（コスト方式なら第1・2・6章）。
+        章をひととおり見てからのほうが効きますが、<b>今日作った方式から解いても構いません。</b>
+        問題数が少ない方式は、まだ言葉にできていないところです。
+      </p>
+      <div id="methodBtns" style="display:flex;flex-direction:column;gap:9px"></div>
     </div>
 
     <div class="card">
@@ -676,7 +701,7 @@ python3 -m http.server 8000
       <h2>取り込みのルール</h2>
       <ul class="steps">
         <li><code>id</code> は既存とかぶらない値に。かぶった問題は取り込まれません</li>
-        <li><code>chapter</code> は基礎知識ノートの章番号。新しい章の番号でもそのまま増えます</li>
+        <li><code>chapter</code> は基礎知識ノートの章番号。新しい章の番号でもそのまま増えます。<b>入れないと「章別に解く」に出ず</b>、解説の「戻る先」も「章未設定」になります（出題は最後に回ります）</li>
         <li><code>tag</code> は <code>#14</code> でも <code>as-of</code> のような語でも構いません</li>
         <li><code>method</code> に方式設計書の方式名を入れてください。<b>入れないと「方式別に解く」に出てきません</b>（構成・前提 / 処理方式 / データ方式 / 認証・権限方式 / 運用・監視方式 / コスト方式 / IaC方式 / 設計判断）</li>
         <li>解説で選択肢を指すときは「選択肢2が誤り」ではなく<b>内容で</b>書いてください。出題ごとに選択肢の並びが変わります</li>
@@ -992,6 +1017,108 @@ function saveTheme(v){
 }
 
 /* ============================================================
+   2.5 中断したセッション（続きから解く）
+
+   解答は answer()／selfReport() の時点で state に確定記録されている。
+   ここに置くのは「どの問題をどの順で出していたか」という出題の途中経過だけで、
+   成績の保険ではない。だから gcpQuiz.v1 とは別のキーにする:
+     - loadState はホワイトリストなので state に混ぜても次の保存で消える
+     - バックアップ（backupText）に途中状態を混ぜない
+     - 1問ごとに書き直すので、容量が苦しいときはこちらだけ捨てられる
+
+   【壊すと直らない不変条件】
+   1つの解答は state にちょうど1回だけ入る。再開したぶんを recordAnswer し直すと
+   seen と streak が1回多くなり、dueSpan が伸びてその問題が「そろそろ復習」から
+   消える。しかも Notion 経由で他端末にも伝播するので、ローカルを消しても戻る。
+   再開の経路から recordAnswer / recordExplain を呼んではいけない。
+   ============================================================ */
+var LS_RESUME  = 'gcpQuiz.resume.v1';
+var RESUME_TTL = 24 * 60 * 60 * 1000;   // 24時間。3日前の「第4章 4問目」は続きにならない
+var RESUME_MODES = ['all','chapter','wrong','due','method','recent'];
+
+function clearResume(){
+  try{ localStorage.removeItem(LS_RESUME); }catch(e){ /* 消せなくても検証側で弾ける */ }
+}
+
+/* 進行中のセッションを書き写す。list は id 参照ではなく丸ごと持つ。
+   id 参照にすると、起動直後まだ Notion の問題が QUESTIONS に入っていない
+   タイミングで「残り0問」と判定され、未解答分が消えたまま完走扱いになる。
+   丸ごと持てば Notion が読めない環境でも中断は必ず続きから解ける。
+   10問で 4KB 程度、上限の 60問でも 40KB 弱。 */
+function saveResume(){
+  if(!session) return;
+  try{
+    localStorage.setItem(LS_RESUME, JSON.stringify({
+      v: 1,
+      savedAt: new Date().toISOString(),
+      mode: session.mode,
+      chapter: session.chapter,
+      label: session.label,
+      explain: !!session.explain,
+      list: session.list,
+      answers: session.answers
+    }));
+  }catch(e){
+    /* 書けなかったものを放っておくと、1問古いスナップショットが残る。
+       それを再開すると記録済みの問題がもう一度出て二重に記録される。
+       保存できないセッションは再開させない。 */
+    try{ console.warn('[quiz] 中断セッションを保存できませんでした:', e); }catch(_){}
+    clearResume();
+  }
+}
+
+function isPlainId(v){ return typeof v === 'string' && !!v && !isProtoKey(v); }
+
+/* 保存されたものを検証して返す。少しでも辻褄が合わなければ null。
+   ここを緩めると、手で書き換えた・別バージョンが書いた・書き込み途中の
+   スナップショットから二重記録や起動不能が起きる。 */
+function loadResume(){
+  var raw, p, i;
+  try{ raw = localStorage.getItem(LS_RESUME); }catch(e){ return null; }
+  if(!raw) return null;
+  try{ p = JSON.parse(raw); }catch(e){ clearResume(); return null; }
+
+  var bad = function(){ clearResume(); return null; };
+  if(!p || typeof p !== 'object' || p.v !== 1) return bad();
+  if(RESUME_MODES.indexOf(p.mode) < 0) return bad();
+  if(typeof p.explain !== 'boolean') return bad();
+  if(!Array.isArray(p.list) || !Array.isArray(p.answers)) return bad();
+  if(!p.list.length || p.list.length > SESS_MAX) return bad();
+  if(!p.answers.length || p.answers.length > p.list.length) return bad();
+
+  /* 日時。NaN を通すと期限が永久に切れず、何週間も前の中断が出続ける。 */
+  if(typeof p.savedAt !== 'string') return bad();
+  var t = Date.parse(p.savedAt);
+  if(isNaN(t)) return bad();
+  var now = Date.now();
+  if(t > now + RESUME_TTL) return bad();      // 時計ずれ・手編集
+  if(now - t > RESUME_TTL) return bad();      // 期限切れ
+
+  /* 出題する問題の形。parseData が生データに課しているのと同じ条件。 */
+  for(i = 0; i < p.list.length; i++){
+    var q = p.list[i];
+    if(!q || typeof q !== 'object' || !isPlainId(q.id)) return bad();
+    if(!Array.isArray(q.options) || q.options.length < 2) return bad();
+    if(typeof q.answer !== 'number' || q.answer < 0 || q.answer >= q.options.length) return bad();
+  }
+  /* 解答の形。explain と picked が食い違うものは信用しない。
+     ここが崩れたまま finish() まで進むと、自己申告が "%" 無しで Notion に送られ、
+     次の取り込みで4択の成績に合流する（README 7.5 が名指ししている事故）。 */
+  for(i = 0; i < p.answers.length; i++){
+    var a = p.answers[i];
+    if(!a || typeof a !== 'object' || !isPlainId(a.id)) return bad();
+    if(typeof a.ok !== 'boolean') return bad();
+    if(p.explain){
+      if(a.picked !== -1) return bad();
+    }else{
+      if(typeof a.picked !== 'number' || a.picked < 0) return bad();
+    }
+    if(a.id !== p.list[i].id) return bad();   // 答えた順と出題順がずれている
+  }
+  return p;
+}
+
+/* ============================================================
    3. 問題データの読み込みと正規化
    ============================================================ */
 var QUESTIONS = [];          // 出題に使う全問題（埋め込み + Notion）
@@ -1279,6 +1406,26 @@ function shuffle(a){
 
 /* 出題順：間違い → そろそろ忘れる頃 → 未挑戦 → 済み（済みは正答率の低い順）。
    忘れかけを未挑戦より前に置くのは、覚え直しの方が急ぐため。 */
+/* 未挑戦の問題を章順に並べ、章の中はシャッフルする。
+   章順にするのは、解説の「戻る先」が1セッションで7か所に散ると誰もノートに戻れないから。
+   章でまとまれば1〜2か所で済み、その場で開ける。
+   章の中まで固定しないのは、元データが節順で同じ tag の問題が隣り合っており、
+   前の問題の解説がそのまま次の問題の答えになってしまう箇所が実際にあるため
+   （#7 の3連問など）。それで正解しても覚えたことにはならないのに streak だけ伸びる。
+   章が未設定（0）の問題は先頭ではなく末尾に送る。戻る先が「章未設定」の問題を
+   毎回いちばん最初に配ることになるため。 */
+function byChapterThenShuffle(list){
+  var byCh = bare(), chs = [], out = [];
+  list.forEach(function(q){
+    var c = q.chapter || 0;
+    if(!byCh[c]){ byCh[c] = []; chs.push(c); }
+    byCh[c].push(q);
+  });
+  chs.sort(function(a, b){ return (a || 1e9) - (b || 1e9); });
+  chs.forEach(function(c){ out = out.concat(shuffle(byCh[c])); });
+  return out;
+}
+
 function prioritize(list){
   var wrong = [], due = [], fresh = [], done = [];
   var now = Date.now();
@@ -1289,9 +1436,29 @@ function prioritize(list){
     else if(isDue(q.id, now)) due.push(q);
     else done.push(q);
   });
-  due  = shuffle(due).sort(function(a,b){ return dueOver(b.id, now) - dueOver(a.id, now); });
+  /* dueOver は日数の小数なので、丸めずに並べると lastAt がミリ秒まで違う分だけ
+     必ず一意に決まり、直前の shuffle が完全に無効になる。そうなると復習の順序が
+     初出の順序（＝章順）をそのままなぞり、2周目以降も章ブロックで出続ける。
+     章の見出しが立ったまま解くと、問題文を読まなくても肢の見当がついてしまう。
+     DUE_DAYS が日単位なので、切り捨てて同日ぶんを同値にすれば shuffle が生き残る。 */
+  due  = shuffle(due).sort(function(a,b){
+    return Math.floor(dueOver(b.id, now)) - Math.floor(dueOver(a.id, now)); });
   done = shuffle(done).sort(function(a,b){ return accuracyOf(a.id) - accuracyOf(b.id); });
-  return shuffle(wrong).concat(due, shuffle(fresh), done);
+  return shuffle(wrong).concat(due, byChapterThenShuffle(fresh), done);
+}
+
+/* 全範囲モードで未挑戦に最低限の枠を空ける。
+   未挑戦を章順にすると「まだ見ていない問題」が後ろの章に決まった形で溜まる。
+   3日に1回のペースだと間違い＋復習だけで10枠が埋まる日が続くので、
+   そのままだと第4章以降に永久に到達しない（実測で章4〜7が0問のまま）。
+   復習が最優先という原則は保ったまま、最後の枠だけ未挑戦に確保する。 */
+var FRESH_MIN = 2;
+function withFreshQuota(list, n){
+  var fresh = [], rest = [];
+  list.forEach(function(q){ (statusOf(q.id) === 'new' ? fresh : rest).push(q); });
+  if(!fresh.length || rest.length <= n - FRESH_MIN) return list.slice(0, n);
+  var keep = Math.min(fresh.length, FRESH_MIN);
+  return rest.slice(0, n - keep).concat(fresh.slice(0, keep));
 }
 
 /* 選択肢を毎回シャッフルして返す（元の問題オブジェクトは書き換えない）。
@@ -1384,10 +1551,10 @@ function maxNumericId(){
   return m;
 }
 
-function buildSession(mode, chapter){
+function buildSession(mode, chapter, forceExplain){
   var list, label;
   if(mode === 'all'){
-    list  = prioritize(poolAll()).slice(0, PICK_N);
+    list  = withFreshQuota(prioritize(poolAll()), PICK_N);
     label = '全範囲 ' + list.length + '問';
   }else if(mode === 'chapter'){
     list  = prioritize(poolChapter(chapter)).slice(0, SESS_MAX);
@@ -1407,7 +1574,11 @@ function buildSession(mode, chapter){
   }else{
     list = []; label = '';
   }
-  var ex = explainMode();
+  /* forceExplain を渡せるようにしてあるのは「同じモードでもう一度」と中断の再開のため。
+     再開のたびにホームのスイッチを書き換える案もあったが、それをやると再開後に
+     ホームで押した別のモードまで説明モードのままになり、1セッション解いても
+     4択の成績が1つも動かない。スイッチは触らず、値だけを持ち回る。 */
+  var ex = (forceExplain === undefined) ? explainMode() : !!forceExplain;
   return { mode:mode, chapter:(chapter === undefined ? null : chapter),
            label:label + (ex ? '（説明）' : ''), explain:ex,
            list:list.map(withShuffledOptions), idx:0, answers:[] };
@@ -1473,8 +1644,12 @@ function renderHome(){
   // モードごとの件数
   var nWrong = poolWrong().length;
   var nDue   = poolDue().length;
-  var nNew   = live.filter(function(q){ return statusOf(q.id) === 'new'; }).length;
-  $('cntAll').textContent    = '間違い ' + nWrong + ' / 復習 ' + nDue + ' / 未挑戦 ' + nNew;
+  var freshNext = byChapterThenShuffle(live.filter(function(q){ return statusOf(q.id) === 'new'; }));
+  var nNew   = freshNext.length;
+  /* 未挑戦を章順にしたので「次にどの章が出るか」が事前に分かる。出しておく。
+     章順にすると後ろの章が繰り越されるので、繰り越されていること自体を隠さない。 */
+  $('cntAll').textContent = '間違い ' + nWrong + ' / 復習 ' + nDue + ' / 未挑戦 ' + nNew
+    + (nNew ? '（次は' + chapterLabel(freshNext[0].chapter) + 'から）' : '');
   $('cntWrong').textContent  = nWrong + '問';
   $('cntDue').textContent    = nDue ? nDue + '問' : 'いまはありません';
   $('cntRecent').textContent = Math.min(PICK_N, total) + '問';
@@ -1510,49 +1685,47 @@ function renderHome(){
     mb.appendChild(el('div', 'empty', '方式が設定された問題がまだありません。'));
   }
 
-  // 章別ボタン
+  /* 章別ボタン。理解度のメーターをボタンの中に入れてある。
+     以前は同じ7章を「章別に解く」と「章別の理解度」で2回描いていて、
+     375px では弱い章を見つけてからスクロールを戻して同名のボタンを探す
+     往復が要った。1枚にすれば、見つけたその指でそのまま押せる。 */
   var cb = $('chapBtns');
   clear(cb);
   CHAPTERS.forEach(function(n){
     var pool = poolChapter(n);
     if(!pool.length) return;            // その章を全部外していたらボタンも出さない
     var w = pool.filter(function(q){ return statusOf(q.id) === 'wrong'; }).length;
-    var b = el('button', 'btn');
-    b.type = 'button';
-    var ico = el('span', 'ico', String(n || '?')); ico.setAttribute('aria-hidden','true');
-    b.appendChild(ico);
-    var body = el('span', 'bodytxt');
-    body.appendChild(el('span', 'ttl', chapterLabel(n)));
-    body.appendChild(el('span', 'sub', CHAPTER_TITLES[n] || '（タイトル未設定）'));
-    body.appendChild(el('span', 'cnt', pool.length + '問' + (w ? '　要復習 ' + w : '')));
-    b.appendChild(body);
-    b.addEventListener('click', function(){ startSession('chapter', n); });
-    cb.appendChild(b);
-  });
-
-  // 章別の理解度
-  var cs = $('chapStats');
-  clear(cs);
-  CHAPTERS.forEach(function(n){
-    var pool = poolChapter(n);
     var s = 0, c = 0;
     pool.forEach(function(q){
       var st = statusOf(q.id);
       if(st !== 'new'){ s++; if(st === 'ok') c++; }
     });
     var pct = s ? Math.round(c / s * 100) : null;
-    var row = el('div', 'chaprow');
-    row.appendChild(el('span', 'no', chapterLabel(n)));
-    row.appendChild(el('span', 'nm', CHAPTER_TITLES[n] || '—'));
+
+    var b = el('button', 'btn');
+    b.type = 'button';
+    var ico = el('span', 'ico', String(n || '?')); ico.setAttribute('aria-hidden','true');
+    b.appendChild(ico);
+    var body = el('span', 'bodytxt');
+    body.appendChild(el('span', 'ttl', chapterLabel(n) + '　' + (CHAPTER_TITLES[n] || '（タイトル未設定）')));
+    /* メーターと％は sub 行に落とす。ttl 行に章番号・章名・問数・メーターを
+       全部並べると 375px で確実に折り返す。 */
+    var sub = el('span', 'sub chapsub');
     var m = el('span', 'meter' + (pct === null ? '' : (pct >= 80 ? ' good' : (pct < 50 ? ' bad' : ''))));
     m.setAttribute('role', 'img');
     m.setAttribute('aria-label', pct === null ? '未挑戦' : ('正答率 ' + pct + '%'));
     var fill = el('i'); fill.style.width = (pct === null ? 0 : pct) + '%';
     m.appendChild(fill);
-    row.appendChild(m);
-    row.appendChild(el('span', 'pct', pct === null ? '–' : pct + '%'));
-    cs.appendChild(row);
+    sub.appendChild(m);
+    sub.appendChild(el('span', 'chappct', pct === null ? 'まだ解いていません' : '正答率 ' + pct + '%'));
+    body.appendChild(sub);
+    body.appendChild(el('span', 'cnt', pool.length + '問' + (w ? '　要復習 ' + w : '')));
+    b.appendChild(body);
+    b.addEventListener('click', function(){ startSession('chapter', n); });
+    cb.appendChild(b);
   });
+
+  renderResume();
 
   // 面接前チェックリストの件数
   var nPrep = poolPrep().length;
@@ -1576,6 +1749,36 @@ function renderHome(){
       row.appendChild(el('span', 'hs', h.correct + '/' + h.total));
       hl.appendChild(row);
     });
+  }
+}
+
+/* 中断カード。中断が無ければカードごと出さないので、無い日のホームは1px も変わらない。
+   ここで例外を出すとホーム全体が描けなくなるので、何かあれば中断を捨てて黙って隠す。 */
+function renderResume(){
+  var card = $('resumeCard');
+  if(!card) return;
+  var p = null;
+  try{ p = loadResume(); }catch(e){ clearResume(); }
+  /* 隠すときは文言も消す。display:none の要素でも textContent は残るので、
+     読み上げや後から見たときに、もう無い中断の説明が残る。 */
+  if(!p){
+    hide(card);
+    $('resumeTtl').textContent = '';
+    $('resumeSub').textContent = '';
+    $('resumeCnt').textContent = '';
+    return;
+  }
+  try{
+    var doneN = p.answers.length, totalN = p.list.length;
+    $('resumeTtl').textContent = (doneN >= totalN) ? '結果を見る' : '続きから解く';
+    $('resumeSub').textContent = p.label + '　' + fmtWhen(p.savedAt) + ' に中断';
+    $('resumeCnt').textContent = (doneN >= totalN)
+      ? (totalN + '問すべて解答済み')
+      : (doneN + ' / ' + totalN + '問まで　残り ' + (totalN - doneN) + '問');
+    show(card);
+  }catch(e){
+    clearResume();
+    hide(card);
   }
 }
 
@@ -2012,6 +2215,10 @@ function bkRestore(){
     return;
   }
   syncEpoch++;             // 走っている同期の結果はもう当てはまらない
+  /* 貼られた JSON が正。復元前の中断を残すと、そこに含まれる解答が
+     復元後の記録に混ざる。 */
+  clearResume();
+  session = null;
   hiddenOpen = false;
   bkMsg('ok', '復元しました（セッション ' + state.sessions.length + '件 / 成績 '
     + Object.keys(state.stats).length + '問）。');
@@ -2023,8 +2230,8 @@ function bkRestore(){
    ============================================================ */
 var locked = false;
 
-function startSession(mode, chapter){
-  var s = buildSession(mode, chapter);
+function startSession(mode, chapter, forceExplain){
+  var s = buildSession(mode, chapter, forceExplain);
   if(!s.list.length){
     window.alert(mode === 'wrong'
       ? '間違えた問題はまだありません。まずは全範囲から解いてみてください。'
@@ -2033,9 +2240,35 @@ function startSession(mode, chapter){
       : '出題できる問題がありませんでした。');
     return;
   }
+  /* 中断を捨てるのは、新しいセッションが本当に始まると決まってから。
+     先頭で消すと、対象が0件で alert が出ただけの押し間違いでも中断が消える。 */
+  clearResume();
   session = s;
   goto('screenQuiz');
   renderQuestion();
+}
+
+/* 中断したセッションを再開する。ここから recordAnswer / recordExplain は呼ばない
+   （読み込んだ解答はすべて記録済み）。 */
+function resumeSession(){
+  var p = loadResume();
+  if(!p){ renderHome(); return; }
+
+  session = { mode:p.mode, chapter:p.chapter, label:p.label, explain:p.explain,
+              list:p.list, answers:p.answers,
+              /* 再開位置は保存された idx ではなく answers.length。
+                 idx が進むのは next() のときだけなので「答えたが次へを押していない」
+                 状態では answers.length === idx + 1 になる。idx から再開すると
+                 その1問がもう一度出て、二重に記録される。 */
+              idx: Math.min(p.answers.length, p.list.length - 1) };
+
+  /* 最後の1問を答えたところで閉じた場合。出題は残っていないので結果画面へ。
+     list は丸ごと保存してあるので、ここが「まだ読めていない」で誤爆することはない。 */
+  if(p.answers.length >= p.list.length){ finish(); return; }
+
+  goto('screenQuiz');
+  renderQuestion();
+  saveResume();   // 再開してすぐまた閉じても拾えるように、その場で書き直す
 }
 
 function renderQuestion(){
@@ -2165,6 +2398,11 @@ function selfReport(ok){
   if($('qSelfWrap').classList.contains('hidden')) return;
   var q = session.list[session.idx];
   session.answers.push({ id:q.id, chapter:q.chapter, tag:q.tag, picked:-1, ok:ok });
+  /* 中断の記録は確定記録より先に書く。別キーなので片方だけ失敗しうるが、
+     この順なら失敗の向きが「中断には答えたと書いてあるが成績に無い」になる。
+     逆順にすると「成績には入っているのに中断は1問古い」になり、再開したときに
+     記録済みの問題をもう一度出して二重に記録してしまう。 */
+  saveResume();
   recordExplain(q, ok);
   hide($('qSelfWrap'));
   show($('qNextWrap'));
@@ -2183,6 +2421,7 @@ function answer(i){
   var ok = (i === q.answer);
 
   session.answers.push({ id:q.id, chapter:q.chapter, tag:q.tag, picked:i, ok:ok });
+  saveResume();          // 確定記録より先に。理由は selfReport 側のコメント参照
   recordAnswer(q, ok);
 
   // 選択肢の見た目を更新
@@ -2261,9 +2500,13 @@ function next(){
   if(!locked) return;
   if(session.idx < session.list.length - 1){
     session.idx++;
+    saveResume();
     renderQuestion();
     window.scrollTo(0, 0);
   }else{
+    /* ここで saveResume を呼んではいけない。finish() が先頭で中断を消すので、
+       戻ってきてから書くと完走済みのスナップショットが残る。それを翌朝押すと
+       finish() が2回走り、同じ10問の行が Notion に2本立つ。 */
     finish();
   }
 }
@@ -2272,6 +2515,12 @@ function next(){
    9. 結果画面
    ============================================================ */
 function finish(){
+  /* 真っ先に中断を消す。保存の成否では条件分けしない。中断は進行中セッションの
+     鏡であって記録の保険ではない（保険は state.sessions 側の未送信保護がやる）。
+     ここを後回しにしたり条件付きにすると、完走済みのスナップショットが生き残り、
+     結果画面から「もう一度」を押しただけで同じ解答がもう1行記録される。 */
+  clearResume();
+
   var total = session.answers.length;
   var corr  = session.answers.filter(function(a){ return a.ok; }).length;
 
@@ -2418,7 +2667,7 @@ function finish(){
   if(ex) hide(rwBtn); else show(rwBtn);
   /* 同じモードで出題できるものが残っているときだけ押せるようにする */
   var again = $('againBtn');
-  again.disabled = (buildSession(session.mode, session.chapter).list.length === 0);
+  again.disabled = (buildSession(session.mode, session.chapter, session.explain).list.length === 0);
   again.textContent = again.disabled ? 'このモードで解ける問題はありません' : '同じモードでもう一度';
 
   goto('screenResult');
@@ -3336,6 +3585,14 @@ function wire(){
   $('themeBtn').addEventListener('click', cycleTheme);
   $('homeBtn').addEventListener('click', function(){ session = null; renderHome(); goto('screenHome'); });
 
+  $('resumeBtn').addEventListener('click', resumeSession);
+  $('resumeDropBtn').addEventListener('click', function(){
+    /* 解答はもう成績に入っているので、確認は出さない。捨てるのは出題の途中経過だけ。 */
+    clearResume();
+    session = null;
+    renderHome();
+  });
+
   $('modeAll').addEventListener('click',    function(){ startSession('all'); });
   $('modeWrong').addEventListener('click',  function(){ startSession('wrong'); });
   $('modeDue').addEventListener('click',    function(){ startSession('due'); });
@@ -3347,7 +3604,9 @@ function wire(){
   $('nextBtn').addEventListener('click', next);
 
   $('againBtn').addEventListener('click', function(){
-    if(session) startSession(session.mode, session.chapter);
+    /* 説明モードかどうかはホームのスイッチではなく、いま解いたセッションから引く。
+       中断から再開したときスイッチは触っていないので、読むと別モードで始まる。 */
+    if(session) startSession(session.mode, session.chapter, session.explain);
   });
   /* 「間違いのみ」を全問正解したあとは、同じモードで解き直せない */
   $('againBtn').disabled = false;
@@ -3423,6 +3682,10 @@ function wire(){
       + 'そちらの行が残っている限り、次にセッションを1回解き終えた時点で戻ってきます。\n'
       + 'まっさらにするには Notion 側の行も削除してください。\n\nよろしいですか？')) return;
     state = blankState();
+    /* 中断も消す。ここで残すと、成績を消したあとに再開して同じ問題を解き直し、
+       消したはずの記録が未挑戦から作り直される。 */
+    clearResume();
+    session = null;
     syncEpoch++;                 // 走っている同期の結果を無効にする
     /* inflight は落とさない。落とすと二重起動の歯止めが外れ、走っている同期の
        終端が後から始まった同期の登録まで消してしまう。無効化は syncEpoch で足りる。 */
@@ -3510,7 +3773,19 @@ function boot(raw){
   }
   applyQuestions();
   state = loadState();
-  renderHome();
+  /* ホームが描けないと、リセットもバックアップの復元もこの画面の中にあるので
+     ユーザーに回復手段が無くなる（DevTools で localStorage を消すしかない）。
+     何が起きても必ずホームまで進む。中断カードが原因なら、それを捨ててやり直す。 */
+  try{
+    renderHome();
+  }catch(e){
+    try{ console.warn('[quiz] ホームの描画に失敗しました。中断を捨てて描き直します:', e); }catch(_){}
+    clearResume();
+    session = null;
+    try{ renderHome(); }catch(e2){
+      try{ console.warn('[quiz] それでも描けませんでした:', e2); }catch(_){}
+    }
+  }
   goto('screenHome');
   loadNotion();   // 非同期。読めなくてもここまでで普通に使える
   syncLog();      // 学習記録の取り込みと、未送信ぶんの送信

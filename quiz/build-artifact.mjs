@@ -48,6 +48,20 @@ if (scriptAt < 0) throw new Error('<body> 内に <script> が見つかりませ�
 const markup = bodyRaw.slice(0, scriptAt).trim();
 const script = bodyRaw.slice(scriptAt + '<script>'.length, bodyRaw.lastIndexOf('</' + 'script>'));
 
+/* 器の前提: 運ばれるのは <style> 1つと本文マークアップ1つだけ。
+   2つ目の <style> を head に足すと、それは style にも markup にも入らず、
+   artifact.html のどこにも現れない。画面は出るのでアーティファクトだけ
+   CSS が欠けた状態で静かに出荷される。ここで落として気づけるようにする。
+   数えるのは「運ぶ範囲」（head + 本文マークアップ）だけ。アプリ本体の中には
+   自己再発行のために '<style id="appStyle">' という文字列があり、それは器ではない。 */
+const shellSrc = html.slice(0, html.indexOf('<body>')) + markup;
+for (const [tag, label] of [['<style', '<style>'], ['<script', '<body> 内の <script>']]) {
+  const n = shellSrc.split(tag).length - 1;
+  if (n !== (tag === '<style' ? 1 : 0)) throw new Error(
+    `index.html の ${label} の数が想定と違います（${n}個）。` +
+    'CSS は既存の <style id="appStyle"> になる1つへ、JS は既存の1つの <script> へ追記してください。');
+}
+
 // 埋め込む部品はすべて検査する。title と style も対象。
 // title は RCDATA なので、ここを素通りさせると、アプリが自分を再発行したときに
 // 実体参照が解けて生タグに化け、公開版で本物の script として動いてしまう。
