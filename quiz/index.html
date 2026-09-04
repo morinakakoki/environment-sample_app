@@ -2478,6 +2478,12 @@ function parseDetail(text){
   /* 文字列以外が来ても落ちないようにする。localStorage は手で書き換えられるので、
      detail がオブジェクトのまま来ると indexOf で落ち、学習の記録が開けなくなる。 */
   if(typeof text !== 'string' || !text) return out;
+  /* Notion のテキスト欄を Markdown として返す経路があり、そこでは "|" が "\|" に
+     エスケープされて届く。そのまま読むと日時の末尾に "\" が付き、送信済みの
+     セッションを「まだ送っていない」と判断して同じ行を毎回書き足してしまう。
+     アプリが書く明細は id を encodeURIComponent してあるので "\" は現れない。
+     つまり "\" は必ずエスケープ由来で、外して読んでよい。 */
+  if(text.indexOf('\\') >= 0) text = text.replace(/\\(.)/g, '$1');
   var bar = text.indexOf('|');
   if(text.charAt(0) !== '@' || bar <= 0) return out;   // アプリが書いたものではない
   out.trusted = true;
@@ -3243,10 +3249,9 @@ function copyToBtn(btn, text, label){
   }
 }
 
-/* テキストをファイルとして保存する。アーティファクトとして開いているときは
-   ページが始めたダウンロードが枠側で止められるので、始まらないことがある。
-   そのときのために「コピー」を必ず併置しておくこと。 */
-function saveTextFile(name, text){
+/* ページが自分で始めるダウンロード。ローカル版（http://）ではこれで保存できるが、
+   アーティファクトとして開いているときは枠側で止められ、何も起きない。 */
+function anchorSave(name, text){
   var url = null;
   try{
     var blob = new Blob([text], { type:'application/json;charset=utf-8' });
@@ -3264,6 +3269,26 @@ function saveTextFile(name, text){
   }finally{
     if(url) window.setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 1000);
   }
+}
+
+/* テキストをファイルとして保存する。done(結果) を必ず1回呼ぶ。
+     'saved'    … アーティファクトの downloads 経由で保存した
+     'declined' … 保存の確認で「いいえ」を選んだ
+     'file'     … ページから直接ダウンロードを始めた（ローカル版）
+     'no'       … どちらも使えなかった。コピーに誘導する
+   downloads は本人に確認が出る仕組みなので、押したその場でだけ呼ぶ。 */
+function saveTextFile(name, text, done){
+  var fallback = function(){ done(anchorSave(name, text) ? 'file' : 'no'); };
+  if(!(window.claude && typeof window.claude.use === 'function')){ fallback(); return; }
+  window.claude.use('downloads').then(function(dl){
+    if(!dl){ fallback(); return; }
+    return dl.save({ filename:name, data:text }).then(function(){
+      done('saved');
+    }, function(err){
+      /* 「いいえ」は失敗ではない。押し直しを促すだけで、コピーに誘導しない。 */
+      done((err && err.code === 'declined') ? 'declined' : 'no');
+    });
+  }, fallback).catch(fallback);
 }
 
 function fallbackCopy(text, done){
@@ -3358,12 +3383,17 @@ function wire(){
   });
   $('bkFileBtn').addEventListener('click', function(){
     var name = 'gcp-quiz-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-    if(saveTextFile(name, $('bkTa').value)){
-      bkMsg('', name + ' を保存しました。ダウンロードが始まらないときは、アーティファクトとして'
-        + '開いているためです（枠の外へのファイル保存が止められます）。上の「コピー」を使ってください。');
-    }else{
-      bkMsg('ng', 'このブラウザではファイルに保存できませんでした。上の「コピー」を使ってください。');
-    }
+    var btn = $('bkFileBtn');
+    btn.disabled = true;
+    saveTextFile(name, $('bkTa').value, function(how){
+      btn.disabled = false;
+      if(how === 'saved')         bkMsg('ok', name + ' を保存しました。');
+      else if(how === 'file')     bkMsg('ok', name + ' のダウンロードを始めました。'
+        + '始まらないときは、上の「コピー」を使ってください。');
+      else if(how === 'declined') bkMsg('', '保存を取りやめました。');
+      else                        bkMsg('ng', 'この画面ではファイルに保存できませんでした。'
+        + '上の「コピー」で JSON を写して、テキストファイルに貼り付けてください。');
+    });
   });
   $('bkRestoreBtn').addEventListener('click', bkRestore);
 

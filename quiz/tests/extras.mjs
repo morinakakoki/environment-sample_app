@@ -587,6 +587,119 @@ console.log('\n【5f】__proto__ を混ぜた JSON でも汚れない');
   await c.close();
 }
 
+console.log('\n【4d】Notion が "|" を "\\|" にエスケープして返しても取り違えない');
+{
+  /* Notion のテキスト欄を Markdown として返す経路では "|" が "\|" で届く。
+     そのまま読むと日時の末尾に "\" が付き、送信済みのセッションを毎回
+     送り直して同じ行が積み上がる。 */
+  const AT = ago(1);
+  const rows = [{
+    '記録': 'x', '日時': AT, 'モード': '全範囲', '出題数': 2, '正解数': 1,
+    '明細': '@' + AT + '\\|1:1,2:0',
+    'date:日時:start': AT
+  }];
+  const ls = JSON.stringify({ version: 1, stats: {}, explain: {},
+    sessions: [{ at: AT, label: '全範囲', total: 2, correct: 1, detail: '@' + AT + '|1:1,2:0' }] });
+  const c = await b.newContext({ viewport: { width: 375, height: 812 } });
+  const p = await c.newPage();
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.addInitScript((a) => {
+    window.__PUSHED = [];
+    window.claude = { use: n => Promise.resolve(
+      n === 'mcp' ? {
+        callTool: (s, t, i) => {
+          if (t === 'notion-create-pages') { window.__PUSHED.push(i); return Promise.resolve({ payload: { pages: [] } }); }
+          return Promise.resolve({ payload: { results: a, has_more: false } });
+        }, watchTool: () => () => {}, listTools: () => Promise.resolve([]) } : null) };
+  }, rows);
+  await p.addInitScript(v => localStorage.setItem('gcpQuiz.v1', v), ls);
+  await p.route('**/quiz-data.json', r =>
+    r.fulfill({ contentType: 'application/json', body: JSON.stringify([Q(1), Q(2)]) }));
+  await p.goto('http://localhost:8777/index.html', { waitUntil: 'networkidle' });
+  await p.locator('#screenHome:not(.hidden)').waitFor();
+  await p.waitForFunction(() => {
+    const s = JSON.parse(localStorage.getItem('gcpQuiz.v1') || '{}');
+    return s.stats && Object.keys(s.stats).length > 0;
+  }, null, { timeout: 5000 }).catch(() => {});
+  await p.waitForTimeout(400);
+
+  const s = await store(p);
+  ok(s.stats['1'] && s.stats['1'].last === 'correct', '明細を読めている: ' + JSON.stringify(s.stats['1']));
+  ok(s.stats['2'] && s.stats['2'].last === 'wrong', '2問目も読めている');
+  const pushed = await p.evaluate(() => window.__PUSHED);
+  ok(pushed.length === 0, '送信済みと分かるので送り直さない: ' + pushed.length + '回');
+  ok(s.sessions.length === 1, 'セッションが二重にならない: ' + s.sessions.length + '件');
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
+console.log('\n【5g】アーティファクトでは downloads 経由で保存する');
+{
+  const { c, p, errs } = await open([Q(1)]);
+  await p.evaluate(() => {
+    window.__SAVED = [];
+    window.claude = { use: n => Promise.resolve(n === 'downloads' ? {
+      save: (req) => { window.__SAVED.push(req); return Promise.resolve({ status: 'saved' }); }
+    } : null) };
+  });
+  await p.locator('#backupBtn').click();
+  await p.locator('#screenBackup:not(.hidden)').waitFor();
+  await p.locator('#bkFileBtn').click();
+  await p.waitForFunction(() => window.__SAVED.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const saved = await p.evaluate(() => window.__SAVED);
+  ok(saved.length === 1, 'downloads.save が呼ばれる: ' + saved.length + '回');
+  ok(saved[0] && /^gcp-quiz-backup-\d{4}-\d{2}-\d{2}\.json$/.test(saved[0].filename),
+     'ファイル名: ' + (saved[0] && saved[0].filename));
+  ok(saved[0] && typeof saved[0].data === 'string' && /gcpQuiz\.backup/.test(saved[0].data),
+     '中身はバックアップ JSON');
+  ok(/保存しました/.test(await p.locator('#bkMsg').innerText()),
+     '保存したと出る: ' + (await p.locator('#bkMsg').innerText()).replace(/\n/g, ' '));
+  ok(!(await p.locator('#bkFileBtn').isDisabled()), 'ボタンが押せる状態に戻る');
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
+console.log('\n【5h】保存を断られたら、失敗扱いにしない');
+{
+  const { c, p, errs } = await open([Q(1)]);
+  await p.evaluate(() => {
+    window.claude = { use: n => Promise.resolve(n === 'downloads' ? {
+      save: () => Promise.reject({ code: 'declined', message: 'no' })
+    } : null) };
+  });
+  await p.locator('#backupBtn').click();
+  await p.locator('#bkFileBtn').click();
+  await p.waitForTimeout(400);
+  const msg = await p.locator('#bkMsg').innerText();
+  ok(/取りやめました/.test(msg), '取りやめたと出る: ' + msg.replace(/\n/g, ' '));
+  ok(!/できませんでした/.test(msg), 'エラー扱いにしない');
+  ok(!(await p.locator('#bkFileBtn').isDisabled()), 'もう一度押せる');
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
+console.log('\n【5i】downloads が使えなければ、コピーに誘導する');
+{
+  const { c, p, errs } = await open([Q(1)]);
+  await p.evaluate(() => {
+    // アーティファクトだが downloads は許可されていない、という状態
+    window.claude = { use: () => Promise.resolve(null) };
+    // ページ発のダウンロードも止められている枠を模す
+    document.createElement = ((orig) => function (tag) {
+      const el = orig.call(document, tag);
+      if (String(tag).toLowerCase() === 'a') el.click = () => { throw new Error('blocked'); };
+      return el;
+    })(document.createElement);
+  });
+  await p.locator('#backupBtn').click();
+  await p.locator('#bkFileBtn').click();
+  await p.waitForTimeout(400);
+  const msg = await p.locator('#bkMsg').innerText();
+  ok(/コピー/.test(msg), 'コピーに誘導する: ' + msg.replace(/\n/g, ' '));
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
 /* ============================================================
    実装の見張り
    ============================================================ */
@@ -600,6 +713,7 @@ console.log('\n【6】実装の見張り');
   ok(/kind === 'explain'/.test(src), '説明モードの明細を切り分けている');
   ok(/BK_TAG = 'gcpQuiz\.backup'/.test(src), 'バックアップに目印がある');
   ok(/state = loadState\(\);/.test(src), '復元は loadState の検査を通す');
+  ok(/claude\.use\('downloads'\)/.test(src), 'ファイル保存は downloads を先に試す');
 
   const art = fs.readFileSync(path.join(QUIZ, 'artifact.html'), 'utf8');
   ok(/id="prepBtn"/.test(art) && /id="backupBtn"/.test(art) && /id="hiddenCard"/.test(art),
