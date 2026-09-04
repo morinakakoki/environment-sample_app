@@ -81,7 +81,7 @@ console.log('\n【2】期限切れが無いときはボタンが無効');
   await c.close();
 }
 
-console.log('\n【3】出題順：間違い → 期限切れ → 未挑戦 → 済み');
+console.log('\n【3】出題順：未挑戦 → 間違い → 期限切れ → 済み');
 {
   const data = [Q(1, { q: '済み' }), Q(2, { q: '期限切れ' }), Q(3, { q: '未挑戦' }), Q(4, { q: '間違い' })];
   const { c, p } = await open(data, {
@@ -98,7 +98,9 @@ console.log('\n【3】出題順：間違い → 期限切れ → 未挑戦 → �
     await p.locator('#qVerdict:not(.hidden)').waitFor();
     await p.locator('#nextBtn').click();
   }
-  ok(order.join(',') === '間違い,期限切れ,未挑戦,済み', '順番どおり: ' + order.join(' → '));
+  /* 未挑戦を先頭に置いている。復習は間隔を数日過ぎても取り返せるが、
+     一度も見ていない問題は枠が埋まり続けるかぎり永久に出てこないため。 */
+  ok(order.join(',') === '未挑戦,間違い,期限切れ,済み', '順番どおり: ' + order.join(' → '));
   await c.close();
 }
 
@@ -260,8 +262,10 @@ console.log('\n【8】間隔の定義（実装の見張り）');
     ok(days.every((d, i) => i === 0 || d > days[i - 1]), '間隔が単調に伸びる: ' + days.join(' → '));
     ok(days[0] >= 1, '最短でも1日は空ける: ' + days[0]);
   }
-  ok(/wrong\.concat\(due,/.test(src.replace(/\s+/g, ' ')) || /concat\(due/.test(src),
-     'prioritize が間違い→期限切れ→… の順に並べている');
+  ok(/byChapterThenShuffle\(fresh\)\.concat\(shuffle\(wrong\), due, done\)/.test(src),
+     'prioritize が未挑戦→間違い→期限切れ→済み の順に並べている');
+  ok(/var FRESH_MAX = 4;/.test(src),
+     '全範囲の未挑戦は上限つき（無制限だと復習が飛ぶ）');
 }
 
 await b.close();

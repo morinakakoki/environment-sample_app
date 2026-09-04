@@ -546,7 +546,7 @@ python3 -m http.server 8000
       <div style="display:flex;flex-direction:column;gap:9px">
         <button class="btn" id="modeAll" type="button">
           <span class="ico" aria-hidden="true">🎯</span>
-          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">間違い → そろそろ忘れる頃 → 未挑戦 → 済み の順に出題</span><span class="cnt" id="cntAll"></span></span>
+          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">未挑戦（章順）→ 間違い → そろそろ忘れる頃 → 済み。復習が溜まった日は未挑戦4問まで</span><span class="cnt" id="cntAll"></span></span>
         </button>
         <button class="btn" id="modeWrong" type="button">
           <span class="ico" aria-hidden="true">🔁</span>
@@ -1426,6 +1426,22 @@ function byChapterThenShuffle(list){
   return out;
 }
 
+/* 出題順：未挑戦 → 間違い → そろそろ忘れる頃 → 済み（済みは正答率の低い順）。
+
+   もとは「間違い → 忘れかけ → 未挑戦」で、覚え直しの方が急ぐから、という理屈だった。
+   1問単位で見ればそのとおりだが、10問の枠と増え続ける問題数の下では成り立たない。
+   実データ48問＋週3問追加で60日ぶん、乱数25通りを回して比べた:
+
+     3日に1回のペース   カバー率 67% → 100%（第6章 0/6・第7章 0/7 が丸ごと未着手だった）
+     週10問足すペース   カバー率 53% →  98%（第5〜7章がすべて0）
+     2日に1回・標準     カバー率 95% → 100%、定着率はほぼ同じ（69% → 70%）
+
+   間違いと復習だけで枠が埋まる日が続くと、未挑戦は「あとで」ではなく「永久に出ない」に
+   なる。第7章は「このポートフォリオに当てはめると」で、面接で一番使うところ。
+   復習は間隔を数日過ぎても取り返せるが、一度も見ていない問題は取り返せない。
+
+   ただし未挑戦を無制限に先へ出すと今度は復習が飢えるので、全範囲だけ枠を切る
+   （withFreshQuota）。章別・方式別は全問出るので、順番が変わるだけで飢えは起きない。 */
 function prioritize(list){
   var wrong = [], due = [], fresh = [], done = [];
   var now = Date.now();
@@ -1444,21 +1460,23 @@ function prioritize(list){
   due  = shuffle(due).sort(function(a,b){
     return Math.floor(dueOver(b.id, now)) - Math.floor(dueOver(a.id, now)); });
   done = shuffle(done).sort(function(a,b){ return accuracyOf(a.id) - accuracyOf(b.id); });
-  return shuffle(wrong).concat(due, byChapterThenShuffle(fresh), done);
+  return byChapterThenShuffle(fresh).concat(shuffle(wrong), due, done);
 }
 
-/* 全範囲モードで未挑戦に最低限の枠を空ける。
-   未挑戦を章順にすると「まだ見ていない問題」が後ろの章に決まった形で溜まる。
-   3日に1回のペースだと間違い＋復習だけで10枠が埋まる日が続くので、
-   そのままだと第4章以降に永久に到達しない（実測で章4〜7が0問のまま）。
-   復習が最優先という原則は保ったまま、最後の枠だけ未挑戦に確保する。 */
-var FRESH_MIN = 2;
+/* 全範囲モードで、未挑戦が10枠を全部食べないようにする。
+   未挑戦を先頭に置いたので、放っておくと問題を足した日は10問とも新しい問題になり、
+   復習が飛ぶ。上限を4問にして、残り6枠は間違い→復習→済みに回す。
+   4にしたのは、上と同じ60日シミュレーションで 3 だと後ろの章に届かない回が残り
+   （3日に1回のペースで第7章 8/10）、6 以上にしても定着率が伸びなかったため。
+
+   復習の側が少ない日は、余った枠を未挑戦が取り戻す。そうしないと、はじめて開いた日
+   （全部が未挑戦）に10問ではなく4問しか出ない。 */
+var FRESH_MAX = 4;
 function withFreshQuota(list, n){
   var fresh = [], rest = [];
   list.forEach(function(q){ (statusOf(q.id) === 'new' ? fresh : rest).push(q); });
-  if(!fresh.length || rest.length <= n - FRESH_MIN) return list.slice(0, n);
-  var keep = Math.min(fresh.length, FRESH_MIN);
-  return rest.slice(0, n - keep).concat(fresh.slice(0, keep));
+  var keep = Math.min(fresh.length, Math.max(FRESH_MAX, n - rest.length));
+  return fresh.slice(0, keep).concat(rest).slice(0, n);
 }
 
 /* 選択肢を毎回シャッフルして返す（元の問題オブジェクトは書き換えない）。
@@ -1646,10 +1664,9 @@ function renderHome(){
   var nDue   = poolDue().length;
   var freshNext = byChapterThenShuffle(live.filter(function(q){ return statusOf(q.id) === 'new'; }));
   var nNew   = freshNext.length;
-  /* 未挑戦を章順にしたので「次にどの章が出るか」が事前に分かる。出しておく。
-     章順にすると後ろの章が繰り越されるので、繰り越されていること自体を隠さない。 */
-  $('cntAll').textContent = '間違い ' + nWrong + ' / 復習 ' + nDue + ' / 未挑戦 ' + nNew
-    + (nNew ? '（次は' + chapterLabel(freshNext[0].chapter) + 'から）' : '');
+  /* 未挑戦が先頭になったので、次に出る章を最初に出す。表示の順も出題の順に合わせる。 */
+  $('cntAll').textContent = (nNew ? '未挑戦 ' + nNew + '（次は' + chapterLabel(freshNext[0].chapter) + '）/ ' : '')
+    + '間違い ' + nWrong + ' / 復習 ' + nDue;
   $('cntWrong').textContent  = nWrong + '問';
   $('cntDue').textContent    = nDue ? nDue + '問' : 'いまはありません';
   $('cntRecent').textContent = Math.min(PICK_N, total) + '問';

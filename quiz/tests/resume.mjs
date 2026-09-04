@@ -470,7 +470,7 @@ console.log('\n【16】章が未設定の問題は先頭ではなく末尾に回
   await c.close();
 }
 
-console.log('\n【17】間違い・復習で埋まっても、未挑戦の枠が残る');
+console.log('\n【17】未挑戦が先頭に来るが、枠を食い尽くさない');
 {
   const ago = (d) => new Date(Date.now() - d * 86400000).toISOString();
   const data = [];
@@ -491,9 +491,12 @@ console.log('\n【17】間違い・復習で埋まっても、未挑戦の枠が
     await p.locator('#nextBtn').click();
   }
   const fresh = chapters.filter(x => x === '5').length;
-  ok(fresh === 2, '未挑戦が2問ぶん確保される（0だと後ろの章に永久に届かない）: '
+  ok(fresh === 4, '未挑戦が先頭に4問（0だと後ろの章に永久に届かない）: '
      + fresh + '問 / ' + chapters.join(','));
-  ok(chapters.filter(x => x === '1').length === 8, '残りは間違いから: ' + chapters.join(','));
+  ok(chapters.slice(0, 4).every(x => x === '5'),
+     '未挑戦が先頭にまとまっている: ' + chapters.join(','));
+  ok(chapters.filter(x => x === '1').length === 6,
+     '残り6枠は復習に回る（未挑戦が全部は食べない）: ' + chapters.join(','));
   ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
   await c.close();
 }
@@ -541,7 +544,7 @@ console.log('\n【19】「全範囲」に次の章が出る');
   const data = [Q(1, { chapter: 3 }), Q(2, { chapter: 5 })];
   const { c, p, errs } = await open(data);
   const t = await p.locator('#cntAll').textContent();
-  ok(/次は第3章から/.test(t), '次に出る章が分かる: ' + t);
+  ok(/^未挑戦 2（次は第3章）/.test(t), '未挑戦が先頭に出る: ' + t);
   ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
   await c.close();
 }
@@ -567,7 +570,11 @@ console.log('\n【20】実装の見張り');
   ok(/function byChapterThenShuffle/.test(src), '未挑戦は章ごとにまとめてシャッフル');
   ok(/Math\.floor\(dueOver\(b\.id, now\)\)/.test(src),
      '復習の並びは日単位に丸めてシャッフルを残している');
-  ok(/FRESH_MIN/.test(src), '未挑戦の最低枠がある');
+  ok(/byChapterThenShuffle\(fresh\)\.concat\(shuffle\(wrong\)/.test(src),
+     '未挑戦が先頭に来る');
+  ok(/var FRESH_MAX = 4;/.test(src), '全範囲の未挑戦に上限がある');
+  ok(/Math\.max\(FRESH_MAX, n - rest\.length\)/.test(src),
+     '復習が少ない日は未挑戦が枠を取り戻す（初回に4問しか出ないのを防ぐ）');
 
   const art = fs.readFileSync(path.join(QUIZ, 'artifact.html'), 'utf8');
   ok(/id="resumeCard"/.test(art), 'アーティファクトにも中断カードが入っている');
