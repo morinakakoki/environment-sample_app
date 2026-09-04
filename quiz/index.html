@@ -1259,6 +1259,9 @@ function parseData(raw){
       source    : (typeof r.source === 'string') ? r.source.trim() : '',
       /* 方式設計書のどの方式か。機能を作るたびに、その方式の問題が増えていく軸。 */
       method    : (typeof r.method === 'string') ? r.method.trim() : '',
+      /* 方式設計書の節より細かい指し先（任意）。「§10 #6 スキーマの所有者」など。
+         省略すれば method から節番号を引く。 */
+      section   : (typeof r.section === 'string') ? r.section.trim() : '',
       /* 日付の形以外は捨てる。addedAt は「最近追加」で連想配列のキーになるので、
          任意の文字列を通すとそこが壊れる。 */
       addedAt   : (typeof r.addedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.addedAt)) ? r.addedAt : ''
@@ -1512,7 +1515,8 @@ function withShuffledOptions(q){
     id:q.id, chapter:q.chapter, tag:q.tag, q:q.q,
     options: order.map(function(i){ return q.options[i]; }),
     answer: order.indexOf(q.answer),
-    explanation:q.explanation, source:q.source, method:q.method, addedAt:q.addedAt
+    explanation:q.explanation, source:q.source, method:q.method,
+    section:q.section, addedAt:q.addedAt
   };
 }
 
@@ -1534,6 +1538,36 @@ function poolMethod(m){ return activeQ().filter(function(q){ return q.method ===
    問題データに新しい方式が現れれば、そのまま増える。 */
 var METHOD_ORDER = ['構成・前提','処理方式','データ方式','認証・権限方式',
                     '運用・監視方式','コスト方式','IaC方式','設計判断'];
+
+/* 方式設計書のどの節にあたるか、と一行の意味。
+   これまで画面には「データ方式」という区分名しか出ておらず、それが設計書の §4 の
+   ことだとも、何を決めている節なのかも分からなかった。方式は章とちがって
+   名前だけでは中身が想像できないので、節番号と一行の説明を添える。
+
+   【設計書を並べ替えたらここも直すこと】節番号は
+   「マーケットデータ基盤 方式設計書」の見出し番号に合わせてある。 */
+var METHOD_DOC = {
+  '構成・前提'    : { sec:'§1・2・9', desc:'何をどこに置くか。構成図・リソース一覧・リージョンや期限などの前提' },
+  '処理方式'      : { sec:'§3',      desc:'いつ・どう動かすか。バッチの起動、取得、ロード方式、再実行の判断' },
+  'データ方式'    : { sec:'§4',      desc:'raw → staging → mart の3層。どのテーブルをどう更新するか' },
+  '認証・権限方式': { sec:'§5',      desc:'誰が何をできるか。サービスアカウントと最小権限、鍵の置き場' },
+  '運用・監視方式': { sec:'§6',      desc:'壊れたときどう気づくか。失敗・鮮度・品質・コストの検知と対処' },
+  'コスト方式'    : { sec:'§7',      desc:'課金を止める3層。予算アラート／bytes_billed／カスタム割り当て' },
+  'IaC方式'       : { sec:'§8',      desc:'Terraform の管理範囲と state、変更してよい条件' },
+  '設計判断'      : { sec:'§10',     desc:'A と B があってなぜ B にしたか。採らなかった案とトレードオフ' }
+};
+/* 方式名は問題データ由来なので、素の [] 参照だと '__proto__' で
+   Object.prototype が返ってきて「undefined __proto__」と表示される。 */
+function methodDoc(m){
+  return (m && Object.prototype.hasOwnProperty.call(METHOD_DOC, m)) ? METHOD_DOC[m] : null;
+}
+/* その問題が方式設計書のどこの話か。問題が section を持っていればそちらが優先。
+   section は「§10 #6 スキーマの所有者」のように、節より細かい行まで指す。 */
+function docRef(q){
+  if(q.section) return q.section;
+  var d = methodDoc(q.method);
+  return d ? (d.sec + ' ' + q.method) : '';
+}
 function methodList(){
   var seen = bare(), out = [];
   activeQ().forEach(function(q){ if(q.method) seen[q.method] = true; });
@@ -1709,15 +1743,18 @@ function renderHome(){
       var st = statusOf(q.id);
       if(st !== 'new'){ seen++; if(st === 'ok') corr++; }
     });
+    var doc = methodDoc(m);
     var b = el('button', 'btn');
     b.type = 'button';
     var ico = el('span', 'ico', '⚙'); ico.setAttribute('aria-hidden','true');
     b.appendChild(ico);
     var body = el('span', 'bodytxt');
-    body.appendChild(el('span', 'ttl', m));
-    body.appendChild(el('span', 'sub',
-      seen ? ('正答率 ' + Math.round(corr / seen * 100) + '%') : 'まだ解いていません'));
-    body.appendChild(el('span', 'cnt', pool.length + '問' + (w ? '　要復習 ' + w : '')));
+    /* 方式名だけだと中身が想像できないので、設計書の節番号と一行の説明を添える。 */
+    body.appendChild(el('span', 'ttl', m + (doc ? '　' + doc.sec : '')));
+    if(doc) body.appendChild(el('span', 'sub', doc.desc));
+    body.appendChild(el('span', 'cnt', pool.length + '問'
+      + (w ? '　要復習 ' + w : '')
+      + (seen ? '　正答率 ' + Math.round(corr / seen * 100) + '%' : '　まだ解いていません')));
     b.appendChild(body);
     b.addEventListener('click', function(){ startSession('method', m); });
     mb.appendChild(b);
@@ -2160,7 +2197,8 @@ function renderPrep(){
     var chips = el('div', 'chips');
     chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
     if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
-    if(q.method) chips.appendChild(el('span', 'chip method', q.method));
+    var dr = docRef(q);
+    if(dr) chips.appendChild(el('span', 'chip method', '方式設計書 ' + dr));
     card.appendChild(chips);
     card.appendChild(el('div', 'pq', q.q));
     card.appendChild(el('div', 'pa', '答え：' + q.options[q.answer]));
@@ -2185,7 +2223,8 @@ function prepText(){
     var q = r.q;
     var head = [chapterFull(q.chapter)];
     if(q.tag) head.push('理解度表 ' + q.tag);
-    if(q.method) head.push(q.method);
+    var dr = docRef(q);
+    if(dr) head.push('方式設計書 ' + dr);
     out.push('## ' + (i + 1) + '. ' + q.q);
     out.push('- 区分: ' + head.join(' / ') + '（' + (r.why === 'wrong' ? '直近で間違えた' : '説明できなかった') + '）');
     out.push('- 答え: ' + q.options[q.answer]);
@@ -2451,6 +2490,9 @@ function reveal(){
   back.appendChild(el('span', null, '戻る先：'));
   back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
   if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+  /* 方式設計書の側の戻る先。章（基礎知識ノート）とは別の軸なので両方出す。 */
+  var dr = docRef(q);
+  if(dr) back.appendChild(el('span', 'chip method', '方式設計書 ' + dr));
   v.appendChild(back);
   show(v);
   show($('qSelfWrap'));
@@ -2527,6 +2569,9 @@ function answer(i){
   back.appendChild(el('span', null, '戻る先：'));
   back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
   if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+  /* 方式設計書の側の戻る先。章（基礎知識ノート）とは別の軸なので両方出す。 */
+  var dr = docRef(q);
+  if(dr) back.appendChild(el('span', 'chip method', '方式設計書 ' + dr));
   v.appendChild(back);
 
   show(v);
@@ -3096,6 +3141,7 @@ function rowToQuestion(row){
     explanation: String(row[c.explanation] == null ? '' : row[c.explanation]).trim(),
     source    : String(row[c.source] == null ? '' : row[c.source]).trim(),
     method    : String(row[c.method] == null ? '' : row[c.method]).trim(),
+    section   : String(row[c.section] == null ? '' : row[c.section]).trim(),
     addedAt   : String(row[c.date] || '').slice(0, 10)
   };
 }
@@ -3320,7 +3366,7 @@ function addCheck(){
      （アーティファクト版はデータが埋め込みで、あとから消す手段が無い） */
   /* 知らないキーは保存データに入れない。ここで入れたものは公開版に永久に焼き込まれ、
      あとから消す手段が無い（アーティファクト版はデータが埋め込みのため）。 */
-  var KEEP = ['id','chapter','tag','method','q','options','answer','explanation','source','addedAt'];
+  var KEEP = ['id','chapter','tag','method','section','q','options','answer','explanation','source','addedAt'];
   incoming = incoming.map(function(r){
     if(!r || typeof r !== 'object') return r;   // null 等は後段の parseData が「形式エラー」に数える
     var out = {}, i;

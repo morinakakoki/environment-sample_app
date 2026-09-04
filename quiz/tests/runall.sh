@@ -31,7 +31,7 @@ done
 node "$QUIZ_DIR/build-artifact.mjs" >/dev/null || { echo "build-artifact.mjs が失敗しました"; exit 1; }
 node wrap.mjs >/dev/null 2>&1
 total=0; bad=0
-for t in smoke.mjs audit.mjs rt.mjs notion.mjs artifact-test.mjs sync.mjs evict.mjs src.mjs fixes.mjs round2.mjs method.mjs bias.mjs progress.mjs proto.mjs due.mjs explain.mjs extras.mjs resume.mjs; do
+for t in smoke.mjs audit.mjs rt.mjs notion.mjs artifact-test.mjs sync.mjs evict.mjs src.mjs fixes.mjs round2.mjs method.mjs bias.mjs progress.mjs proto.mjs due.mjs explain.mjs extras.mjs resume.mjs docref.mjs; do
   out=$(node "$t" 2>&1); rc=$?
   nfail=$(printf '%s' "$out" | grep -cE '^ +(FAIL|🐛)')
   npass=$(printf '%s' "$out" | grep -cE '^ +(PASS|ok )')

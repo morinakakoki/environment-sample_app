@@ -1,50 +1,846 @@
 [
-  {"id": 1, "chapter": 1, "tag": "#1", "q": "GCP の「プロジェクト」が単位になるものとして正しい組み合わせは？", "options": ["リージョン・VPC・請求先", "API 有効化・課金・IAM", "ユーザー・組織・フォルダ", "データセット・テーブル・ジョブ"], "answer": 1, "explanation": "プロジェクトは API を有効化する単位、課金の単位、IAM の単位。AWS アカウントに近いが1人で何個でも作れる。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy", "method": "構成・前提"},
-  {"id": 2, "chapter": 1, "tag": "#2", "q": "請求先アカウントとプロジェクトの関係で正しいのは？", "options": ["請求先アカウントはプロジェクトの親にあたり、IAM もそこから継承される", "1つのプロジェクトに複数の請求先アカウントを紐づけて用途別に分けられる", "1つの請求先に複数のプロジェクトを付けられ、IAM は継承しない", "請求先アカウントを削除すると、紐づくプロジェクトもまとめて削除される"], "answer": 2, "explanation": "請求先は「財布」。プロジェクトの親ではなく IAM は継承しない。1財布に多数プロジェクトが定石。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/billing/docs/how-to/billing-access", "method": "構成・前提"},
-  {"id": 3, "chapter": 1, "tag": "#8", "q": "新規プロジェクトで Cloud Run Job を作ろうとしたら API が無効というエラー。AWS には無いこの概念は？", "options": ["リージョン有効化（使うリージョンをプロジェクト単位で開放する）", "API 有効化（サービスをプロジェクト単位でオンにする）", "サービスクォータ（上限を上げるまで新しいサービスは作れない）", "組織ポリシー（組織に属さない個人プロジェクトでも既定で拒否される）"], "answer": 1, "explanation": "GCP は使うサービスをプロジェクトごとに有効化する。Terraform では google_project_service。BigQuery 系は新規で自動有効。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/service-usage/docs/enable-disable", "method": "構成・前提"},
-  {"id": 4, "chapter": 1, "tag": "#17", "q": "Cloud Run Job から BigQuery に書くための権限設計として最小権限に最も近いのは？", "options": ["Compute Engine の default サービスアカウントをそのまま使い、既定で付く編集者権限に任せる", "本人アカウントのサービスアカウントキー(JSON)をイメージに同梱して認証する", "専用 SA を作り bigquery.dataEditor と jobUser だけ付けて Job にアタッチ", "専用サービスアカウントを作り、確実に動くよう roles/owner を付けておく"], "answer": 2, "explanation": "専用 SA・必要ロールだけ・キーは作らずアタッチ、が定石。dataEditor=書く、jobUser=ジョブを投げる。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/batch-loading-data", "method": "認証・権限方式"},
-  {"id": 5, "chapter": 1, "tag": "#17", "q": "Scheduler 用 SA を Job 用 SA と分けた理由として正しいのは？", "options": ["Cloud Scheduler は他とサービスアカウントを共有できない仕様だから", "起動する側にデータを書く権限は不要だから（最小権限）", "サービスアカウントは1リソースにつき1つしか付けられないから", "課金をサービスアカウント単位で分けて集計するため"], "answer": 1, "explanation": "起動役に必要なのは run.invoker だけ。書き込み権限を持たせない＝侵害時の影響範囲を狭める。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/blog/products/identity-security/securing-cloud-run-deployments-with-least-privilege-access/", "method": "認証・権限方式"},
-  {"id": 6, "chapter": 1, "tag": "#12", "q": "無料トライアル終了（11/16）で起きることとして正しいのは？", "options": ["何も起きない。無料枠の範囲で今までどおり動き続ける", "ワークロードが停止する。有料化すれば無料枠は継続する", "プロジェクトが即座に削除され、データも復元できなくなる", "課金が自動的に始まり、上限なく請求が発生するようになる"], "answer": 1, "explanation": "トライアル終了でワークロード停止（公式FAQ）。有料アカウント化で復旧し、BigQuery の無料枠は残る。だから 11/1 に有料化する。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/signup-faqs", "method": "コスト方式"},
-  {"id": 7, "chapter": 2, "tag": "#3", "q": "BigQuery のデータセットについて正しいのは？", "options": ["リージョンは後から変更できる", "異なるリージョンのテーブル同士も JOIN できる", "リージョンは作成時に固定され、後から変更できない", "データセットにリージョンという概念は無い"], "answer": 2, "explanation": "データセットはリージョンを持ち、作成後に変更不可。別リージョン間の JOIN は不可。全部 asia-northeast1 に揃える理由。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/datasets", "method": "データ方式"},
-  {"id": 8, "chapter": 2, "tag": "#6", "q": "BigQuery の「ジョブ」に含まれないものは？", "options": ["データのロード", "クエリの実行", "エクスポート", "データセット作成"], "answer": 3, "explanation": "ジョブは load / query / extract / copy の4種。履歴は「ジョブ履歴」に6か月残る。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/managing-jobs", "method": "データ方式"},
-  {"id": 9, "chapter": 2, "tag": "#7", "q": "日次の取得ジョブ（load_table_from_dataframe）に maximum_bytes_billed を設定しても意味が無い理由は？", "options": ["ロードジョブには課金バイトが無い（無料）から", "BigQuery Studio からしか設定できない仕様だから", "Python クライアントが上限設定に対応していないから", "無料トライアル中は上限設定そのものが使えないから"], "answer": 0, "explanation": "課金バイトが付くのはクエリジョブだけ。上限は staging / mart を作るクエリと dbt profile に置く。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/pricing", "method": "コスト方式"},
-  {"id": 10, "chapter": 2, "tag": "#7", "q": "maximum_bytes_billed の判定タイミングは？", "options": ["クエリの完了後に実績の課金バイトで判定し、超えていれば結果を破棄する", "実行前の見積もり（dry run 相当）と比較し、超えていれば実行しない", "1時間ごとの集計バッチで判定し、超えた分は翌日に繰り越す", "月次の課金締め日にまとめて判定し、超過分だけ請求される"], "answer": 1, "explanation": "実行前の見積もりで拒否する。だからコスト防御として唯一「確実」な層。キャッシュヒットは0バイト。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/best-practices-costs", "method": "コスト方式"},
-  {"id": 11, "chapter": 2, "tag": "#7", "q": "同じクエリを2回流したら2回目の課金バイトが 0 だった。理由は？", "options": ["2回目は無料枠が適用された", "クエリ結果キャッシュに当たった", "パーティションが効いた", "BigQuery の不具合"], "answer": 1, "explanation": "結果キャッシュヒットは課金 0。上限のテストをする時は --nouse_cache を付ける。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/cached-results", "method": "コスト方式"},
-  {"id": 12, "chapter": 2, "tag": "#20", "q": "date 列でパーティションしたテーブルに対して、課金バイトが減らないクエリは？", "options": ["WHERE date >= '2026-08-01'", "WHERE date BETWEEN '2026-08-01' AND '2026-08-31'", "WHERE CAST(date AS STRING) LIKE '2026-08%'", "WHERE date = CURRENT_DATE()"], "answer": 2, "explanation": "パーティション列を関数で包んで文字列比較するとプルーニングが効かない。列そのものに条件を付ける。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/querying-partitioned-tables", "method": "データ方式"},
-  {"id": 13, "chapter": 2, "tag": "#20", "q": "既存の非パーティションテーブルをパーティション化する時、Terraform plan に出るものは？", "options": ["~ update in-place（定義だけがその場で書き換わる）", "-/+ forces replacement（作り直し）", "変更なし（スキーマの変更は plan には出てこない）", "+ create のみ（新しいテーブルが追加で作られる）"], "answer": 1, "explanation": "パーティション設定は作成時にしか付けられない属性。だから replace。データは消えるので、バックフィルで戻せる時だけ許可する。", "addedAt": "2026-08-30", "source": "https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/bigquery_table", "method": "IaC方式"},
-  {"id": 14, "chapter": 2, "tag": "#14", "q": "日足の取得を WRITE_TRUNCATE にしてよい根拠は？", "options": ["BigQuery のドキュメントが日次ロードの既定として推奨している設定だから", "毎回「直近1年を全量取り直す」設計なので、全部消して入れ直しても結果が同じ（冪等）だから", "WRITE_APPEND より書き込みが速く、ロードのコストも下がるから", "全量を入れ替えるとパーティションが再構成されて検索が速くなるから"], "answer": 1, "explanation": "TRUNCATE が適するのは全量取り直せる時だけ。増分データや分足（60日しか遡れない）では使えない。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/load-data-partitioned-tables", "method": "データ方式"},
-  {"id": 15, "chapter": 2, "tag": "#14", "q": "分足（yfinance は直近 60 日しか取れない）のロード方式として適切なのは？", "options": ["テーブル全体を WRITE_TRUNCATE して、毎日60日分を入れ直す", "WRITE_APPEND で毎日追記し、重複は後から DELETE で消す", "日付パーティション（table$YYYYMMDD）を指定して、その日だけ置き換える", "毎回テーブルを DROP して CREATE し直し、60日分を入れる"], "answer": 2, "explanation": "全量が取り直せないので全体 TRUNCATE は不可。APPEND は再実行で重複。パーティション単位の置換なら冪等。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/bigquery/docs/load-data-partitioned-tables", "method": "データ方式"},
-  {"id": 16, "chapter": 2, "tag": "#15", "q": "terraform plan が daily_prices の replace を提案した。直接原因は？", "options": ["Terraform provider のバージョンが上がり、テーブル定義の既定値が変わったから", "Python がロードのたびにスキーマを autodetect してテーブル定義を上書きし、宣言とズレた", "BigQuery 側の定期メンテナンスでテーブルのメタデータが作り直されたから", "データセットのリージョン設定が変わり、テーブルの作り直しが必要になったから"], "answer": 1, "explanation": "LoadJobConfig に schema を渡さないと毎回 DataFrame から推定→REQUIRED→NULLABLE 等にドリフト。対策は schema 明示。「構造は Terraform、中身は Python」。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/python/docs/reference/bigquery/latest/google.cloud.bigquery.client.Client", "method": "IaC方式"},
-  {"id": 17, "chapter": 3, "tag": "#16", "q": "Cloud Run の Service と Job の違いで正しいのは？", "options": ["Service はバッチ処理向けで、Job は HTTP を受けて常駐し続ける", "Service は常駐して HTTP を受ける。Job は起動して処理し終了する", "どちらも常駐する仕組みで、課金の単位と名前だけが違う", "Job は Docker イメージを使えず、ソースを直接デプロイする"], "answer": 1, "explanation": "バッチは Job。AWS でいえば ECS Fargate の RunTask。定義（イメージ・SA）と実行（execution）が分かれる。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/run/docs/create-jobs", "method": "処理方式"},
-  {"id": 18, "chapter": 3, "tag": "#16", "q": "イメージを修正して push したが Job の動作が変わらない。最も考えられる原因は？", "options": ["Artifact Registry へ push したイメージの反映に24時間かかるから", "Job 定義が古いタグ（v1）を指したまま。タグを更新して定義を apply する必要がある", "Cloud Scheduler を再作成しないと新しいイメージが読まれないから", "サービスアカウントの権限不足で新しいイメージを pull できていない"], "answer": 1, "explanation": "Job 定義はイメージのタグを固定で持つ。v2 に上げて Terraform で定義を更新する。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/run/docs/create-jobs", "method": "処理方式"},
-  {"id": 19, "chapter": 3, "tag": "#18", "q": "Cloud Scheduler から Cloud Run Job を起動する時、OAuth トークンを使う理由は？", "options": ["OAuth の方が OIDC より暗号強度が高く、安全とされているから", "呼び先が Google API（run.googleapis.com）のため。自前エンドポイントなら OIDC を使う", "Cloud Scheduler の HTTP ターゲットは OAuth にしか対応しておらず、OIDC は選べない仕様だから", "OIDC は自前サーバ向けの規格で、Google API の呼び出しには使えないから"], "answer": 1, "explanation": "Google API を呼ぶ＝OAuth、自前エンドポイント＝OIDC。SA に対象 Job の run.invoker が要る。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/scheduler/docs/http-target-auth", "method": "認証・権限方式"},
-  {"id": 20, "chapter": 3, "tag": "#18", "q": "Scheduler の実行結果が 403。最初に疑うのは？", "options": ["cron の書式が誤っていて、そもそも起動時刻が来ていない", "Scheduler 用 SA に対象 Job の run.invoker が付いていない", "リクエスト URI に指定したリージョンが Job の実際のリージョンと違っている", "タイムゾーンの指定が UTC のままで、実行時刻がずれている"], "answer": 1, "explanation": "403＝権限。gcloud run jobs get-iam-policy で binding を確認。404 なら URI（プロジェクト・リージョン・Job 名）。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/scheduler/docs/troubleshooting", "method": "認証・権限方式"},
-  {"id": 21, "chapter": 3, "tag": "#16", "q": "Dockerfile で requirements.txt を先に COPY してから pip install し、その後にコードを COPY する理由は？", "options": ["Python の仕様で COPY と pip install の順番が決まっているから", "コードだけ変えた時に pip install のレイヤーキャッシュが効き、ビルドが速いから", "先に依存だけ入れることで、脆弱なパッケージを検出しやすいから", "この順番にすると最終的なイメージのサイズが小さくなるから"], "answer": 1, "explanation": "レイヤーは上から順にキャッシュされる。変更頻度の低いものを先に置く。", "addedAt": "2026-08-30", "source": "https://docs.docker.com/build/cache/optimize/", "method": "処理方式"},
-  {"id": 22, "chapter": 3, "tag": "#19", "q": "FRED の API キーの置き場として適切なのは？", "options": ["Dockerfile の ENV に書き、イメージに焼き込んで渡す", "Terraform の .tf に平文で書き、apply で流し込む", "Secret Manager に置き、Job 定義から環境変数として参照する", "Git リポジトリの .env に置き、コンテナから読み込む"], "answer": 2, "explanation": "イメージ・tfstate・Git に平文を置かない。Job の SA に secretmanager.secretAccessor が要る。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/run/docs/configuring/jobs/secrets", "method": "認証・権限方式"},
-  {"id": 23, "chapter": 3, "tag": "#16", "q": "raw → staging → mart の順序制御を「時刻ずらし」で行う判断の代替案として、定石に近いのは？", "options": ["Cloud Composer（Airflow）や Workflows で依存関係を書く", "3つの処理を全部1つの Job にまとめて順番に実行する", "毎日決まった時間に手動で順番に実行して結果を確認する", "Cloud Functions を3本並べ、それぞれの時刻をずらして順番に起動する"], "answer": 0, "explanation": "依存関係の明示は Composer / Workflows が定石。Composer は個人には課金が重い＝「なぜ使わなかったか」が設計判断メモになる。", "addedAt": "2026-08-30", "source": "https://docs.cloud.google.com/composer/docs/composer-3/write-dags", "method": "処理方式"},
-  {"id": 24, "chapter": 4, "tag": "#9", "q": "Terraform と CloudFormation の決定的な違いは？", "options": ["Terraform は命令型で、手順を上から順に書いていく方式である", "Terraform は state を自分で持ち、宣言・state・実体の3つを突き合わせる", "CloudFormation には plan にあたる事前確認の仕組みがそもそも存在しない", "Terraform は AWS には使えず、他社クラウド専用の道具である"], "answer": 1, "explanation": "CloudFormation は状態を AWS が持つ。Terraform は tfstate。チームでは GCS 等に置きロックする。個人はローカル。", "addedAt": "2026-08-30", "source": "https://developer.hashicorp.com/terraform/language/state/backends", "method": "IaC方式"},
-  {"id": 25, "chapter": 4, "tag": "#9", "q": "terraform plan の記号で「作り直し（データ消失の可能性）」を示すのは？", "options": ["+", "~", "-/+", "="], "answer": 2, "explanation": "+ 作成、~ その場で変更、-/+ replace。-/+ か destroy が出たら apply しない、が約束。", "addedAt": "2026-08-30", "source": "https://developer.hashicorp.com/terraform/tutorials/cli/plan", "method": "IaC方式"},
-  {"id": 26, "chapter": 4, "tag": "#15", "q": "「ドリフト」の説明として正しいのは？", "options": ["Terraform 本体と provider のバージョンがずれていること", "Terraform の外から実体が変更され、宣言（.tf）とズレること", "state ファイルが破損して読めなくなっている状態のこと", "リージョン間の通信でレイテンシが大きくなること"], "answer": 1, "explanation": "8/25・8/30 は Python がスキーマを書き換えたドリフト。Terraform は宣言を正として実体を戻そうとし、replace になる。", "addedAt": "2026-08-30", "source": "https://developer.hashicorp.com/terraform/tutorials/state/resource-drift", "method": "IaC方式"},
-  {"id": 27, "chapter": 4, "tag": "#9", "q": "個人ポートフォリオで tfstate をローカルに置く判断を面接で説明する時、添えるべき定石は？", "options": ["state は常にローカルに置くのが公式の推奨とされている", "チームでは GCS などのリモートバックエンドに置き、ロックで同時実行を防ぐのが定石", "state は Git にコミットして履歴を残すのが定石とされる", "state は Terraform 1.0 以降では不要になり使われない"], "answer": 1, "explanation": "「単一端末・個人なのでローカル。本番ならリモート＋ロック」と言える＝代替案と理由。", "addedAt": "2026-08-30", "source": "https://developer.hashicorp.com/terraform/language/state/locking", "method": "IaC方式"},
-  {"id": 28, "chapter": 5, "tag": "#10", "q": "raw 層の定義として最も正確なのは？", "options": ["自動取得したデータを、整形してから置いておく層", "加工前のまま置く、パイプラインでこれ以上遡れない入力の境界", "集計済みの数値を BI から参照しやすい形で置く層", "処理の途中で出る一時ファイルを一時的に置く層"], "answer": 1, "explanation": "手動投入の銘柄マスタも raw。「取得元が何か」ではなく「これ以上遡れないか」で決まる。", "addedAt": "2026-08-30", "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638", "method": "データ方式"},
-  {"id": 29, "chapter": 5, "tag": "#13", "q": "yfinance で auto_adjust=False にした理由は？", "options": ["auto_adjust=True だと取得に時間がかかりすぎ、日次のジョブ実行時間に間に合わないから", "調整済み値が raw に入ると『調整後終値を自分で再計算する』見せ場が成立せず、raw 原則にも反するから", "yfinance の既定値が False で、変えると警告が出る仕様だから", "Terraform 側のスキーマ定義と列名を合わせる必要があるから"], "answer": 1, "explanation": "download() は 0.2.51 でデフォルトが True になり（0.2.53 以降は未指定だと警告つきで実質 True）、OHLC が調整済みに書き換わり Adj Close 列が消える。Ticker.history() は 0.1.26 から既定 True。raw は加工前のまま。", "addedAt": "2026-08-30", "source": "https://ranaroussi.github.io/yfinance/reference/api/yfinance.download.html", "method": "データ方式"},
-  {"id": 30, "chapter": 5, "tag": "#11", "q": "失敗したジョブを「再実行してよい」と判断できる条件は？", "options": ["エラーメッセージが短くて読みやすく、原因がその場で特定できること", "前回の実行から24時間以上が経過していること", "処理が冪等（2回流しても結果が同じ）で、途中まで書かれた状態が残らない", "運用担当者から再実行の承認が取れていること"], "answer": 2, "explanation": "TRUNCATE・パーティション置換・CREATE OR REPLACE は冪等。APPEND は重複するので不可。DATUM Ops の『再実行判断』の中身。", "addedAt": "2026-08-30", "source": "https://docs.cloud.google.com/bigquery/docs/batch-loading-data", "method": "運用・監視方式"},
-  {"id": 31, "chapter": 5, "tag": "as-of", "q": "四半期決算を日次価格に結合する時、fiscal_period_end（期末日）ではなく filed_date（提出日）で結ぶ理由は？", "options": ["期末日は欠損が多く、結合できない銘柄が出てしまうから", "期末日で結ぶと、まだ公開されていない情報を過去の日に付けてしまう（ルックアヘッド）から", "提出日で結んだ方がパーティションとインデックスが効き、JOIN が速く終わるから", "SEC の開示仕様では期末日そのものが取得できないから"], "answer": 1, "explanation": "as-of ジョイン＝その日時点で知り得た最新値。filed_date <= date で絞り最新1件を QUALIFY で取る。", "addedAt": "2026-08-30", "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638", "method": "データ方式"},
-  {"id": 32, "chapter": 5, "tag": "品質", "q": "合成データではなく実データを使う理由として本ポートフォリオが挙げたのは？", "options": ["合成データは生成に時間がかかり、日次実行に載らないから", "合成データだと品質テストが自作自演になり、検証可能性を示せない", "実データの方が量が多く、BigQuery の練習になるから", "BigQuery の利用規約が合成データの投入を禁じているから"], "answer": 1, "explanation": "実データには本物の欠損（外国籍の us-gaap 欠落、FRED の \".\"、Yahoo との不一致）がある。検知して落とさず記録する。", "addedAt": "2026-08-30", "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638", "method": "データ方式"},
-  {"id": 33, "chapter": 5, "tag": "#11", "q": "「今日のデータが来ていない」を検知する仕組みとして、失敗通知の経路に自然に乗る方法は？", "options": ["毎朝 BigQuery Studio で手動の SELECT を流し、件数と最新日付を目で見て確認する", "mart ジョブの最後に ASSERT MAX(date) >= … を置き、満たさなければジョブを失敗させる", "Looker Studio のダッシュボードを開いて欠けを目で確認する", "課金額が下がったことに予算アラート経由で間接的に気づく"], "answer": 1, "explanation": "鮮度・品質は ASSERT でジョブ失敗に変換すると、失敗アラートと同じ通知経路で届く。", "addedAt": "2026-08-30", "source": "https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/debugging-statements", "method": "運用・監視方式"},
-  {"id": 34, "chapter": 6, "tag": "#7", "q": "予算アラート（月3,000円）について正しいのは？", "options": ["超えたらクエリの実行が自動的に止まる", "超えたら通知が来るだけで課金は止まらない", "超えたらプロジェクト全体が一時停止される", "超えたら翌月の無料枠が自動的に増える"], "answer": 1, "explanation": "予算アラートは通知だけで、課金も利用も止まりません（公式に「アラートのみの予算は使用量や支出を自動的に上限設定しない」と明記）。確実に止めたいなら、クエリ単位の maximum_bytes_billed（実行前に拒否）と、有料化後のカスタム割り当てを使います。なお近年、超過時にサービスを自動停止する「支出上限（spend cap）予算」がプレビュー提供されていますが、対象は Cloud Run や Gemini API などで BigQuery は含まれません。BigQuery のクエリ課金を止める役には立ちません。", "addedAt": "2026-08-30", "source": "https://docs.cloud.google.com/billing/docs/how-to/budgets", "method": "コスト方式"},
-  {"id": 35, "chapter": 6, "tag": "#12", "q": "有料化（11/1）の直後に必ずやることは？", "options": ["データセットのリージョンを東京に作り直して寄せる", "BigQuery のカスタム割り当て（1日の課金バイト上限）を設定する", "サービスアカウントを作り直して権限を付け直す", "Cloud Scheduler を再作成して cron を設定し直す"], "answer": 1, "explanation": "トライアル中は「$300 で停止」が実質ハードリミット。有料化でそれが外れるので、カスタム割り当てで代替する（トライアル中は Adjustable=No）。", "addedAt": "2026-08-30", "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas", "method": "コスト方式"},
-  {"id": 36, "chapter": 6, "tag": "#7", "q": "コスト防御3層のうち「実行前に確実に止まる」のは？", "options": ["予算アラート（Cloud Billing の budget 設定）", "カスタム割り当て（BigQuery の custom quota）", "maximum_bytes_billed（クエリ側のオプション）", "Looker Studio の閲覧制限（レポートの共有設定）"], "answer": 2, "explanation": "クエリ単位の maximum_bytes_billed だけが、実行前の見積もりで上限を超えると拒否します。カスタム割り当ては公式に「おおよその値」とされ、割り当てを超えるクエリがまれに実行されることがあります。予算アラートは通知のみで止まりません。「確実に止まるか」で3つを区別するのがポイントです。", "addedAt": "2026-08-30", "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas", "method": "コスト方式"},
-  {"id": 37, "chapter": 7, "tag": "設計", "q": "「なぜ Airflow / Cloud Composer を使わなかったか」への答えとして一貫しているのは？", "options": ["Airflow は学習コストが高いので今回は見送った。ジョブが3本なら手で順番を決めれば足りる。必要になったら勉強して入れる", "Composer は常駐課金が重く無料枠で回らない。ジョブ3本の順序は時刻ずらしで足りる。依存が複雑になれば Workflows / Composer に移す", "Airflow は GCP では動かず AWS 専用の仕組み。GCP で組むなら Cloud Run しか選択肢が無い。だから採用しなかった", "Composer は新しすぎて日本語の情報が少ない。Cloud Run の方が枯れていて安心できる。実務でも Composer は避けられる傾向にある"], "answer": 1, "explanation": "採らなかった選択肢＋理由＋採った案の弱点＋実務ならどう変えるか、の4点が言えれば合格。", "addedAt": "2026-08-30", "source": "https://cloud.google.com/composer/pricing", "method": "設計判断"},
-  {"id": 38, "chapter": 7, "tag": "設計", "q": "dbt を mart 層だけに入れた判断の説明として筋が通るのは？", "options": ["dbt は raw 層には対応しておらず、ロード直後の生データには使えない仕様になっている。結果として使える層が mart しか無かったので、そこだけに入れることにした", "raw は Python のロード、staging は素の SQL で十分。変換ロジックが集中し、テスト（not_null/unique/一致率）が効くのは mart だから", "dbt は無料枠の対象外で、層を増やすほど課金が膨らむ。mart だけなら実行回数が少なく収まる。コストを抑えるための判断だった", "staging 層はこの構成には存在せず、raw から直接 mart を作っている。したがって dbt を入れられる層が mart しか無かった"], "answer": 1, "explanation": "dbt の価値は ref による依存管理とテスト。価値が出る層に絞る＝Be Lazy。", "addedAt": "2026-08-30", "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638", "method": "設計判断"},
-  {"id": 39, "chapter": 5, "tag": "#11", "method": "運用・監視方式", "q": "ジョブ失敗の通知をログベースのアラートで組んだ。運用上、知っておくべき制限はどれか。", "options": ["severity が ERROR のログにはアラートを設定できない", "1つのログベースアラートポリシーにつき、通知は1日20件までに制限される", "通知先はメールしか選べず、Slack や Webhook は使えない", "Cloud Run のログはログベースアラートの対象外"], "answer": 1, "explanation": "ログベースのアラートポリシーには「1ポリシーあたり1日20インシデント」の上限があり、超えると通知が止まります。ジョブが壊れて大量にエラーを吐いたときに、まさに知りたい場面で通知が来なくなり得るということです。通知先はメール以外の複数チャネルを設定でき、Cloud Run のログも対象にできるので、他の記述は誤りです。", "source": "https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts", "addedAt": "2026-08-31"},
-  {"id": 40, "chapter": 5, "tag": "#11", "method": "運用・監視方式", "q": "監視を組んだあとに「意図的に失敗させて検知を確かめる」ことの意味は。", "options": ["ジョブの実行時間を計測して性能を把握するため", "ログの保存容量が上限に達しないか確認するため", "処理が冪等かどうかを実際に流して検証するため", "通知経路が実際に鳴ることは、鳴らしてみるまで分からないから"], "answer": 3, "explanation": "アラートは「設定した」ことと「届く」ことが別物です。フィルタ条件のズレ、通知チャネルの未確認、権限不足のいずれかで黙ることがあり、鳴らない監視は無いのと同じです。ログベースのアラートは、条件に合うログエントリを手で書き込んでテストできます。冪等性の確認は再実行して結果が変わらないかを見る別の作業です。", "source": "https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts", "addedAt": "2026-08-31"},
-  {"id": 41, "chapter": 6, "tag": "#7", "method": "運用・監視方式", "q": "予算アラートとは別に、INFORMATION_SCHEMA.JOBS の課金バイトを自分の mart に保存する狙いは。", "options": ["ジョブ単位の課金バイトを日次で追え、どのクエリが重いかまで特定できるから", "予算アラートより早いタイミングで通知が届くようになるから", "保存しないと INFORMATION_SCHEMA が使えなくなるから", "保存しておくと上限を超えたときに課金を自動で止められるから"], "answer": 0, "explanation": "予算アラートはプロジェクト全体の金額しか教えず、どのクエリが原因かは分かりません。INFORMATION_SCHEMA.JOBS には total_bytes_billed がジョブ単位で入るので犯人を特定できます。ただしこのビューの履歴は180日で消えるため、長期の推移を見たいなら自分のテーブルに残す必要があります。保存しても課金は止まらず、通知が早くなるわけでもありません（このビューへのクエリにはリージョン修飾子が要る点にも注意）。", "source": "https://docs.cloud.google.com/bigquery/docs/information-schema-jobs", "addedAt": "2026-08-31"},
-  {"id": 42, "chapter": 4, "tag": "#15", "method": "設計判断", "q": "テーブルのスキーマを「Terraform が正、Python 側は明示指定」にした理由の説明として筋が通るのは。", "options": ["Terraform の方が扱えるデータ型が多く、細かい指定ができるから", "Python のクライアントライブラリではロード時にスキーマを明示指定できない仕様だから", "autodetect に任せると毎回定義が上書きされてドリフトし、replace 事故になるから", "autodetect を使うとスキャン量が増えて追加料金がかかるから"], "answer": 2, "explanation": "autodetect はロードのたびにスキーマを推定して書き換えるため、Terraform の宣言と実体がズレます。ズレたまま apply すると差分が replace（テーブル作り直し）として出て、実際に事故になりました。弱点は列を足すとき .tf と Python の両方を直す必要があること。「スキーマの所有者を1つに決める」という判断そのものが説明材料になります。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"},
-  {"id": 43, "chapter": 7, "tag": "設計", "method": "設計判断", "q": "DWH に BigQuery を選び、Redshift Serverless を採らなかった説明として一貫しているのは。", "options": ["Redshift Serverless には東京リージョンが無いため、日本から使うと通信の遅延が大きいから", "BigQuery は月1TiB・10GiB が恒久無料で面接時も動かせる。Redshift の無料枠は期限付きだから", "BigQuery の方が新しいサービスで、機能が多く将来性もあるから", "Redshift では標準 SQL が使えず、独自の方言を覚える必要があるから"], "answer": 1, "explanation": "ポートフォリオは作って終わりではなく、面接の場で動かせる必要があります。恒久無料枠のある BigQuery なら数か月後も見せられますが、期限付きトライアルは切れたら止まります。求人で BigQuery 必須が多い点も理由になります。弱点は AWS 実務との接続が薄く見えることで、そこは経歴書側で CloudFormation を語って補う——採用理由と弱点の両方が言えることが大事です。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"},
-  {"id": 44, "chapter": 7, "tag": "設計", "method": "設計判断", "q": "Snowflake を全再現せず「1テーブル＋スクリーンショットの縮小版」にした判断の説明として筋が通るのは。", "options": ["無料トライアルに期限が無いので急いで作る必要がないから", "Snowflake は BigQuery とほぼ同じなので再現する意味が無いから", "Snowflake は法人契約が必要で、個人では契約そのものができないから", "トライアルが30日で切れ面接時に見せられないため、差分を語れる最小限に絞った"], "answer": 3, "explanation": "見せられなくなるものを作り込んでも面接では機能しません。BigQuery との違い（仮想ウェアハウスやゼロコピークローンなど）を自分の言葉で語れれば目的は果たせる、という割り切りです。弱点は「Snowflake の実務相当とは言えない」ことで、そこは認めた上での判断になります。期限のある無料枠にどこまで投資するかの判断例としても使えます。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"},
-  {"id": 45, "chapter": 1, "tag": "#17", "method": "構成・前提", "q": "scheduler-invoker サービスアカウントの権限が外れたら、何が起きるか。", "options": ["BigQuery のテーブルが読めなくなり、クエリが全部失敗する", "Job は起動されなくなるが、データ・Job 定義・イメージは無傷のまま残る", "Artifact Registry のイメージが削除される", "Terraform の state が壊れて apply できなくなる"], "answer": 1, "explanation": "scheduler-invoker は run.invoker だけを持つ「起動役」で、データには一切触れません。権限が外れると Scheduler から Job を叩けず 403 になり日次の取り込みが止まりますが、BigQuery のテーブルもイメージも state も無事です。役割ごとに SA を分けてあると、壊れたときの影響範囲をここまで狭く言い切れます。これが最小権限の実利です。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"},
-  {"id": 46, "chapter": 4, "tag": "#9", "method": "構成・前提", "q": "このポートフォリオで Terraform の管理範囲に「入っていない」ものはどれか。", "options": ["BigQuery のデータセットとテーブル定義（スキーマ・パーティション）", "Cloud Run Job と Cloud Scheduler の定義", "サービスアカウントと IAM バインディング", "staging / mart の SQL 本体とテーブルの中身"], "answer": 3, "explanation": "Terraform は「入れ物」を持ち「中身」は持たない、という線引きです。データセット・テーブル定義・Job・Scheduler・SA と IAM は Terraform 管理下ですが、SQL 本体、テーブルの中身、イメージの中身は管理外。プロジェクト作成・請求先・予算アラートも手動側です。この線が引けていると「なぜこれは .tf に無いのか」に即答できます。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"},
-  {"id": 47, "chapter": 7, "tag": "設計", "method": "構成・前提", "q": "日足の取り込みについて「そこが止まると全部止まる」箇所はどれか。", "options": ["Cloud Scheduler（起動されなければ Job が走らない）", "Looker Studio（表示が止まると取り込みも止まる）", "mart データセット（無いと raw への書き込みが失敗する）", "Secret Manager（日足の取得にも FRED のキーが要る）"], "answer": 0, "explanation": "日足は Scheduler → Cloud Run Job → BigQuery raw の一本道なので、起点である Scheduler が止まれば何も始まりません。Looker Studio は下流の閲覧なので落ちても取り込みは続き、mart も raw より下流なので raw への書き込みには関係しません。FRED のキーはマクロ指標用で、yfinance の日足には不要です。どこが単一障害点かを言えるのが構成理解です。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"},
-  {"id": 48, "chapter": 1, "tag": "#1", "method": "構成・前提", "q": "dev / prod を分けず1プロジェクトにした判断の説明として筋が通るのは。", "options": ["GCP では個人アカウントで複数プロジェクトを作れないから", "プロジェクトを分けると BigQuery のデータセットを参照できなくなるから", "個人の学習用で検証と本番の区別が無いため。実務では分けて課金と IAM を切るのが定石", "プロジェクトを分けると Terraform で一括管理できなくなるから"], "answer": 2, "explanation": "プロジェクトは API 有効化・課金・IAM の単位なので、実務では dev と prod を分けて事故の波及と権限を切るのが定石です。個人の学習用では分ける相手がいないため1つで足ります。「本番なら分ける」と一言添えられれば、知らないのではなく選んだのだと伝わります。複数プロジェクトは個人でも作れますし、他プロジェクトのデータセットも Terraform も問題なく扱えます。", "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff", "addedAt": "2026-08-31"}
+  {
+    "id": 1,
+    "chapter": 1,
+    "tag": "#1",
+    "q": "GCP の「プロジェクト」が単位になるものとして正しい組み合わせは？",
+    "options": [
+      "リージョン・VPC・請求先",
+      "API 有効化・課金・IAM",
+      "ユーザー・組織・フォルダ",
+      "データセット・テーブル・ジョブ"
+    ],
+    "answer": 1,
+    "explanation": "プロジェクトは API を有効化する単位、課金の単位、IAM の単位。AWS アカウントに近いが1人で何個でも作れる。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy",
+    "method": "構成・前提"
+  },
+  {
+    "id": 2,
+    "chapter": 1,
+    "tag": "#2",
+    "q": "請求先アカウントとプロジェクトの関係で正しいのは？",
+    "options": [
+      "請求先アカウントはプロジェクトの親にあたり、IAM もそこから継承される",
+      "1つのプロジェクトに複数の請求先アカウントを紐づけて用途別に分けられる",
+      "1つの請求先に複数のプロジェクトを付けられ、IAM は継承しない",
+      "請求先アカウントを削除すると、紐づくプロジェクトもまとめて削除される"
+    ],
+    "answer": 2,
+    "explanation": "請求先は「財布」。プロジェクトの親ではなく IAM は継承しない。1財布に多数プロジェクトが定石。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/billing/docs/how-to/billing-access",
+    "method": "構成・前提"
+  },
+  {
+    "id": 3,
+    "chapter": 1,
+    "tag": "#8",
+    "q": "新規プロジェクトで Cloud Run Job を作ろうとしたら API が無効というエラー。AWS には無いこの概念は？",
+    "options": [
+      "リージョン有効化（使うリージョンをプロジェクト単位で開放する）",
+      "API 有効化（サービスをプロジェクト単位でオンにする）",
+      "サービスクォータ（上限を上げるまで新しいサービスは作れない）",
+      "組織ポリシー（組織に属さない個人プロジェクトでも既定で拒否される）"
+    ],
+    "answer": 1,
+    "explanation": "GCP は使うサービスをプロジェクトごとに有効化する。Terraform では google_project_service。BigQuery 系は新規で自動有効。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/service-usage/docs/enable-disable",
+    "method": "構成・前提"
+  },
+  {
+    "id": 4,
+    "chapter": 1,
+    "tag": "#17",
+    "q": "Cloud Run Job から BigQuery に書くための権限設計として最小権限に最も近いのは？",
+    "options": [
+      "Compute Engine の default サービスアカウントをそのまま使い、既定で付く編集者権限に任せる",
+      "本人アカウントのサービスアカウントキー(JSON)をイメージに同梱して認証する",
+      "専用 SA を作り bigquery.dataEditor と jobUser だけ付けて Job にアタッチ",
+      "専用サービスアカウントを作り、確実に動くよう roles/owner を付けておく"
+    ],
+    "answer": 2,
+    "explanation": "専用 SA・必要ロールだけ・キーは作らずアタッチ、が定石。dataEditor=書く、jobUser=ジョブを投げる。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/batch-loading-data",
+    "method": "認証・権限方式",
+    "section": "§10 #7 サービスアカウントの分け方"
+  },
+  {
+    "id": 5,
+    "chapter": 1,
+    "tag": "#17",
+    "q": "Scheduler 用 SA を Job 用 SA と分けた理由として正しいのは？",
+    "options": [
+      "Cloud Scheduler は他とサービスアカウントを共有できない仕様だから",
+      "起動する側にデータを書く権限は不要だから（最小権限）",
+      "サービスアカウントは1リソースにつき1つしか付けられないから",
+      "課金をサービスアカウント単位で分けて集計するため"
+    ],
+    "answer": 1,
+    "explanation": "起動役に必要なのは run.invoker だけ。書き込み権限を持たせない＝侵害時の影響範囲を狭める。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/blog/products/identity-security/securing-cloud-run-deployments-with-least-privilege-access/",
+    "method": "認証・権限方式",
+    "section": "§10 #7 サービスアカウントの分け方"
+  },
+  {
+    "id": 6,
+    "chapter": 1,
+    "tag": "#12",
+    "q": "無料トライアル終了（11/16）で起きることとして正しいのは？",
+    "options": [
+      "何も起きない。無料枠の範囲で今までどおり動き続ける",
+      "ワークロードが停止する。有料化すれば無料枠は継続する",
+      "プロジェクトが即座に削除され、データも復元できなくなる",
+      "課金が自動的に始まり、上限なく請求が発生するようになる"
+    ],
+    "answer": 1,
+    "explanation": "トライアル終了でワークロード停止（公式FAQ）。有料アカウント化で復旧し、BigQuery の無料枠は残る。だから 11/1 に有料化する。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/signup-faqs",
+    "method": "コスト方式"
+  },
+  {
+    "id": 7,
+    "chapter": 2,
+    "tag": "#3",
+    "q": "BigQuery のデータセットについて正しいのは？",
+    "options": [
+      "リージョンは後から変更できる",
+      "異なるリージョンのテーブル同士も JOIN できる",
+      "リージョンは作成時に固定され、後から変更できない",
+      "データセットにリージョンという概念は無い"
+    ],
+    "answer": 2,
+    "explanation": "データセットはリージョンを持ち、作成後に変更不可。別リージョン間の JOIN は不可。全部 asia-northeast1 に揃える理由。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/datasets",
+    "method": "データ方式",
+    "section": "§9 制約・前提（リージョン統一）"
+  },
+  {
+    "id": 8,
+    "chapter": 2,
+    "tag": "#6",
+    "q": "BigQuery の「ジョブ」に含まれないものは？",
+    "options": [
+      "データのロード",
+      "クエリの実行",
+      "エクスポート",
+      "データセット作成"
+    ],
+    "answer": 3,
+    "explanation": "ジョブは load / query / extract / copy の4種。履歴は「ジョブ履歴」に6か月残る。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/managing-jobs",
+    "method": "データ方式"
+  },
+  {
+    "id": 9,
+    "chapter": 2,
+    "tag": "#7",
+    "q": "日次の取得ジョブ（load_table_from_dataframe）に maximum_bytes_billed を設定しても意味が無い理由は？",
+    "options": [
+      "ロードジョブには課金バイトが無い（無料）から",
+      "BigQuery Studio からしか設定できない仕様だから",
+      "Python クライアントが上限設定に対応していないから",
+      "無料トライアル中は上限設定そのものが使えないから"
+    ],
+    "answer": 0,
+    "explanation": "課金バイトが付くのはクエリジョブだけ。上限は staging / mart を作るクエリと dbt profile に置く。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/pricing",
+    "method": "コスト方式"
+  },
+  {
+    "id": 10,
+    "chapter": 2,
+    "tag": "#7",
+    "q": "maximum_bytes_billed の判定タイミングは？",
+    "options": [
+      "クエリの完了後に実績の課金バイトで判定し、超えていれば結果を破棄する",
+      "実行前の見積もり（dry run 相当）と比較し、超えていれば実行しない",
+      "1時間ごとの集計バッチで判定し、超えた分は翌日に繰り越す",
+      "月次の課金締め日にまとめて判定し、超過分だけ請求される"
+    ],
+    "answer": 1,
+    "explanation": "実行前の見積もりで拒否する。だからコスト防御として唯一「確実」な層。キャッシュヒットは0バイト。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/best-practices-costs",
+    "method": "コスト方式"
+  },
+  {
+    "id": 11,
+    "chapter": 2,
+    "tag": "#7",
+    "q": "同じクエリを2回流したら2回目の課金バイトが 0 だった。理由は？",
+    "options": [
+      "2回目は無料枠が適用された",
+      "クエリ結果キャッシュに当たった",
+      "パーティションが効いた",
+      "BigQuery の不具合"
+    ],
+    "answer": 1,
+    "explanation": "結果キャッシュヒットは課金 0。上限のテストをする時は --nouse_cache を付ける。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/cached-results",
+    "method": "コスト方式"
+  },
+  {
+    "id": 12,
+    "chapter": 2,
+    "tag": "#20",
+    "q": "date 列でパーティションしたテーブルに対して、課金バイトが減らないクエリは？",
+    "options": [
+      "WHERE date >= '2026-08-01'",
+      "WHERE date BETWEEN '2026-08-01' AND '2026-08-31'",
+      "WHERE CAST(date AS STRING) LIKE '2026-08%'",
+      "WHERE date = CURRENT_DATE()"
+    ],
+    "answer": 2,
+    "explanation": "パーティション列を関数で包んで文字列比較するとプルーニングが効かない。列そのものに条件を付ける。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/querying-partitioned-tables",
+    "method": "データ方式"
+  },
+  {
+    "id": 13,
+    "chapter": 2,
+    "tag": "#20",
+    "q": "既存の非パーティションテーブルをパーティション化する時、Terraform plan に出るものは？",
+    "options": [
+      "~ update in-place（定義だけがその場で書き換わる）",
+      "-/+ forces replacement（作り直し）",
+      "変更なし（スキーマの変更は plan には出てこない）",
+      "+ create のみ（新しいテーブルが追加で作られる）"
+    ],
+    "answer": 1,
+    "explanation": "パーティション設定は作成時にしか付けられない属性。だから replace。データは消えるので、バックフィルで戻せる時だけ許可する。",
+    "addedAt": "2026-08-30",
+    "source": "https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/bigquery_table",
+    "method": "IaC方式"
+  },
+  {
+    "id": 14,
+    "chapter": 2,
+    "tag": "#14",
+    "q": "日足の取得を WRITE_TRUNCATE にしてよい根拠は？",
+    "options": [
+      "BigQuery のドキュメントが日次ロードの既定として推奨している設定だから",
+      "毎回「直近1年を全量取り直す」設計なので、全部消して入れ直しても結果が同じ（冪等）だから",
+      "WRITE_APPEND より書き込みが速く、ロードのコストも下がるから",
+      "全量を入れ替えるとパーティションが再構成されて検索が速くなるから"
+    ],
+    "answer": 1,
+    "explanation": "TRUNCATE が適するのは全量取り直せる時だけ。増分データや分足（60日しか遡れない）では使えない。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/load-data-partitioned-tables",
+    "method": "データ方式",
+    "section": "§10 #4 日足のロード方式"
+  },
+  {
+    "id": 15,
+    "chapter": 2,
+    "tag": "#14",
+    "q": "分足（yfinance は直近 60 日しか取れない）のロード方式として適切なのは？",
+    "options": [
+      "テーブル全体を WRITE_TRUNCATE して、毎日60日分を入れ直す",
+      "WRITE_APPEND で毎日追記し、重複は後から DELETE で消す",
+      "日付パーティション（table$YYYYMMDD）を指定して、その日だけ置き換える",
+      "毎回テーブルを DROP して CREATE し直し、60日分を入れる"
+    ],
+    "answer": 2,
+    "explanation": "全量が取り直せないので全体 TRUNCATE は不可。APPEND は再実行で重複。パーティション単位の置換なら冪等。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/bigquery/docs/load-data-partitioned-tables",
+    "method": "データ方式",
+    "section": "§10 #5 分足のロード方式"
+  },
+  {
+    "id": 16,
+    "chapter": 2,
+    "tag": "#15",
+    "q": "terraform plan が daily_prices の replace を提案した。直接原因は？",
+    "options": [
+      "Terraform provider のバージョンが上がり、テーブル定義の既定値が変わったから",
+      "Python がロードのたびにスキーマを autodetect してテーブル定義を上書きし、宣言とズレた",
+      "BigQuery 側の定期メンテナンスでテーブルのメタデータが作り直されたから",
+      "データセットのリージョン設定が変わり、テーブルの作り直しが必要になったから"
+    ],
+    "answer": 1,
+    "explanation": "LoadJobConfig に schema を渡さないと毎回 DataFrame から推定→REQUIRED→NULLABLE 等にドリフト。対策は schema 明示。「構造は Terraform、中身は Python」。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/python/docs/reference/bigquery/latest/google.cloud.bigquery.client.Client",
+    "method": "IaC方式",
+    "section": "§10 #6 スキーマの所有者"
+  },
+  {
+    "id": 17,
+    "chapter": 3,
+    "tag": "#16",
+    "q": "Cloud Run の Service と Job の違いで正しいのは？",
+    "options": [
+      "Service はバッチ処理向けで、Job は HTTP を受けて常駐し続ける",
+      "Service は常駐して HTTP を受ける。Job は起動して処理し終了する",
+      "どちらも常駐する仕組みで、課金の単位と名前だけが違う",
+      "Job は Docker イメージを使えず、ソースを直接デプロイする"
+    ],
+    "answer": 1,
+    "explanation": "バッチは Job。AWS でいえば ECS Fargate の RunTask。定義（イメージ・SA）と実行（execution）が分かれる。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/run/docs/create-jobs",
+    "method": "処理方式"
+  },
+  {
+    "id": 18,
+    "chapter": 3,
+    "tag": "#16",
+    "q": "イメージを修正して push したが Job の動作が変わらない。最も考えられる原因は？",
+    "options": [
+      "Artifact Registry へ push したイメージの反映に24時間かかるから",
+      "Job 定義が古いタグ（v1）を指したまま。タグを更新して定義を apply する必要がある",
+      "Cloud Scheduler を再作成しないと新しいイメージが読まれないから",
+      "サービスアカウントの権限不足で新しいイメージを pull できていない"
+    ],
+    "answer": 1,
+    "explanation": "Job 定義はイメージのタグを固定で持つ。v2 に上げて Terraform で定義を更新する。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/run/docs/create-jobs",
+    "method": "処理方式"
+  },
+  {
+    "id": 19,
+    "chapter": 3,
+    "tag": "#18",
+    "q": "Cloud Scheduler から Cloud Run Job を起動する時、OAuth トークンを使う理由は？",
+    "options": [
+      "OAuth の方が OIDC より暗号強度が高く、安全とされているから",
+      "呼び先が Google API（run.googleapis.com）のため。自前エンドポイントなら OIDC を使う",
+      "Cloud Scheduler の HTTP ターゲットは OAuth にしか対応しておらず、OIDC は選べない仕様だから",
+      "OIDC は自前サーバ向けの規格で、Google API の呼び出しには使えないから"
+    ],
+    "answer": 1,
+    "explanation": "Google API を呼ぶ＝OAuth、自前エンドポイント＝OIDC。SA に対象 Job の run.invoker が要る。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/scheduler/docs/http-target-auth",
+    "method": "認証・権限方式"
+  },
+  {
+    "id": 20,
+    "chapter": 3,
+    "tag": "#18",
+    "q": "Scheduler の実行結果が 403。最初に疑うのは？",
+    "options": [
+      "cron の書式が誤っていて、そもそも起動時刻が来ていない",
+      "Scheduler 用 SA に対象 Job の run.invoker が付いていない",
+      "リクエスト URI に指定したリージョンが Job の実際のリージョンと違っている",
+      "タイムゾーンの指定が UTC のままで、実行時刻がずれている"
+    ],
+    "answer": 1,
+    "explanation": "403＝権限。gcloud run jobs get-iam-policy で binding を確認。404 なら URI（プロジェクト・リージョン・Job 名）。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/scheduler/docs/troubleshooting",
+    "method": "認証・権限方式"
+  },
+  {
+    "id": 21,
+    "chapter": 3,
+    "tag": "#16",
+    "q": "Dockerfile で requirements.txt を先に COPY してから pip install し、その後にコードを COPY する理由は？",
+    "options": [
+      "Python の仕様で COPY と pip install の順番が決まっているから",
+      "コードだけ変えた時に pip install のレイヤーキャッシュが効き、ビルドが速いから",
+      "先に依存だけ入れることで、脆弱なパッケージを検出しやすいから",
+      "この順番にすると最終的なイメージのサイズが小さくなるから"
+    ],
+    "answer": 1,
+    "explanation": "レイヤーは上から順にキャッシュされる。変更頻度の低いものを先に置く。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.docker.com/build/cache/optimize/",
+    "method": "処理方式"
+  },
+  {
+    "id": 22,
+    "chapter": 3,
+    "tag": "#19",
+    "q": "FRED の API キーの置き場として適切なのは？",
+    "options": [
+      "Dockerfile の ENV に書き、イメージに焼き込んで渡す",
+      "Terraform の .tf に平文で書き、apply で流し込む",
+      "Secret Manager に置き、Job 定義から環境変数として参照する",
+      "Git リポジトリの .env に置き、コンテナから読み込む"
+    ],
+    "answer": 2,
+    "explanation": "イメージ・tfstate・Git に平文を置かない。Job の SA に secretmanager.secretAccessor が要る。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/run/docs/configuring/jobs/secrets",
+    "method": "認証・権限方式"
+  },
+  {
+    "id": 23,
+    "chapter": 3,
+    "tag": "#16",
+    "q": "raw → staging → mart の順序制御を「時刻ずらし」で行う判断の代替案として、定石に近いのは？",
+    "options": [
+      "Cloud Composer（Airflow）や Workflows で依存関係を書く",
+      "3つの処理を全部1つの Job にまとめて順番に実行する",
+      "毎日決まった時間に手動で順番に実行して結果を確認する",
+      "Cloud Functions を3本並べ、それぞれの時刻をずらして順番に起動する"
+    ],
+    "answer": 0,
+    "explanation": "依存関係の明示は Composer / Workflows が定石。Composer は個人には課金が重い＝「なぜ使わなかったか」が設計判断メモになる。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.cloud.google.com/composer/docs/composer-3/write-dags",
+    "method": "処理方式",
+    "section": "§10 #3 実行基盤（Composer を採らない）"
+  },
+  {
+    "id": 24,
+    "chapter": 4,
+    "tag": "#9",
+    "q": "Terraform と CloudFormation の決定的な違いは？",
+    "options": [
+      "Terraform は命令型で、手順を上から順に書いていく方式である",
+      "Terraform は state を自分で持ち、宣言・state・実体の3つを突き合わせる",
+      "CloudFormation には plan にあたる事前確認の仕組みがそもそも存在しない",
+      "Terraform は AWS には使えず、他社クラウド専用の道具である"
+    ],
+    "answer": 1,
+    "explanation": "CloudFormation は状態を AWS が持つ。Terraform は tfstate。チームでは GCS 等に置きロックする。個人はローカル。",
+    "addedAt": "2026-08-30",
+    "source": "https://developer.hashicorp.com/terraform/language/state/backends",
+    "method": "IaC方式",
+    "section": "§8 IaC 方式（state と plan）"
+  },
+  {
+    "id": 25,
+    "chapter": 4,
+    "tag": "#9",
+    "q": "terraform plan の記号で「作り直し（データ消失の可能性）」を示すのは？",
+    "options": [
+      "+",
+      "~",
+      "-/+",
+      "="
+    ],
+    "answer": 2,
+    "explanation": "+ 作成、~ その場で変更、-/+ replace。-/+ か destroy が出たら apply しない、が約束。",
+    "addedAt": "2026-08-30",
+    "source": "https://developer.hashicorp.com/terraform/tutorials/cli/plan",
+    "method": "IaC方式"
+  },
+  {
+    "id": 26,
+    "chapter": 4,
+    "tag": "#15",
+    "q": "「ドリフト」の説明として正しいのは？",
+    "options": [
+      "Terraform 本体と provider のバージョンがずれていること",
+      "Terraform の外から実体が変更され、宣言（.tf）とズレること",
+      "state ファイルが破損して読めなくなっている状態のこと",
+      "リージョン間の通信でレイテンシが大きくなること"
+    ],
+    "answer": 1,
+    "explanation": "8/25・8/30 は Python がスキーマを書き換えたドリフト。Terraform は宣言を正として実体を戻そうとし、replace になる。",
+    "addedAt": "2026-08-30",
+    "source": "https://developer.hashicorp.com/terraform/tutorials/state/resource-drift",
+    "method": "IaC方式",
+    "section": "§10 #6 スキーマの所有者"
+  },
+  {
+    "id": 27,
+    "chapter": 4,
+    "tag": "#9",
+    "q": "個人ポートフォリオで tfstate をローカルに置く判断を面接で説明する時、添えるべき定石は？",
+    "options": [
+      "state は常にローカルに置くのが公式の推奨とされている",
+      "チームでは GCS などのリモートバックエンドに置き、ロックで同時実行を防ぐのが定石",
+      "state は Git にコミットして履歴を残すのが定石とされる",
+      "state は Terraform 1.0 以降では不要になり使われない"
+    ],
+    "answer": 1,
+    "explanation": "「単一端末・個人なのでローカル。本番ならリモート＋ロック」と言える＝代替案と理由。",
+    "addedAt": "2026-08-30",
+    "source": "https://developer.hashicorp.com/terraform/language/state/locking",
+    "method": "IaC方式",
+    "section": "§10 #8 Terraform state の置き場"
+  },
+  {
+    "id": 28,
+    "chapter": 5,
+    "tag": "#10",
+    "q": "raw 層の定義として最も正確なのは？",
+    "options": [
+      "自動取得したデータを、整形してから置いておく層",
+      "加工前のまま置く、パイプラインでこれ以上遡れない入力の境界",
+      "集計済みの数値を BI から参照しやすい形で置く層",
+      "処理の途中で出る一時ファイルを一時的に置く層"
+    ],
+    "answer": 1,
+    "explanation": "手動投入の銘柄マスタも raw。「取得元が何か」ではなく「これ以上遡れないか」で決まる。",
+    "addedAt": "2026-08-30",
+    "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
+    "method": "データ方式"
+  },
+  {
+    "id": 29,
+    "chapter": 5,
+    "tag": "#13",
+    "q": "yfinance で auto_adjust=False にした理由は？",
+    "options": [
+      "auto_adjust=True だと取得に時間がかかりすぎ、日次のジョブ実行時間に間に合わないから",
+      "調整済み値が raw に入ると『調整後終値を自分で再計算する』見せ場が成立せず、raw 原則にも反するから",
+      "yfinance の既定値が False で、変えると警告が出る仕様だから",
+      "Terraform 側のスキーマ定義と列名を合わせる必要があるから"
+    ],
+    "answer": 1,
+    "explanation": "download() は 0.2.51 でデフォルトが True になり（0.2.53 以降は未指定だと警告つきで実質 True）、OHLC が調整済みに書き換わり Adj Close 列が消える。Ticker.history() は 0.1.26 から既定 True。raw は加工前のまま。",
+    "addedAt": "2026-08-30",
+    "source": "https://ranaroussi.github.io/yfinance/reference/api/yfinance.download.html",
+    "method": "データ方式",
+    "section": "§9 制約・前提（データ利用条件）"
+  },
+  {
+    "id": 30,
+    "chapter": 5,
+    "tag": "#11",
+    "q": "失敗したジョブを「再実行してよい」と判断できる条件は？",
+    "options": [
+      "エラーメッセージが短くて読みやすく、原因がその場で特定できること",
+      "前回の実行から24時間以上が経過していること",
+      "処理が冪等（2回流しても結果が同じ）で、途中まで書かれた状態が残らない",
+      "運用担当者から再実行の承認が取れていること"
+    ],
+    "answer": 2,
+    "explanation": "TRUNCATE・パーティション置換・CREATE OR REPLACE は冪等。APPEND は重複するので不可。DATUM Ops の『再実行判断』の中身。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.cloud.google.com/bigquery/docs/batch-loading-data",
+    "method": "運用・監視方式"
+  },
+  {
+    "id": 31,
+    "chapter": 5,
+    "tag": "as-of",
+    "q": "四半期決算を日次価格に結合する時、fiscal_period_end（期末日）ではなく filed_date（提出日）で結ぶ理由は？",
+    "options": [
+      "期末日は欠損が多く、結合できない銘柄が出てしまうから",
+      "期末日で結ぶと、まだ公開されていない情報を過去の日に付けてしまう（ルックアヘッド）から",
+      "提出日で結んだ方がパーティションとインデックスが効き、JOIN が速く終わるから",
+      "SEC の開示仕様では期末日そのものが取得できないから"
+    ],
+    "answer": 1,
+    "explanation": "as-of ジョイン＝その日時点で知り得た最新値。filed_date <= date で絞り最新1件を QUALIFY で取る。",
+    "addedAt": "2026-08-30",
+    "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
+    "method": "データ方式",
+    "section": "§4 データ方式（mart の as-of ジョイン）"
+  },
+  {
+    "id": 32,
+    "chapter": 5,
+    "tag": "品質",
+    "q": "合成データではなく実データを使う理由として本ポートフォリオが挙げたのは？",
+    "options": [
+      "合成データは生成に時間がかかり、日次実行に載らないから",
+      "合成データだと品質テストが自作自演になり、検証可能性を示せない",
+      "実データの方が量が多く、BigQuery の練習になるから",
+      "BigQuery の利用規約が合成データの投入を禁じているから"
+    ],
+    "answer": 1,
+    "explanation": "実データには本物の欠損（外国籍の us-gaap 欠落、FRED の \".\"、Yahoo との不一致）がある。検知して落とさず記録する。",
+    "addedAt": "2026-08-30",
+    "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
+    "method": "データ方式",
+    "section": "§10 #2 実データか合成データか"
+  },
+  {
+    "id": 33,
+    "chapter": 5,
+    "tag": "#11",
+    "q": "「今日のデータが来ていない」を検知する仕組みとして、失敗通知の経路に自然に乗る方法は？",
+    "options": [
+      "毎朝 BigQuery Studio で手動の SELECT を流し、件数と最新日付を目で見て確認する",
+      "mart ジョブの最後に ASSERT MAX(date) >= … を置き、満たさなければジョブを失敗させる",
+      "Looker Studio のダッシュボードを開いて欠けを目で確認する",
+      "課金額が下がったことに予算アラート経由で間接的に気づく"
+    ],
+    "answer": 1,
+    "explanation": "鮮度・品質は ASSERT でジョブ失敗に変換すると、失敗アラートと同じ通知経路で届く。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/debugging-statements",
+    "method": "運用・監視方式",
+    "section": "§6 運用・監視方式（鮮度の ASSERT）"
+  },
+  {
+    "id": 34,
+    "chapter": 6,
+    "tag": "#7",
+    "q": "予算アラート（月3,000円）について正しいのは？",
+    "options": [
+      "超えたらクエリの実行が自動的に止まる",
+      "超えたら通知が来るだけで課金は止まらない",
+      "超えたらプロジェクト全体が一時停止される",
+      "超えたら翌月の無料枠が自動的に増える"
+    ],
+    "answer": 1,
+    "explanation": "予算アラートは通知だけで、課金も利用も止まりません（公式に「アラートのみの予算は使用量や支出を自動的に上限設定しない」と明記）。確実に止めたいなら、クエリ単位の maximum_bytes_billed（実行前に拒否）と、有料化後のカスタム割り当てを使います。なお近年、超過時にサービスを自動停止する「支出上限（spend cap）予算」がプレビュー提供されていますが、対象は Cloud Run や Gemini API などで BigQuery は含まれません。BigQuery のクエリ課金を止める役には立ちません。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.cloud.google.com/billing/docs/how-to/budgets",
+    "method": "コスト方式",
+    "section": "§7 コスト方式（3層）"
+  },
+  {
+    "id": 35,
+    "chapter": 6,
+    "tag": "#12",
+    "q": "有料化（11/1）の直後に必ずやることは？",
+    "options": [
+      "データセットのリージョンを東京に作り直して寄せる",
+      "BigQuery のカスタム割り当て（1日の課金バイト上限）を設定する",
+      "サービスアカウントを作り直して権限を付け直す",
+      "Cloud Scheduler を再作成して cron を設定し直す"
+    ],
+    "answer": 1,
+    "explanation": "トライアル中は「$300 で停止」が実質ハードリミット。有料化でそれが外れるので、カスタム割り当てで代替する（トライアル中は Adjustable=No）。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas",
+    "method": "コスト方式"
+  },
+  {
+    "id": 36,
+    "chapter": 6,
+    "tag": "#7",
+    "q": "コスト防御3層のうち「実行前に確実に止まる」のは？",
+    "options": [
+      "予算アラート（Cloud Billing の budget 設定）",
+      "カスタム割り当て（BigQuery の custom quota）",
+      "maximum_bytes_billed（クエリ側のオプション）",
+      "Looker Studio の閲覧制限（レポートの共有設定）"
+    ],
+    "answer": 2,
+    "explanation": "クエリ単位の maximum_bytes_billed だけが、実行前の見積もりで上限を超えると拒否します。カスタム割り当ては公式に「おおよその値」とされ、割り当てを超えるクエリがまれに実行されることがあります。予算アラートは通知のみで止まりません。「確実に止まるか」で3つを区別するのがポイントです。",
+    "addedAt": "2026-08-30",
+    "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas",
+    "method": "コスト方式",
+    "section": "§10 #9 コスト上限の3層"
+  },
+  {
+    "id": 37,
+    "chapter": 7,
+    "tag": "設計",
+    "q": "「なぜ Airflow / Cloud Composer を使わなかったか」への答えとして一貫しているのは？",
+    "options": [
+      "Airflow は学習コストが高いので今回は見送った。ジョブが3本なら手で順番を決めれば足りる。必要になったら勉強して入れる",
+      "Composer は常駐課金が重く無料枠で回らない。ジョブ3本の順序は時刻ずらしで足りる。依存が複雑になれば Workflows / Composer に移す",
+      "Airflow は GCP では動かず AWS 専用の仕組み。GCP で組むなら Cloud Run しか選択肢が無い。だから採用しなかった",
+      "Composer は新しすぎて日本語の情報が少ない。Cloud Run の方が枯れていて安心できる。実務でも Composer は避けられる傾向にある"
+    ],
+    "answer": 1,
+    "explanation": "採らなかった選択肢＋理由＋採った案の弱点＋実務ならどう変えるか、の4点が言えれば合格。",
+    "addedAt": "2026-08-30",
+    "source": "https://cloud.google.com/composer/pricing",
+    "method": "設計判断",
+    "section": "§10 #3 実行基盤（Composer を採らない）"
+  },
+  {
+    "id": 38,
+    "chapter": 7,
+    "tag": "設計",
+    "q": "dbt を mart 層だけに入れた判断の説明として筋が通るのは？",
+    "options": [
+      "dbt は raw 層には対応しておらず、ロード直後の生データには使えない仕様になっている。結果として使える層が mart しか無かったので、そこだけに入れることにした",
+      "raw は Python のロード、staging は素の SQL で十分。変換ロジックが集中し、テスト（not_null/unique/一致率）が効くのは mart だから",
+      "dbt は無料枠の対象外で、層を増やすほど課金が膨らむ。mart だけなら実行回数が少なく収まる。コストを抑えるための判断だった",
+      "staging 層はこの構成には存在せず、raw から直接 mart を作っている。したがって dbt を入れられる層が mart しか無かった"
+    ],
+    "answer": 1,
+    "explanation": "dbt の価値は ref による依存管理とテスト。価値が出る層に絞る＝Be Lazy。",
+    "addedAt": "2026-08-30",
+    "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
+    "method": "設計判断",
+    "section": "§10 #10 dbt をどの層に入れるか"
+  },
+  {
+    "id": 39,
+    "chapter": 5,
+    "tag": "#11",
+    "method": "運用・監視方式",
+    "section": "§6 運用・監視方式（失敗の検知）",
+    "q": "ジョブ失敗の通知をログベースのアラートで組んだ。運用上、知っておくべき制限はどれか。",
+    "options": [
+      "severity が ERROR のログにはアラートを設定できない",
+      "1つのログベースアラートポリシーにつき、通知は1日20件までに制限される",
+      "通知先はメールしか選べず、Slack や Webhook は使えない",
+      "Cloud Run のログはログベースアラートの対象外"
+    ],
+    "answer": 1,
+    "explanation": "ログベースのアラートポリシーには「1ポリシーあたり1日20インシデント」の上限があり、超えると通知が止まります。ジョブが壊れて大量にエラーを吐いたときに、まさに知りたい場面で通知が来なくなり得るということです。通知先はメール以外の複数チャネルを設定でき、Cloud Run のログも対象にできるので、他の記述は誤りです。",
+    "source": "https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 40,
+    "chapter": 5,
+    "tag": "#11",
+    "method": "運用・監視方式",
+    "section": "§6 運用・監視方式（検知の確認）",
+    "q": "監視を組んだあとに「意図的に失敗させて検知を確かめる」ことの意味は。",
+    "options": [
+      "ジョブの実行時間を計測して性能を把握するため",
+      "ログの保存容量が上限に達しないか確認するため",
+      "処理が冪等かどうかを実際に流して検証するため",
+      "通知経路が実際に鳴ることは、鳴らしてみるまで分からないから"
+    ],
+    "answer": 3,
+    "explanation": "アラートは「設定した」ことと「届く」ことが別物です。フィルタ条件のズレ、通知チャネルの未確認、権限不足のいずれかで黙ることがあり、鳴らない監視は無いのと同じです。ログベースのアラートは、条件に合うログエントリを手で書き込んでテストできます。冪等性の確認は再実行して結果が変わらないかを見る別の作業です。",
+    "source": "https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 41,
+    "chapter": 6,
+    "tag": "#7",
+    "method": "運用・監視方式",
+    "section": "§6 運用・監視方式（コストの実測）",
+    "q": "予算アラートとは別に、INFORMATION_SCHEMA.JOBS の課金バイトを自分の mart に保存する狙いは。",
+    "options": [
+      "ジョブ単位の課金バイトを日次で追え、どのクエリが重いかまで特定できるから",
+      "予算アラートより早いタイミングで通知が届くようになるから",
+      "保存しないと INFORMATION_SCHEMA が使えなくなるから",
+      "保存しておくと上限を超えたときに課金を自動で止められるから"
+    ],
+    "answer": 0,
+    "explanation": "予算アラートはプロジェクト全体の金額しか教えず、どのクエリが原因かは分かりません。INFORMATION_SCHEMA.JOBS には total_bytes_billed がジョブ単位で入るので犯人を特定できます。ただしこのビューの履歴は180日で消えるため、長期の推移を見たいなら自分のテーブルに残す必要があります。保存しても課金は止まらず、通知が早くなるわけでもありません（このビューへのクエリにはリージョン修飾子が要る点にも注意）。",
+    "source": "https://docs.cloud.google.com/bigquery/docs/information-schema-jobs",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 42,
+    "chapter": 4,
+    "tag": "#15",
+    "method": "設計判断",
+    "section": "§10 #6 スキーマの所有者",
+    "q": "テーブルのスキーマを「Terraform が正、Python 側は明示指定」にした理由の説明として筋が通るのは。",
+    "options": [
+      "Terraform の方が扱えるデータ型が多く、細かい指定ができるから",
+      "Python のクライアントライブラリではロード時にスキーマを明示指定できない仕様だから",
+      "autodetect に任せると毎回定義が上書きされてドリフトし、replace 事故になるから",
+      "autodetect を使うとスキャン量が増えて追加料金がかかるから"
+    ],
+    "answer": 2,
+    "explanation": "autodetect はロードのたびにスキーマを推定して書き換えるため、Terraform の宣言と実体がズレます。ズレたまま apply すると差分が replace（テーブル作り直し）として出て、実際に事故になりました。弱点は列を足すとき .tf と Python の両方を直す必要があること。「スキーマの所有者を1つに決める」という判断そのものが説明材料になります。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 43,
+    "chapter": 7,
+    "tag": "設計",
+    "method": "設計判断",
+    "section": "§10 #1 クラウド／DWH の選定",
+    "q": "DWH に BigQuery を選び、Redshift Serverless を採らなかった説明として一貫しているのは。",
+    "options": [
+      "Redshift Serverless には東京リージョンが無いため、日本から使うと通信の遅延が大きいから",
+      "BigQuery は月1TiB・10GiB が恒久無料で面接時も動かせる。Redshift の無料枠は期限付きだから",
+      "BigQuery の方が新しいサービスで、機能が多く将来性もあるから",
+      "Redshift では標準 SQL が使えず、独自の方言を覚える必要があるから"
+    ],
+    "answer": 1,
+    "explanation": "ポートフォリオは作って終わりではなく、面接の場で動かせる必要があります。恒久無料枠のある BigQuery なら数か月後も見せられますが、期限付きトライアルは切れたら止まります。求人で BigQuery 必須が多い点も理由になります。弱点は AWS 実務との接続が薄く見えることで、そこは経歴書側で CloudFormation を語って補う——採用理由と弱点の両方が言えることが大事です。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 44,
+    "chapter": 7,
+    "tag": "設計",
+    "method": "設計判断",
+    "section": "§10 #11 Snowflake の扱い",
+    "q": "Snowflake を全再現せず「1テーブル＋スクリーンショットの縮小版」にした判断の説明として筋が通るのは。",
+    "options": [
+      "無料トライアルに期限が無いので急いで作る必要がないから",
+      "Snowflake は BigQuery とほぼ同じなので再現する意味が無いから",
+      "Snowflake は法人契約が必要で、個人では契約そのものができないから",
+      "トライアルが30日で切れ面接時に見せられないため、差分を語れる最小限に絞った"
+    ],
+    "answer": 3,
+    "explanation": "見せられなくなるものを作り込んでも面接では機能しません。BigQuery との違い（仮想ウェアハウスやゼロコピークローンなど）を自分の言葉で語れれば目的は果たせる、という割り切りです。弱点は「Snowflake の実務相当とは言えない」ことで、そこは認めた上での判断になります。期限のある無料枠にどこまで投資するかの判断例としても使えます。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 45,
+    "chapter": 1,
+    "tag": "#17",
+    "method": "構成・前提",
+    "section": "§10 #7 サービスアカウントの分け方",
+    "q": "scheduler-invoker サービスアカウントの権限が外れたら、何が起きるか。",
+    "options": [
+      "BigQuery のテーブルが読めなくなり、クエリが全部失敗する",
+      "Job は起動されなくなるが、データ・Job 定義・イメージは無傷のまま残る",
+      "Artifact Registry のイメージが削除される",
+      "Terraform の state が壊れて apply できなくなる"
+    ],
+    "answer": 1,
+    "explanation": "scheduler-invoker は run.invoker だけを持つ「起動役」で、データには一切触れません。権限が外れると Scheduler から Job を叩けず 403 になり日次の取り込みが止まりますが、BigQuery のテーブルもイメージも state も無事です。役割ごとに SA を分けてあると、壊れたときの影響範囲をここまで狭く言い切れます。これが最小権限の実利です。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 46,
+    "chapter": 4,
+    "tag": "#9",
+    "method": "構成・前提",
+    "section": "§8 IaC 方式（管理範囲と管理外）",
+    "q": "このポートフォリオで Terraform の管理範囲に「入っていない」ものはどれか。",
+    "options": [
+      "BigQuery のデータセットとテーブル定義（スキーマ・パーティション）",
+      "Cloud Run Job と Cloud Scheduler の定義",
+      "サービスアカウントと IAM バインディング",
+      "staging / mart の SQL 本体とテーブルの中身"
+    ],
+    "answer": 3,
+    "explanation": "Terraform は「入れ物」を持ち「中身」は持たない、という線引きです。データセット・テーブル定義・Job・Scheduler・SA と IAM は Terraform 管理下ですが、SQL 本体、テーブルの中身、イメージの中身は管理外。プロジェクト作成・請求先・予算アラートも手動側です。この線が引けていると「なぜこれは .tf に無いのか」に即答できます。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 47,
+    "chapter": 7,
+    "tag": "設計",
+    "method": "構成・前提",
+    "section": "§1 システム構成図",
+    "q": "日足の取り込みについて「そこが止まると全部止まる」箇所はどれか。",
+    "options": [
+      "Cloud Scheduler（起動されなければ Job が走らない）",
+      "Looker Studio（表示が止まると取り込みも止まる）",
+      "mart データセット（無いと raw への書き込みが失敗する）",
+      "Secret Manager（日足の取得にも FRED のキーが要る）"
+    ],
+    "answer": 0,
+    "explanation": "日足は Scheduler → Cloud Run Job → BigQuery raw の一本道なので、起点である Scheduler が止まれば何も始まりません。Looker Studio は下流の閲覧なので落ちても取り込みは続き、mart も raw より下流なので raw への書き込みには関係しません。FRED のキーはマクロ指標用で、yfinance の日足には不要です。どこが単一障害点かを言えるのが構成理解です。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  },
+  {
+    "id": 48,
+    "chapter": 1,
+    "tag": "#1",
+    "method": "構成・前提",
+    "section": "§9 制約・前提（dev/prod を分けない）",
+    "q": "dev / prod を分けず1プロジェクトにした判断の説明として筋が通るのは。",
+    "options": [
+      "GCP では個人アカウントで複数プロジェクトを作れないから",
+      "プロジェクトを分けると BigQuery のデータセットを参照できなくなるから",
+      "個人の学習用で検証と本番の区別が無いため。実務では分けて課金と IAM を切るのが定石",
+      "プロジェクトを分けると Terraform で一括管理できなくなるから"
+    ],
+    "answer": 2,
+    "explanation": "プロジェクトは API 有効化・課金・IAM の単位なので、実務では dev と prod を分けて事故の波及と権限を切るのが定石です。個人の学習用では分ける相手がいないため1つで足ります。「本番なら分ける」と一言添えられれば、知らないのではなく選んだのだと伝わります。複数プロジェクトは個人でも作れますし、他プロジェクトのデータセットも Terraform も問題なく扱えます。",
+    "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
+    "addedAt": "2026-08-31"
+  }
 ]
