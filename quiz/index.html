@@ -221,7 +221,12 @@ h1,h2,h3{line-height:1.4;margin:0}
   background:var(--accent-soft);color:var(--accent);border:1px solid transparent;
 }
 .chip.tag{background:transparent;color:var(--muted);border-color:var(--line-strong)}
-.chip.method{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}
+/* 方式は枠線だけにする。塗りつぶしにしていたときは、1問に付く4つのチップの中で
+   これが一番目立ち、「第2章の問題」ではなく「方式の問題」に見えてしまった。
+   1問は章と方式の両方に属していて、戻る先になるのは章のほう（解説の「戻る先」も
+   結果画面の「戻る章」も章だけ）。強く出るのは章、方式は添え物、の順にする。
+   色（オレンジ＝方式）はアプリ全体で共通なので変えない。 */
+.chip.method{background:transparent;color:var(--warn);border-color:var(--warn-line)}
 .chip.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
 .chip.ng{background:var(--ng-bg);color:var(--ng);border-color:var(--ng-line)}
 
