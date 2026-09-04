@@ -318,6 +318,21 @@ h1,h2,h3{line-height:1.4;margin:0}
 .notice b{color:var(--warn)}
 .empty{text-align:center;color:var(--muted);font-size:14px;padding:22px 8px;line-height:1.8}
 
+/* 出題から外した問題 */
+.hidhead{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:12.5px;color:var(--muted);padding:14px 2px 0;margin-top:4px;
+  border-top:1px solid var(--line)}
+.hidhead .hidttl{flex:1;min-width:0}
+.hidhead b{color:var(--fg);font-size:14px}
+/* .btn は width:100% なので、幅を戻さないと flex:none でも一杯に伸びる */
+.btn-sm{padding:6px 13px;min-height:32px;font-size:12.5px;flex:none;width:auto;
+  justify-content:center;font-weight:600}
+.hidlist{display:flex;flex-direction:column;gap:1px;margin-top:6px}
+.hidrow{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:8px 0;
+  border-top:1px solid var(--line);color:var(--fg-soft)}
+.hidrow .hq{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hidrow button{flex:none}
+
 /* 説明モード */
 .modesw{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;margin:0 0 13px;
   border:1px solid var(--line);border-radius:var(--r-sm);background:var(--card-2);cursor:pointer}
@@ -334,6 +349,32 @@ h1,h2,h3{line-height:1.4;margin:0}
 .exhint{font-size:13px;color:var(--fg-soft);line-height:1.75;margin:14px 0 11px;text-align:center}
 .selfrow{display:flex;gap:9px}
 .selfrow .btn{flex:1;justify-content:center;text-align:center}
+.hiderow{display:flex;justify-content:center;margin-top:10px}
+
+/* 自分の説明メモ */
+.notewrap{margin:0 0 12px}
+.notelbl{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  font-size:11.5px;font-weight:700;letter-spacing:.04em;color:var(--muted);margin-bottom:5px}
+.notecnt{font-weight:400;font-variant-numeric:tabular-nums}
+.ta-note{min-height:96px;font-size:13.5px}
+.noteprev{margin-top:8px;padding:9px 11px;border-radius:var(--r-sm);
+  border:1px dashed var(--line-strong);background:var(--card-2);
+  font-size:12.5px;line-height:1.7;color:var(--fg-soft);white-space:pre-wrap}
+.noteprev b{display:block;color:var(--muted);font-size:11.5px;letter-spacing:.04em;margin-bottom:4px}
+
+/* 面接前チェックリスト */
+.prep{border-left:3px solid var(--warn)}
+.prep.is-wrong{border-left-color:var(--ng)}
+.prep .why{font-size:11.5px;font-weight:700;letter-spacing:.04em;color:var(--warn)}
+.prep.is-wrong .why{color:var(--ng)}
+.prep .pq{font-size:15px;font-weight:800;line-height:1.6;margin:6px 0 9px}
+.prep .pa{font-size:13.5px;line-height:1.65;color:var(--ok);font-weight:700}
+.prep .pexp{font-size:13px;color:var(--fg-soft);line-height:1.7;margin-top:9px;
+  padding-top:9px;border-top:1px dashed var(--line-strong)}
+.prep .pnote{margin-top:9px;padding:9px 11px;border-radius:var(--r-sm);
+  background:var(--card-2);border:1px solid var(--line);
+  font-size:12.5px;line-height:1.7;white-space:pre-wrap}
+.prep .pnote b{display:block;color:var(--muted);font-size:11.5px;letter-spacing:.04em;margin-bottom:4px}
 
 /* 学習の記録 */
 .chartbox{width:100%;overflow-x:auto}
@@ -526,6 +567,18 @@ python3 -m http.server 8000
       <p class="hint">正答率は「各問の直近の正誤」ベース。未挑戦の問題は分母に入りません。</p>
     </div>
 
+    <div class="card">
+      <h2>面接前チェックリスト</h2>
+      <p class="hint" style="text-align:left;margin:-4px 0 12px">
+        <b>説明できなかった問題</b>と<b>直近で間違えた問題</b>を、解説つきで一覧にします。
+        面接や勉強会の直前は、ここだけ読み返せば足ります。
+      </p>
+      <button class="btn" id="prepBtn" type="button">
+        <span class="ico" aria-hidden="true">▤</span>
+        <span class="bodytxt"><span class="ttl">弱点をまとめて見る</span><span class="sub">テキストとしてコピーもできます</span><span class="cnt" id="cntPrep"></span></span>
+      </button>
+    </div>
+
     <div class="card" id="histCard">
       <h2>最近のセッション</h2>
       <div class="hist" id="histList"></div>
@@ -540,8 +593,17 @@ python3 -m http.server 8000
         <span class="bodytxt"><span class="ttl">問題を追加</span><span class="sub">Claude が作った JSON を貼り付けて取り込む</span></span>
       </button>
       <div style="height:10px"></div>
+      <button class="btn btn-ghost" id="backupBtn" type="button">学習記録のバックアップ</button>
+      <div style="height:10px"></div>
       <button class="btn btn-ghost" id="resetBtn" type="button">学習履歴をリセット</button>
       <p class="hint">問題を追加するときは <code>quiz-data.json</code> に追記するだけ。コードの変更は不要です（README 参照）。</p>
+      <div id="hiddenCard" class="hidden">
+        <div class="hidhead">
+          <span class="hidttl"><b>出題から外した問題</b> <span id="hiddenCount"></span></span>
+          <button class="btn btn-ghost btn-sm" id="hiddenToggle" type="button">表示</button>
+        </div>
+        <div class="hidlist hidden" id="hiddenList"></div>
+      </div>
     </div>
   </section>
 
@@ -563,9 +625,15 @@ python3 -m http.server 8000
       <div id="qExplainWrap" class="hidden">
         <p class="exhint">頭の中で、あるいは声に出して説明してみてください。<br>
           <b>言えたと思ってから</b>答えを見ます。</p>
+        <div class="notewrap">
+          <label class="notelbl" for="qNote">自分の説明（任意）<span id="qNoteCnt" class="notecnt"></span></label>
+          <textarea class="ta ta-note" id="qNote" spellcheck="false"
+            placeholder="書いておくと、面接前チェックリストに解説と並べて出ます。"></textarea>
+        </div>
         <button class="btn btn-primary" id="revealBtn" type="button">答えを見る</button>
       </div>
       <div id="qVerdict" class="hidden" role="status" aria-live="polite"></div>
+      <div id="qNotePrev" class="noteprev hidden"></div>
       <div id="qSelfWrap" class="hidden" tabindex="-1">
         <p class="exhint" style="margin-top:14px">いまの説明は、この解説と同じことを言えていましたか？</p>
         <div class="selfrow">
@@ -575,6 +643,9 @@ python3 -m http.server 8000
       </div>
       <div id="qNextWrap" class="hidden">
         <button class="btn btn-primary" id="nextBtn" type="button" style="margin-top:12px">次の問題へ</button>
+        <div class="hiderow">
+          <button class="btn btn-ghost btn-sm" id="hideQBtn" type="button">この問題は今後出さない</button>
+        </div>
       </div>
       <p class="hint" id="qHint"><kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ</p>
     </div>
@@ -669,6 +740,50 @@ python3 -m http.server 8000
     </div>
   </section>
 
+  <!-- 面接前チェックリスト -->
+  <section id="screenPrep" class="hidden">
+    <div class="card">
+      <h2>面接前チェックリスト</h2>
+      <p class="hint" style="text-align:left;margin:-4px 0 12px">
+        <b>説明できなかった問題</b>を先に、次に<b>直近で間違えた問題</b>を並べます。
+        自分の説明を書いてあれば、解説と並べて出します。
+      </p>
+      <button class="btn btn-ghost" id="prepCopyBtn" type="button">テキストでコピー</button>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost" id="prepBackBtn" type="button">ホームに戻る</button>
+      <p class="hint" id="prepMsg"></p>
+    </div>
+    <div id="prepList"></div>
+  </section>
+
+  <!-- バックアップ -->
+  <section id="screenBackup" class="hidden">
+    <div class="card">
+      <h2>学習記録のバックアップ</h2>
+      <p style="font-size:13.5px;margin:0 0 10px;line-height:1.75">
+        成績・セッション履歴・説明の自己申告・自分の説明メモ・出題から外した問題を、
+        まとめて JSON で書き出します。<b>問題そのものは入りません</b>（それは
+        <code>quiz-data.json</code> 側です）。
+      </p>
+      <p class="hint" style="text-align:left;margin:0 0 12px">
+        学習記録はこの端末の localStorage にしかありません。ブラウザのデータを消すと消えます。
+        別の端末に移すとき、ブラウザを入れ替えるときは、ここから写してください。
+      </p>
+      <label class="sr" for="bkTa">学習記録の JSON</label>
+      <textarea class="ta" id="bkTa" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+      <div class="btn-row" style="margin-top:11px">
+        <button class="btn btn-ghost" id="bkCopyBtn" type="button">コピー</button>
+        <button class="btn btn-ghost" id="bkFileBtn" type="button">ファイルに保存</button>
+      </div>
+      <div id="bkMsg"></div>
+      <p class="hint" style="text-align:left;margin-top:14px">
+        <b>戻すとき</b>は、上の欄に書き出した JSON を貼り付けてから下のボタンを押してください。
+      </p>
+      <button class="btn btn-primary" id="bkRestoreBtn" type="button">この内容で復元する</button>
+      <button class="btn btn-ghost" id="bkBackBtn" type="button" style="margin-top:11px">ホームに戻る</button>
+    </div>
+  </section>
+
   <!-- 結果 -->
   <section id="screenResult" class="hidden">
     <div class="card">
@@ -717,6 +832,10 @@ var PICK_N     = 10;          // 「全範囲」「最近追加」の出題数
 var HIST_MAX   = 200;
 var HIST_SHOW  = 20;          // ホームの「最近のセッション」に出す件数
 var SESS_MAX   = 60;          // 1セッションの最大出題数（章別が巨大化したときの保険）
+/* 自分の説明メモ 1件の上限。問題数×これが localStorage に乗るので、
+   400問 × 1000字でも 400KB 弱。5MB の枠には収まる。 */
+var NOTE_MAX   = 1000;
+var PREP_MAX   = 40;          // 面接前チェックリストに並べる上限
 
 /* 章タイトルの既定値。quiz-data.json が {chapters:{...},questions:[...]} 形式なら
    そちらが優先される。未知の章番号は「第N章」と表示するので、
@@ -804,7 +923,12 @@ var storageOK = true;
 /* explain は「説明モード」の自己申告。4択の成績（stats）とは別に持つ。
    選択肢を見て選べることと、何も無いところから説明できることは別の能力なので、
    混ぜると 4択の正答率が濁る。 */
-function blankState(){ return { version:1, stats:bare(), sessions:[], explain:bare() }; }
+/* hidden … 出題から外した問題の id。アーティファクト版は問題データが埋め込みで
+   消す手段が無いので、せめて「もう出さない」を選べるようにしておく。
+   notes  … 説明モードで自分が書いた説明。次に同じ問題が出たとき見比べられる。 */
+function blankState(){
+  return { version:1, stats:bare(), sessions:[], explain:bare(), hidden:bare(), notes:bare() };
+}
 
 function loadState(){
   try{
@@ -830,7 +954,19 @@ function loadState(){
       }
       return out;
     };
-    return { version:1, stats:pick(p.stats), sessions:sessions, explain:pick(p.explain) };
+    /* hidden は true、notes は文字列の素朴なマップ。
+       pick（オブジェクトだけ通す）では中身が全部落ちるので別に組む。 */
+    var hidden = bare(), notes = bare();
+    if(p.hidden && typeof p.hidden === 'object'){
+      Object.keys(p.hidden).forEach(function(k){ if(p.hidden[k]) hidden[k] = true; });
+    }
+    if(p.notes && typeof p.notes === 'object'){
+      Object.keys(p.notes).forEach(function(k){
+        if(typeof p.notes[k] === 'string' && p.notes[k]) notes[k] = p.notes[k].slice(0, NOTE_MAX);
+      });
+    }
+    return { version:1, stats:pick(p.stats), sessions:sessions,
+             explain:pick(p.explain), hidden:hidden, notes:notes };
   }catch(e){
     storageOK = false;
     try{ console.warn('[quiz] 履歴の読み込みに失敗しました:', e); }catch(_){}
@@ -1086,10 +1222,41 @@ function explainOf(id){
 }
 /* 「4択では取れるが、説明はできない」問題。次に設計書へ戻るべき場所。 */
 function poolCantExplain(){
-  return QUESTIONS.filter(function(q){
+  return activeQ().filter(function(q){
     var e = explainOf(q.id);
     return e && e.seen && e.last === 'ng';
   });
+}
+
+/* 自分の説明メモ。説明モードで書いたものを問題ごとに1件だけ持つ。
+   上書きなのは、面接前に読み返すのは「いまの自分の説明」だけで足りるため。 */
+function noteOf(id){
+  var n = state.notes[String(id)];
+  return (typeof n === 'string') ? n : '';
+}
+function setNote(id, text){
+  var k = String(id);
+  if(isProtoKey(k)) return;
+  var t = String(text == null ? '' : text).slice(0, NOTE_MAX);
+  if(t.replace(/\s+/g, '')) state.notes[k] = t; else delete state.notes[k];
+  saveState();
+}
+
+/* 面接前チェックリスト。説明できなかった問題を先に、次に直近で間違えた問題。
+   「答えを言えなかった順」なので、直したい順に並ぶ。 */
+function poolPrep(){
+  var out = [], seen = bare();
+  activeQ().forEach(function(q){
+    var e = explainOf(q.id);
+    if(e && e.seen && e.last === 'ng'){ out.push({ q:q, why:'explain', at:e.lastAt || '' }); seen[q.id] = true; }
+  });
+  activeQ().forEach(function(q){
+    if(seen[q.id]) return;
+    if(statusOf(q.id) !== 'wrong') return;
+    var s = statOf(q.id);
+    out.push({ q:q, why:'wrong', at:(s && s.lastAt) || '' });
+  });
+  return out.slice(0, PREP_MAX);
 }
 
 function recordAnswer(q, ok){
@@ -1150,9 +1317,19 @@ function withShuffledOptions(q){
   };
 }
 
-function poolAll(){ return QUESTIONS; }
-function poolChapter(n){ return QUESTIONS.filter(function(q){ return q.chapter === n; }); }
-function poolMethod(m){ return QUESTIONS.filter(function(q){ return q.method === m; }); }
+/* 出題から外した問題は、どのモードにも出さない。
+   QUESTIONS 自体は減らさない（件数の表示と「戻す」に要るため）。 */
+function isHidden(id){ return state.hidden[String(id)] === true; }
+function activeQ(){ return QUESTIONS.filter(function(q){ return !isHidden(q.id); }); }
+function hiddenQ(){ return QUESTIONS.filter(function(q){ return isHidden(q.id); }); }
+function setHidden(id, on){
+  if(on) state.hidden[String(id)] = true; else delete state.hidden[String(id)];
+  saveState();
+}
+
+function poolAll(){ return activeQ(); }
+function poolChapter(n){ return activeQ().filter(function(q){ return q.chapter === n; }); }
+function poolMethod(m){ return activeQ().filter(function(q){ return q.method === m; }); }
 
 /* 出てくる方式の一覧。方式設計書の順に並べ、そこに無いものは後ろに回す。
    問題データに新しい方式が現れれば、そのまま増える。 */
@@ -1160,14 +1337,14 @@ var METHOD_ORDER = ['構成・前提','処理方式','データ方式','認証�
                     '運用・監視方式','コスト方式','IaC方式','設計判断'];
 function methodList(){
   var seen = bare(), out = [];
-  QUESTIONS.forEach(function(q){ if(q.method) seen[q.method] = true; });
+  activeQ().forEach(function(q){ if(q.method) seen[q.method] = true; });
   METHOD_ORDER.forEach(function(m){ if(seen[m]){ out.push(m); delete seen[m]; } });
   return out.concat(Object.keys(seen).sort());
 }
-function poolWrong(){ return QUESTIONS.filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
+function poolWrong(){ return activeQ().filter(function(q){ return statusOf(q.id) === 'wrong'; }); }
 function poolDue(){
   var now = Date.now();
-  return QUESTIONS.filter(function(q){ return isDue(q.id, now); });
+  return activeQ().filter(function(q){ return isDue(q.id, now); });
 }
 /* 「最近追加された問題」の並び。
    追加日の新しい順。同じ日の中では【未挑戦 → 間違い → 正解済み】の順にする。
@@ -1177,7 +1354,7 @@ function poolDue(){
    同じ日に11問以上足したとき新しい問題が一度も出てこない。 */
 function poolRecent(){
   var groups = bare(), days = [];
-  QUESTIONS.forEach(function(q){
+  activeQ().forEach(function(q){
     if(!groups[q.addedAt]){ groups[q.addedAt] = []; days.push(q.addedAt); }
     groups[q.addedAt].push(q);
   });
@@ -1255,14 +1432,15 @@ function explainMode(){
 /* ============================================================
    6. 画面遷移
    ============================================================ */
-var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult','screenAdd','screenProgress'];
+var SCREENS = ['screenLoading','screenError','screenHome','screenQuiz','screenResult','screenAdd',
+               'screenProgress','screenPrep','screenBackup'];
 function goto(name){
   SCREENS.forEach(function(s){
     var n = $(s);
     if(!n) return;
     if(s === name) show(n); else hide(n);
   });
-  if(name === 'screenQuiz' || name === 'screenResult' || name === 'screenAdd' || name === 'screenProgress')
+  if(name !== 'screenLoading' && name !== 'screenError' && name !== 'screenHome')
     show($('homeBtn')); else hide($('homeBtn'));
   $('brandSub').textContent = (name === 'screenQuiz' && session) ? session.label : 'ポートフォリオ復習用';
   window.scrollTo(0, 0);
@@ -1272,9 +1450,10 @@ function goto(name){
    7. ホーム画面の描画
    ============================================================ */
 function renderHome(){
-  var total = QUESTIONS.length;
+  var live = activeQ();                 // 出題から外した分は数に入れない
+  var total = live.length;
   var seen = 0, corr = 0, wrongNow = 0;
-  QUESTIONS.forEach(function(q){
+  live.forEach(function(q){
     var st = statusOf(q.id);
     if(st !== 'new'){ seen++; if(st === 'ok') corr++; else wrongNow++; }
   });
@@ -1304,7 +1483,7 @@ function renderHome(){
   // モードごとの件数
   var nWrong = poolWrong().length;
   var nDue   = poolDue().length;
-  var nNew   = QUESTIONS.filter(function(q){ return statusOf(q.id) === 'new'; }).length;
+  var nNew   = live.filter(function(q){ return statusOf(q.id) === 'new'; }).length;
   $('cntAll').textContent    = '間違い ' + nWrong + ' / 復習 ' + nDue + ' / 未挑戦 ' + nNew;
   $('cntWrong').textContent  = nWrong + '問';
   $('cntDue').textContent    = nDue ? nDue + '問' : 'いまはありません';
@@ -1346,6 +1525,7 @@ function renderHome(){
   clear(cb);
   CHAPTERS.forEach(function(n){
     var pool = poolChapter(n);
+    if(!pool.length) return;            // その章を全部外していたらボタンも出さない
     var w = pool.filter(function(q){ return statusOf(q.id) === 'wrong'; }).length;
     var b = el('button', 'btn');
     b.type = 'button';
@@ -1384,6 +1564,13 @@ function renderHome(){
     cs.appendChild(row);
   });
 
+  // 面接前チェックリストの件数
+  var nPrep = poolPrep().length;
+  $('cntPrep').textContent = nPrep ? nPrep + '問' : 'いまはありません';
+  $('prepBtn').disabled = (nPrep === 0);
+
+  renderHidden();
+
   // セッション履歴
   var hl = $('histList');
   clear(hl);
@@ -1400,6 +1587,32 @@ function renderHome(){
       hl.appendChild(row);
     });
   }
+}
+
+/* 出題から外した問題の一覧。1問も無ければカードごと出さない
+   （使っていない人にとっては、ただ意味の分からない見出しになる）。 */
+var hiddenOpen = false;
+function renderHidden(){
+  var card = $('hiddenCard'), list = $('hiddenList'), toggle = $('hiddenToggle');
+  if(!card) return;
+  var hid = hiddenQ();
+  if(!hid.length){ hide(card); hiddenOpen = false; hide(list); return; }
+  show(card);
+  $('hiddenCount').textContent = hid.length + '問';
+  toggle.textContent = hiddenOpen ? '閉じる' : '表示';
+  toggle.setAttribute('aria-expanded', hiddenOpen ? 'true' : 'false');
+  if(!hiddenOpen){ hide(list); return; }
+  show(list);
+  clear(list);
+  hid.forEach(function(q){
+    var row = el('div', 'hidrow');
+    row.appendChild(el('span', 'hq', q.q));
+    var b = el('button', 'btn btn-ghost btn-sm', '戻す');
+    b.type = 'button';
+    b.addEventListener('click', function(){ setHidden(q.id, false); renderHome(); });
+    row.appendChild(b);
+    list.appendChild(row);
+  });
 }
 
 function fmtWhen(iso){
@@ -1431,7 +1644,8 @@ function svg(tag, attrs){
 
 function buildProgress(){
   var inSet = bare(), methodOf = bare();
-  QUESTIONS.forEach(function(q){ inSet[q.id] = true; methodOf[q.id] = q.method || ''; });
+  var live = activeQ();
+  live.forEach(function(q){ inSet[q.id] = true; methodOf[q.id] = q.method || ''; });
 
   var methods = methodList();
   var mTotal = bare();
@@ -1442,6 +1656,9 @@ function buildProgress(){
   state.sessions.forEach(function(h){
     var d = parseDetail(h.detail || '');
     if(!d.trusted || !d.pairs.length) return;
+    /* 説明モードの明細は 4択の曲線に混ぜない。自己申告なので、
+       カバー率・定着率（＝4択で正解できたか）とは別のものを数えている。 */
+    if(d.kind === 'explain') return;
     runs.push({ at: d.at || h.at, label: h.label || '', pairs: d.pairs, truncated: d.truncated });
   });
   runs.sort(function(a, b){ return a.at < b.at ? -1 : (a.at > b.at ? 1 : 0); });
@@ -1463,7 +1680,7 @@ function buildProgress(){
     });
     var cover = 0, retain = 0, mRetain = bare();
     methods.forEach(function(m){ mRetain[m] = 0; });
-    QUESTIONS.forEach(function(q){
+    live.forEach(function(q){
       if(everOK[q.id]) cover++;
       if(!lastOK[q.id]) return;
       /* その時点で間隔を過ぎていたら、定着からは外す。
@@ -1479,7 +1696,7 @@ function buildProgress(){
   // いまの正（state.stats）。曲線の末尾とズレたら、古い履歴が落ちている印。
   var nowMs = Date.now();
   var nowCover = 0, nowRetain = 0;
-  QUESTIONS.forEach(function(q){
+  live.forEach(function(q){
     var s = statOf(q.id);
     if(s && (s.correct | 0) > 0) nowCover++;
     if(statusOf(q.id) === 'ok' && !isDue(q.id, nowMs)) nowRetain++;
@@ -1487,7 +1704,7 @@ function buildProgress(){
 
   var last = points.length ? points[points.length - 1] : null;
   return {
-    total: QUESTIONS.length,
+    total: live.length,
     methods: methods, mTotal: mTotal,
     points: points,
     nowCover: nowCover, nowRetain: nowRetain,
@@ -1586,7 +1803,7 @@ function renderProgress(){
   /* 説明モードの成績。4択とは別の能力なので、別の数字として出す。
      分母は「説明モードで一度でも出した問題」。まだ試していない分は含めない。 */
   var exSeen = 0, exOK = 0;
-  QUESTIONS.forEach(function(q){
+  activeQ().forEach(function(q){
     var e = explainOf(q.id);
     if(e && e.seen){ exSeen++; if(e.last === 'ok') exOK++; }
   });
@@ -1671,6 +1888,147 @@ function renderProgress(){
 }
 
 /* ============================================================
+   7.7 面接前チェックリスト
+
+   出題はしない。答えと解説と、自分が書いた説明を並べて読むだけの画面。
+   直前に見返す用なので、画面もテキストも「上から順に読める」形にする。
+   ============================================================ */
+function renderPrep(){
+  var rows = poolPrep();
+  var box = $('prepList');
+  clear(box);
+  $('prepMsg').textContent = '';
+  $('prepCopyBtn').disabled = (rows.length === 0);
+
+  if(!rows.length){
+    var card = el('div', 'card');
+    card.appendChild(el('div', 'empty',
+      '説明できなかった問題も、直近で間違えた問題もありません。いまは読み返すところがありません。'));
+    box.appendChild(card);
+    return;
+  }
+
+  rows.forEach(function(r){
+    var q = r.q;
+    var card = el('div', 'card prep' + (r.why === 'wrong' ? ' is-wrong' : ''));
+    card.appendChild(el('div', 'why', r.why === 'wrong' ? '直近で間違えた' : '説明できなかった'));
+    var chips = el('div', 'chips');
+    chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+    if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
+    if(q.method) chips.appendChild(el('span', 'chip method', q.method));
+    card.appendChild(chips);
+    card.appendChild(el('div', 'pq', q.q));
+    card.appendChild(el('div', 'pa', '答え：' + q.options[q.answer]));
+    if(q.explanation) card.appendChild(el('div', 'pexp', q.explanation));
+    var note = noteOf(q.id);
+    if(note){
+      var nb = el('div', 'pnote');
+      nb.appendChild(el('b', null, '自分の説明'));
+      nb.appendChild(document.createTextNode(note));
+      card.appendChild(nb);
+    }
+    if(q.source) card.appendChild(sourceLink(q.source));
+    box.appendChild(card);
+  });
+}
+
+/* 同じ内容をテキストで。Notion でも紙でも読める形にする。 */
+function prepText(){
+  var rows = poolPrep();
+  var out = ['# 面接前チェックリスト（' + fmtWhen(new Date().toISOString()) + '）', ''];
+  rows.forEach(function(r, i){
+    var q = r.q;
+    var head = [chapterFull(q.chapter)];
+    if(q.tag) head.push('理解度表 ' + q.tag);
+    if(q.method) head.push(q.method);
+    out.push('## ' + (i + 1) + '. ' + q.q);
+    out.push('- 区分: ' + head.join(' / ') + '（' + (r.why === 'wrong' ? '直近で間違えた' : '説明できなかった') + '）');
+    out.push('- 答え: ' + q.options[q.answer]);
+    if(q.explanation) out.push('- 解説: ' + q.explanation);
+    var note = noteOf(q.id);
+    if(note) out.push('- 自分の説明: ' + note.replace(/\n+/g, ' '));
+    if(q.source) out.push('- 出典: ' + q.source);
+    out.push('');
+  });
+  return out.join('\n');
+}
+
+/* ============================================================
+   7.8 学習記録のバックアップ
+
+   localStorage が唯一の保存場所なので、ブラウザのデータを消すと全部消える。
+   持ち出せる形を用意しておく。問題そのものは quiz-data.json 側なので入れない。
+   ============================================================ */
+var BK_TAG = 'gcpQuiz.backup';
+
+function backupText(){
+  return JSON.stringify({
+    kind: BK_TAG,
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state: state
+  }, null, 2);
+}
+
+function openBackup(){
+  $('bkTa').value = backupText();
+  clear($('bkMsg'));
+  goto('screenBackup');
+}
+
+function bkMsg(kind, text){
+  var box = $('bkMsg');
+  clear(box);
+  box.appendChild(el('div', 'result' + (kind ? ' ' + kind : ''), text));
+}
+
+/* 復元。貼られた JSON は loadState と同じ検査を通してから入れる。
+   ここを素通しにすると、壊れた記録を貼っただけでアプリが起動しなくなる。 */
+function bkRestore(){
+  var raw = $('bkTa').value;
+  var p;
+  try{ p = JSON.parse(raw); }
+  catch(e){ bkMsg('ng', 'JSON として読めませんでした： ' + e.message); return; }
+  if(!p || typeof p !== 'object'){ bkMsg('ng', '中身がオブジェクトではありません。'); return; }
+  /* 書き出したままの形（{kind,state}）でも、state だけでも受ける */
+  var src = (p.kind === BK_TAG && p.state && typeof p.state === 'object') ? p.state : p;
+  if(!src.stats && !src.sessions && !src.explain && !src.notes && !src.hidden){
+    bkMsg('ng', '学習記録が見つかりません。このアプリが書き出した JSON を貼り付けてください。');
+    return;
+  }
+  var nSess = Array.isArray(src.sessions) ? src.sessions.length : 0;
+  var nStat = (src.stats && typeof src.stats === 'object') ? Object.keys(src.stats).length : 0;
+  if(!window.confirm('この端末の学習履歴を、貼り付けた内容で置き換えます。\n\n'
+    + 'セッション ' + nSess + '件 / 成績 ' + nStat + '問\n\n'
+    + 'いまの記録は消えます。よろしいですか？')) return;
+
+  var before = null;
+  try{ before = localStorage.getItem(LS_KEY); }catch(e){ before = null; }
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(src));
+  }catch(e){
+    bkMsg('ng', '保存できませんでした（容量オーバー、またはプライベートモード）： ' + e.message);
+    return;
+  }
+  state = loadState();     // 保存したものを、通常の検査つきで読み直す
+  /* 読み直した結果を書き戻す。貼られた JSON に検査で落ちる項目があっても、
+     localStorage に残したままにしない（次の起動でまた落とすことになる）。 */
+  saveState();
+  if(!state.sessions.length && nSess){
+    /* 全部落ちた＝形が違う。元に戻して知らせる。 */
+    try{ if(before !== null) localStorage.setItem(LS_KEY, before); }catch(e){ /* 戻せなくても続ける */ }
+    state = loadState();
+    bkMsg('ng', 'セッション履歴を1件も読み取れませんでした。形式が違うようです。元の記録に戻しました。');
+    return;
+  }
+  syncEpoch++;             // 走っている同期の結果はもう当てはまらない
+  hiddenOpen = false;
+  bkMsg('ok', '復元しました（セッション ' + state.sessions.length + '件 / 成績 '
+    + Object.keys(state.stats).length + '問）。');
+  renderHome();
+}
+
+/* ============================================================
    8. クイズ画面
    ============================================================ */
 var locked = false;
@@ -1724,6 +2082,7 @@ function renderQuestion(){
   });
 
   hide($('qVerdict'));
+  hide($('qNotePrev'));
   hide($('qNextWrap'));
   hide($('qSelfWrap'));
   /* 説明モードでは選択肢を隠す。見えてしまうと「選べるか」を試すことになり、
@@ -1731,13 +2090,30 @@ function renderQuestion(){
   if(session.explain){
     hide(box);
     show($('qExplainWrap'));
-    $('qHint').innerHTML = '<kbd>Enter</kbd> で答えを表示、そのあと <kbd>1</kbd> できた / <kbd>2</kbd> できなかった';
+    loadNoteBox(q.id);
+    $('qHint').innerHTML = '<kbd>Enter</kbd> で答えを表示、そのあと <kbd>1</kbd> できた / <kbd>2</kbd> できなかった'
+      + '（メモを書いている間はキー操作は効きません）';
   }else{
     show(box);
     hide($('qExplainWrap'));
     $('qHint').innerHTML = '<kbd>1</kbd>〜<kbd>4</kbd> で解答、<kbd>Enter</kbd> で次へ';
   }
+  $('hideQBtn').textContent = 'この問題は今後出さない';
+  $('hideQBtn').disabled = false;
   $('nextBtn').textContent = (session.idx === total - 1) ? '結果を見る' : '次の問題へ';
+}
+
+/* 説明メモの欄を、その問題の内容で開き直す。
+   前に書いたものは答えを見るまで出さない。先に見せると、思い出せていないのに
+   前回の文を読んで「言えた」と申告してしまい、説明モードの意味がなくなる。 */
+function loadNoteBox(id){
+  $('qNote').value = '';
+  updateNoteCount();
+  hide($('qNotePrev'));
+}
+function updateNoteCount(){
+  var n = $('qNote').value.length;
+  $('qNoteCnt').textContent = n ? (n + ' / ' + NOTE_MAX) : '';
 }
 
 /* 説明モード：答えを見る。ここではまだ正誤を決めない（自己申告を待つ）。 */
@@ -1745,7 +2121,19 @@ function reveal(){
   if(locked) return;
   locked = true;
   var q = session.list[session.idx];
+  /* 前の説明は、書いたものを保存してから読み出す。逆にすると自分の新しい説明が
+     「前に書いた説明」として出てしまい、見比べるものが無くなる。 */
+  var before = noteOf(q.id);
+  var typed = $('qNote').value;
+  if(typed.replace(/\s+/g, '')) setNote(q.id, typed);
   hide($('qExplainWrap'));
+  if(before){
+    var prev = $('qNotePrev');
+    clear(prev);
+    prev.appendChild(el('b', null, '前に書いた説明'));
+    prev.appendChild(document.createTextNode(before));
+    show(prev);
+  }
 
   // 正解の選択肢だけを、答えとして見せる
   var box = $('qOpts');
@@ -1909,12 +2297,11 @@ function finish(){
 
   // 履歴に保存
   var nowIso = new Date().toISOString();
-  /* 説明モードは明細を空にする。明細は Notion から取り込むとき stats に反映されるので、
-     自己申告の結果が 4択の成績に混ざってしまう。ただし detail を '' にすると
-     送信対象から外れて Notion に一切残らない。"@<日時>|" の形（信用できる・中身なし）
-     にしておけば、件数と正解数は Notion に送られ、stats は汚れない。 */
+  /* 説明モードの明細は "@<日時>|%..." の形で送る。"%" が無いと取り込み側で
+     4択の成績（stats）に足されてしまい、選べるだけの問題が「正解できた」に化ける。
+     "%" 付きなら explain 側にだけ入るので、別の端末で説明したぶんも合流する。 */
   var rec = { at:nowIso, mode:session.mode, label:session.label, total:total, correct:corr,
-              detail: encodeDetail(nowIso, session.explain ? [] : session.answers) };
+              detail: encodeDetail(nowIso, session.answers, !!session.explain) };
   state.sessions.unshift(rec);
   trimSessions(null);
   saveState();
@@ -2067,10 +2454,13 @@ function decId(t){
 }
 
 /* "@<正確な日時>|id:1,id:0,..." の形。日時を入れておくと、
-   Notion 側が秒を丸めても、送信済みかどうかを取り違えない。 */
-function encodeDetail(at, answers){
+   Notion 側が秒を丸めても、送信済みかどうかを取り違えない。
+   説明モードは "|" の直後に "%" を置いて区別する。4択の成績（stats）と
+   自己申告（explain）を取り違えると、選べるだけの問題が「できた」に化ける。
+   "%" の無い古い記録は 4択として読む（説明モードは以前は明細を送っていない）。 */
+function encodeDetail(at, answers, explain){
   var body = answers.map(function(a){ return encId(a.id) + ':' + (a.ok ? 1 : 0); }).join(',');
-  var head = '@' + at + '|';
+  var head = '@' + at + '|' + (explain ? '%' : '');
   if(head.length + body.length > LOG.maxDetail){
     body = body.slice(0, LOG.maxDetail - head.length - 1);
     var cut = body.lastIndexOf(',');
@@ -2084,7 +2474,7 @@ function encodeDetail(at, answers){
    たまたま一致したときに架空の解答履歴が混ざってしまうため。
    その場合も出題数・正解数の列は使えるので、履歴としては残る。 */
 function parseDetail(text){
-  var out = { at:'', pairs:[], truncated:false, trusted:false };
+  var out = { at:'', pairs:[], truncated:false, trusted:false, kind:'quiz' };
   /* 文字列以外が来ても落ちないようにする。localStorage は手で書き換えられるので、
      detail がオブジェクトのまま来ると indexOf で落ち、学習の記録が開けなくなる。 */
   if(typeof text !== 'string' || !text) return out;
@@ -2093,6 +2483,7 @@ function parseDetail(text){
   out.trusted = true;
   out.at = text.slice(1, bar);
   text = text.slice(bar + 1);
+  if(text.charAt(0) === '%'){ out.kind = 'explain'; text = text.slice(1); }
   if(text.charAt(text.length - 1) === '+'){ out.truncated = true; text = text.slice(0, -1); }
   text.split(',').forEach(function(t){
     if(!t) return;
@@ -2121,7 +2512,7 @@ function trimSessions(remoteKeys){
 }
 
 function mergeRemoteLog(rows){
-  var remoteKeys = bare(), remoteSessions = [], tmp = bare();
+  var remoteKeys = bare(), remoteSessions = [], tmp = bare(), tmpEx = bare();
 
   rows.forEach(function(r){
     var d = parseDetail(r[LOG.cols.detail] || '');
@@ -2138,6 +2529,17 @@ function mergeRemoteLog(rows){
          アプリが書いた形（trusted）のものだけ。 */
       detail: d.trusted ? String(r[LOG.cols.detail] || '') : undefined
     });
+    /* 説明モードの行は自己申告なので explain 側にだけ入れる。
+       stats に混ぜると 4択の正答率と「そろそろ復習」の間隔まで動いてしまう。 */
+    if(d.kind === 'explain'){
+      d.pairs.forEach(function(pr){
+        var e = tmpEx[pr.id] || (tmpEx[pr.id] = { seen:0, ok:0, last:null, lastAt:null });
+        e.seen++;
+        if(pr.ok) e.ok++;
+        if(!e.lastAt || at > e.lastAt){ e.lastAt = at; e.last = pr.ok ? 'ok' : 'ng'; }
+      });
+      return;
+    }
     d.pairs.forEach(function(pr){
       var t = tmp[pr.id] || (tmp[pr.id] = { seen:0, correct:0, wrong:0, last:null, lastAt:null, hist:[] });
       t.seen++;
@@ -2180,6 +2582,23 @@ function mergeRemoteLog(rows){
        merged.wrong !== (l.wrong|0) || merged.last !== l.last ||
        merged.streak !== streakOf(l)){ changed = true; }
     state.stats[id] = merged;
+  });
+
+  /* 説明モードの自己申告。回数は減らさず、直近の申告は新しい方を採る。
+     streak は持たないので（間隔反復は 4択の成績だけで決めている）そのぶん単純。 */
+  Object.keys(tmpEx).forEach(function(id){
+    var r = tmpEx[id];
+    var l = state.explain[id];
+    if(!l || typeof l !== 'object'){ state.explain[id] = r; changed = true; return; }
+    var remoteNewer = !l.lastAt || (r.lastAt && r.lastAt > l.lastAt);
+    var merged = {
+      seen  : Math.max(l.seen | 0, r.seen),
+      ok    : Math.max(l.ok | 0, r.ok),
+      last  : remoteNewer ? r.last : l.last,
+      lastAt: remoteNewer ? r.lastAt : l.lastAt
+    };
+    if(merged.seen !== (l.seen | 0) || merged.ok !== (l.ok | 0) || merged.last !== l.last) changed = true;
+    state.explain[id] = merged;
   });
 
   /* セッション履歴も混ぜて、新しい順に並べ直す */
@@ -2807,16 +3226,43 @@ function addSave(){
 
 function addCopy(){
   if(!addPending) return;
-  var text = formatData(addPending);
-  var btn = $('addCopyBtn');
+  copyToBtn($('addCopyBtn'), formatData(addPending), '追記後の JSON 全文をコピー');
+}
+
+/* ボタンの文字でコピーの成否を返す。navigator.clipboard は http:// や
+   file:// では使えないので、失敗したら execCommand に落とす。 */
+function copyToBtn(btn, text, label){
   var done = function(okFlag){
     btn.textContent = okFlag ? 'コピーしました' : 'コピーできませんでした';
-    window.setTimeout(function(){ btn.textContent = '追記後の JSON 全文をコピー'; }, 2000);
+    window.setTimeout(function(){ btn.textContent = label; }, 2000);
   };
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ fallbackCopy(text, done); });
   }else{
     fallbackCopy(text, done);
+  }
+}
+
+/* テキストをファイルとして保存する。アーティファクトとして開いているときは
+   ページが始めたダウンロードが枠側で止められるので、始まらないことがある。
+   そのときのために「コピー」を必ず併置しておくこと。 */
+function saveTextFile(name, text){
+  var url = null;
+  try{
+    var blob = new Blob([text], { type:'application/json;charset=utf-8' });
+    url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return true;
+  }catch(e){
+    return false;
+  }finally{
+    if(url) window.setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 1000);
   }
 }
 
@@ -2898,6 +3344,46 @@ function wire(){
 
   $('progBtn').addEventListener('click', function(){ renderProgress(); goto('screenProgress'); });
   $('pgBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
+
+  $('prepBtn').addEventListener('click', function(){ renderPrep(); goto('screenPrep'); });
+  $('prepBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
+  $('prepCopyBtn').addEventListener('click', function(){
+    copyToBtn($('prepCopyBtn'), prepText(), 'テキストでコピー');
+  });
+
+  $('backupBtn').addEventListener('click', openBackup);
+  $('bkBackBtn').addEventListener('click', function(){ renderHome(); goto('screenHome'); });
+  $('bkCopyBtn').addEventListener('click', function(){
+    copyToBtn($('bkCopyBtn'), $('bkTa').value, 'コピー');
+  });
+  $('bkFileBtn').addEventListener('click', function(){
+    var name = 'gcp-quiz-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    if(saveTextFile(name, $('bkTa').value)){
+      bkMsg('', name + ' を保存しました。ダウンロードが始まらないときは、アーティファクトとして'
+        + '開いているためです（枠の外へのファイル保存が止められます）。上の「コピー」を使ってください。');
+    }else{
+      bkMsg('ng', 'このブラウザではファイルに保存できませんでした。上の「コピー」を使ってください。');
+    }
+  });
+  $('bkRestoreBtn').addEventListener('click', bkRestore);
+
+  /* 出題から外す。押したその場では抜かない（いま解いている列から消すと
+     「n / 10」が合わなくなる）。次のセッションから出なくなる。 */
+  $('hideQBtn').addEventListener('click', function(){
+    if(!session) return;
+    var q = session.list[session.idx];
+    setHidden(q.id, true);
+    var b = $('hideQBtn');
+    b.textContent = '次から出しません（ホームの「データ」で戻せます）';
+    b.disabled = true;
+  });
+
+  $('qNote').addEventListener('input', updateNoteCount);
+
+  $('hiddenToggle').addEventListener('click', function(){
+    hiddenOpen = !hiddenOpen;
+    renderHidden();
+  });
   $('addCheckBtn').addEventListener('click', addCheck);
   /* 確認したあとに本文を書き換えたら、確認結果を捨てる。
      画面と違う内容が保存されるのを防ぐ。 */

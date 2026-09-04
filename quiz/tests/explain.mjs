@@ -135,14 +135,15 @@ console.log('\n【4】説明モードの記録は Notion 経由で stats に混�
   const s = await store(p);
   const rec = s.sessions[0];
   /* '' にすると送信対象から外れて Notion に一切残らない。
-     "@<日時>|"（信用できる形・中身なし）なら送られるが stats は汚れない。 */
-  ok(/^@[^|]+\|$/.test(rec.detail), '明細は「信用できる形で中身なし」: ' + JSON.stringify(rec.detail));
+     "@<日時>|%..." なら送られ、"%" があるので取り込み側で stats に入らない。 */
+  ok(/^@[^|]+\|%/.test(rec.detail), '明細は説明モード印つき: ' + JSON.stringify(rec.detail));
+  ok(/\|%1:1$/.test(rec.detail), '自己申告の中身も入る: ' + JSON.stringify(rec.detail));
   ok(rec.total === 1 && rec.correct === 1, '件数と正解数は残る');
   ok(/説明/.test(rec.label), 'ラベルで説明モードと分かる: ' + rec.label);
   await c.close();
 }
 
-console.log('\n【4b】説明モードのセッションも Notion に送られる（明細なしで）');
+console.log('\n【4b】説明モードのセッションも Notion に送られる（説明モード印つきで）');
 {
   const LOGVIEW = 'c68a3cb4';
   const c = await b.newContext({ viewport: { width: 375, height: 812 } });
@@ -174,7 +175,7 @@ console.log('\n【4b】説明モードのセッションも Notion に送られ�
   ok(pushed.length === 1, 'notion-create-pages が呼ばれる: ' + pushed.length + '回');
   const props = pushed[0] && pushed[0].pages && pushed[0].pages[0] && pushed[0].pages[0].properties;
   ok(!!props && /説明/.test(String(props['モード'] || '')), '送られた行のモードに「説明」: ' + (props && props['モード']));
-  ok(!!props && /^@[^|]+\|$/.test(String(props['明細'] || '')), '明細は中身なし: ' + (props && props['明細']));
+  ok(!!props && /^@[^|]+\|%/.test(String(props['明細'] || '')), '明細に説明モード印: ' + (props && props['明細']));
   ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
   await c.close();
 }
@@ -301,8 +302,10 @@ console.log('\n【11】実装の見張り');
   const src = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');
   ok(/state\.explain\[q\.id\] = e/.test(src), '自己申告は state.explain に書く');
   ok(!/recordAnswer\(q, ok\);\s*\n\s*recordExplain/.test(src), '4択と二重には記録しない');
-  ok(/encodeDetail\(nowIso, session\.explain \? \[\] : session\.answers\)/.test(src),
-     '説明モードのセッションは明細を「中身なし」で残す（送信はされる）');
+  ok(/encodeDetail\(nowIso, session\.answers, !!session\.explain\)/.test(src),
+     '説明モードのセッションは「説明モード印つき」で明細を残す');
+  ok(/if\(d\.kind === 'explain'\)/.test(src),
+     '取り込み側が説明モードの明細を stats から切り分けている');
   ok(/if\(session && session\.explain\) return;/.test(src),
      'answer() に説明モードの保険が入っている');
 }
