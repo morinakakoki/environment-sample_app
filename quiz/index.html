@@ -644,6 +644,7 @@ python3 -m http.server 8000
         <span class="chip" id="qChapter"></span>
         <span class="chip tag" id="qTag"></span>
         <span class="chip method" id="qMethod"></span>
+        <span class="chip" id="qWhy"></span>
       </div>
       <h1 class="qtext" id="qText"></h1>
       <div class="opts" id="qOpts" role="group" aria-label="選択肢"></div>
@@ -2304,6 +2305,19 @@ function resumeSession(){
   saveResume();   // 再開してすぐまた閉じても拾えるように、その場で書き直す
 }
 
+/* この問題がなぜ出たのか（prioritize のどのバケツで拾われたか）。
+   出題順は 未挑戦 → 間違い → 復習 → 済み だが、画面には章と方式しか出ないので
+   「なんでこの問題が出るの？」に答えられなかった。1問ごとに理由を出しておけば、
+   並びが期待と違って見えたときに、その場で理由が分かる。
+   新しい CSS は足さず、既存の chip の色分けを使い回す。 */
+function whyLabel(id){
+  var st = statusOf(id);
+  if(st === 'new')   return { txt:'はじめて',     cls:'chip' };
+  if(st === 'wrong') return { txt:'前回まちがえた', cls:'chip ng' };
+  if(isDue(id, Date.now())) return { txt:'復習どき', cls:'chip method' };
+  return { txt:'おさらい', cls:'chip tag' };
+}
+
 function renderQuestion(){
   locked = false;
   var q = session.list[session.idx];
@@ -2320,6 +2334,10 @@ function renderQuestion(){
   if(q.tag){ tagChip.textContent = '理解度表 ' + q.tag; show(tagChip); } else { hide(tagChip); }
   var mChip = $('qMethod');
   if(q.method){ mChip.textContent = q.method; show(mChip); } else { hide(mChip); }
+  var wChip = $('qWhy');
+  var w = whyLabel(q.id);
+  wChip.textContent = w.txt;
+  wChip.className = w.cls;
 
   $('qText').textContent = q.q;
 

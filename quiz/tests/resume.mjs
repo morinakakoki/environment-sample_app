@@ -543,6 +543,34 @@ console.log('\n【18】ホームは 章 → 方式 の順で、章ボタンに�
   await c.close();
 }
 
+console.log('\n【19b】1問ごとに「なぜ出たか」が出る');
+{
+  const ago = (d) => new Date(Date.now() - d * 86400000).toISOString();
+  const data = [Q(1, { chapter: 1 }), Q(2, { chapter: 1 }), Q(3, { chapter: 1 }), Q(4, { chapter: 2 })];
+  const { c, p, errs } = await open(data, JSON.stringify({ version: 1, sessions: [], stats: {
+    1: { seen: 1, correct: 0, wrong: 1, last: 'wrong',   lastAt: ago(1),  streak: 0 },
+    2: { seen: 1, correct: 1, wrong: 0, last: 'correct', lastAt: ago(30), streak: 1 },  // 間隔切れ
+    3: { seen: 1, correct: 1, wrong: 0, last: 'correct', lastAt: ago(1),  streak: 1 },  // 間隔内
+  } }));
+  await p.locator('#modeAll').click();
+  await p.locator('#screenQuiz:not(.hidden)').waitFor();
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    seen.push((await p.locator('#qText').textContent()).replace('問題', '')
+      + ':' + await p.locator('#qWhy').textContent());
+    await answerOne(p);
+    await p.locator('#nextBtn').click();
+  }
+  const m = Object.fromEntries(seen.map(s => s.split(':')));
+  ok(m['4'] === 'はじめて', '未挑戦は「はじめて」: ' + m['4']);
+  ok(m['1'] === '前回まちがえた', '間違いは「前回まちがえた」: ' + m['1']);
+  ok(m['2'] === '復習どき', '間隔切れは「復習どき」: ' + m['2']);
+  ok(m['3'] === 'おさらい', '間隔内は「おさらい」: ' + m['3']);
+  ok(seen[0].endsWith('はじめて'), '出題順どおり未挑戦が先頭: ' + seen.join(' → '));
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
 console.log('\n【19】「全範囲」に次の章が出る');
 {
   const data = [Q(1, { chapter: 3 }), Q(2, { chapter: 5 })];
