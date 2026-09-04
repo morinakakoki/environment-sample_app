@@ -77,7 +77,11 @@ console.log('\n【1】途中で✕を押すと、ホームに中断カードが�
   const txt = await p.locator('#resumeCard').innerText();
   ok(/2 \/ 3問まで/.test(txt), '進み具合が出る: ' + txt.replace(/\n/g, ' '));
   ok(/残り 1問/.test(txt), '残りが出る');
-  ok(/全範囲/.test(txt), 'モードが分かる');
+  /* 何の続きかは、薄い説明行ではなく目立つ見出し行に出す。ここを一般的な
+     「続きから解く」にしていたときは、方式別を中断した人が
+     「このアプリは方式から始めろと言っている」と読んでしまった。 */
+  ok(/^全範囲.*の続き$/.test(await p.locator('#resumeTtl').textContent()),
+     '見出しに「何の続きか」が出る: ' + await p.locator('#resumeTtl').textContent());
   ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
   await c.close();
 }

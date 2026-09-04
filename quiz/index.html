@@ -1797,8 +1797,14 @@ function renderResume(){
   }
   try{
     var doneN = p.answers.length, totalN = p.list.length;
-    $('resumeTtl').textContent = (doneN >= totalN) ? '結果を見る' : '続きから解く';
-    $('resumeSub').textContent = p.label + '　' + fmtWhen(p.savedAt) + ' に中断';
+    /* 目立つ行には「どのセッションの続きか」を出す。ここに「続きから解く」という
+       一般的な言葉を置き、モード名を薄い行に落としていたときは、方式別を中断した人が
+       「このアプリは方式から始めろと言っている」と読んでしまった。
+       中断カードはホームの最上段に出るので、何の続きなのかが一目で分かる必要がある。 */
+    $('resumeTtl').textContent = (doneN >= totalN)
+      ? (p.label + ' の結果を見る')
+      : (p.label + ' の続き');
+    $('resumeSub').textContent = fmtWhen(p.savedAt) + ' に中断したセッションです';
     $('resumeCnt').textContent = (doneN >= totalN)
       ? (totalN + '問すべて解答済み')
       : (doneN + ' / ' + totalN + '問まで　残り ' + (totalN - doneN) + '問');
