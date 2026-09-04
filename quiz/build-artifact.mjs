@@ -46,7 +46,16 @@ const bodyRaw = html.slice(html.indexOf('<body>') + '<body>'.length, html.lastIn
 const scriptAt = bodyRaw.indexOf('<script>');
 if (scriptAt < 0) throw new Error('<body> 内に <script> が見つかりません');
 const markup = bodyRaw.slice(0, scriptAt).trim();
-const script = bodyRaw.slice(scriptAt + '<script>'.length, bodyRaw.lastIndexOf('</' + 'script>'));
+let script = bodyRaw.slice(scriptAt + '<script>'.length, bodyRaw.lastIndexOf('</' + 'script>'));
+
+/* 版の目印をビルド時刻に差し替える。アーティファクトは端末にキャッシュされるので、
+   「再発行したのに直っていない」が起きたときに、画面を見れば古い版かどうか分かる。
+   アプリが自分を再発行するときは生きている #appScript を写すので、この値は残る。 */
+const STAMP = /var APP_BUILD  = 'dev';/;
+if (!STAMP.test(script)) throw new Error(
+  "アプリ本体に APP_BUILD の目印が見つかりません（index.html の var APP_BUILD = 'dev'; を消さないでください）");
+const buildId = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+script = script.replace(STAMP, `var APP_BUILD  = '${buildId}';`);
 
 /* 器の前提: 運ばれるのは <style> 1つと本文マークアップ1つだけ。
    2つ目の <style> を head に足すと、それは style にも markup にも入らず、

@@ -622,6 +622,7 @@ python3 -m http.server 8000
       <div style="height:10px"></div>
       <button class="btn btn-ghost" id="resetBtn" type="button">学習履歴をリセット</button>
       <p class="hint">問題を追加するときは <code>quiz-data.json</code> に追記するだけ。コードの変更は不要です（README 参照）。</p>
+      <p class="hint" id="buildLine" style="margin-top:6px"></p>
       <div id="hiddenCard" class="hidden">
         <div class="hidhead">
           <span class="hidttl"><b>出題から外した問題</b> <span id="hiddenCount"></span></span>
@@ -849,6 +850,13 @@ python3 -m http.server 8000
 /* ============================================================
    0. 定数
    ============================================================ */
+/* 版の目印。アーティファクトはただの Web ページなので、タブを開きっぱなしにしたり
+   ホーム画面に追加していると古い版が端末に残り続ける。こちらが再発行しても、
+   端末が読み直すまで反映されない。「直したはずなのに直っていない」ときに、
+   どの版を見ているのかを画面で確かめられるようにしておく。
+   この行は build-artifact.mjs がビルド時刻に差し替える（ローカル版は 'dev' のまま）。 */
+var APP_BUILD  = 'dev';
+
 var DATA_URL   = 'quiz-data.json';
 var LS_KEY     = 'gcpQuiz.v1';
 var LS_THEME   = 'gcpQuiz.theme';
@@ -1754,6 +1762,11 @@ function renderHome(){
   });
 
   renderResume();
+
+  /* 版の目印。古い版がキャッシュされたまま使っていないかを、ここで確かめられる。 */
+  var bl = $('buildLine');
+  if(bl) bl.textContent = 'この画面の版：' + APP_BUILD
+    + (APP_BUILD === 'dev' ? '（ローカル版）' : '　古いままなら再読み込みしてください');
 
   // 面接前チェックリストの件数
   var nPrep = poolPrep().length;

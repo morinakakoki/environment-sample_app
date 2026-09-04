@@ -571,6 +571,20 @@ console.log('\n【19b】1問ごとに「なぜ出たか」が出る');
   await c.close();
 }
 
+console.log('\n【19c】版の目印が出る（古いキャッシュを見分けるため）');
+{
+  const { c, p, errs } = await open([Q(1)]);
+  const line = await p.locator('#buildLine').textContent();
+  ok(/^この画面の版：/.test(line), 'ホームに版が出る: ' + line);
+  ok(/dev（ローカル版）/.test(line), 'index.html は dev のまま: ' + line);
+  const art = fs.readFileSync(path.join(QUIZ, 'artifact.html'), 'utf8');
+  const m = art.match(/var APP_BUILD  = '([^']*)';/);
+  ok(!!m && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/.test(m[1]),
+     'アーティファクトはビルド時刻に差し替わる: ' + (m && m[1]));
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
 console.log('\n【19】「全範囲」に次の章が出る');
 {
   const data = [Q(1, { chapter: 3 }), Q(2, { chapter: 5 })];
