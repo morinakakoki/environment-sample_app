@@ -216,7 +216,9 @@ console.log('\n【9】節のチップから方式設計書の該当節へ飛べ�
       seen.push(label);
       ok(want[label] && href.endsWith(want[label]),
          label + ' → ' + want[label] + '（実際 ' + String(href).slice(-5) + '）');
-      ok(/^https:\/\/claude\.ai\//.test(href), label + ': 設計書の URL に向いている');
+      /* ローカル版と Pages では隣の design-doc.html（同じオリジン）を指す。
+         アーティファクト版だけ build-artifact.mjs が絶対 URL に差し替える。 */
+      ok(/\/design-doc\.html#s\d+$/.test(href), label + ': 隣の設計書を指している');
       ok(await link.getAttribute('target') === '_blank' &&
          /noopener/.test(await link.getAttribute('rel') || ''),
          label + ': 別タブで開く（noopener 付き）');
@@ -252,8 +254,10 @@ console.log('\n【10】面接前チェックリストからも飛べる（画面
   await p.waitForFunction(() => /コピーしました/.test(
     document.getElementById('prepCopyBtn').textContent), null, { timeout: 3000 }).catch(() => {});
   const text = await p.evaluate(() => navigator.clipboard.readText());
-  ok(/\[方式設計書 §7 コスト方式\]\(https:\/\/claude\.ai\/[^)]*#s7\)/.test(text),
-     'コピーしたテキストは Markdown リンクになる（Notion に貼っても飛べる）');
+  /* 相対のままだと Notion に貼った先で行き先を失う。絶対 URL に直して載せること。 */
+  ok(/\[方式設計書 §7 コスト方式\]\(https?:\/\/[^)]*\/design-doc\.html#s7\)/.test(text),
+     'コピーしたテキストは絶対 URL の Markdown リンクになる（Notion に貼っても飛べる）: '
+     + (text.match(/\(http[^)]*\)/) || ['なし'])[0]);
   ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
   await c.close();
 }
@@ -268,7 +272,7 @@ console.log('\n【11】設計書側に行き先の id が実在する');
 
   const src = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');
   const url = (src.match(/var DOC_URL = '([^']*)'/) || [])[1];
-  ok(/^https:\/\/claude\.ai\/code\/artifact\//.test(url || ''), 'DOC_URL が設計書を指す');
+  ok(url === 'design-doc.html', "index.html の DOC_URL は隣の設計書: " + url);
 
   /* METHOD_DOC の節番号と、実データの section が指す先が全部あるか */
   const secs = [...src.matchAll(/sec:'(§[^']+)'/g)].map(m => m[1]);
@@ -281,8 +285,13 @@ console.log('\n【11】設計書側に行き先の id が実在する');
   });
   ok(dead.length === 0, '指し先の節がすべて設計書にある: 行き先なし ' + (dead.join(' / ') || 'なし'));
 
+  /* アーティファクト版は隣を読めないので、ビルドで絶対 URL に差し替わっていること。
+     差し替えが抜けると、節のチップが sandbox 内の 404 を指す。 */
   const art = fs.readFileSync(path.join(QUIZ, 'artifact.html'), 'utf8');
-  ok(art.includes(url), 'アーティファクトにも DOC_URL が入っている');
+  const aUrl = (art.match(/var DOC_URL = '([^']*)'/) || [])[1];
+  ok(/^https:\/\/claude\.ai\/code\/artifact\//.test(aUrl || ''),
+     'artifact.html の DOC_URL は絶対 URL: ' + String(aUrl).slice(0, 46));
+  ok(!art.includes("var DOC_URL = 'design-doc.html'"), '相対のまま焼き込まれていない');
 }
 
 await b.close();

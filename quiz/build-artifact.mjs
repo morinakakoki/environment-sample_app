@@ -57,6 +57,16 @@ if (!STAMP.test(script)) throw new Error(
 const buildId = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 script = script.replace(STAMP, `var APP_BUILD  = '${buildId}';`);
 
+/* 方式設計書の置き場を、アーティファクト版だけ絶対 URL に差し替える。
+   index.html は隣の design-doc.html を指している（Pages・ローカルはそれで届くし、
+   同じオリジンなので #s4 がそのまま効く）。アーティファクトは単独のページで隣を
+   読めないため、そのままだと節のチップが 404 へのリンクになる。 */
+const DOC_ARTIFACT = 'https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff';
+const DOC_MARK = /var DOC_URL = 'design-doc\.html';/;
+if (!DOC_MARK.test(script)) throw new Error(
+  "アプリ本体に DOC_URL の目印が見つかりません（index.html の var DOC_URL = 'design-doc.html'; を消さないでください）");
+script = script.replace(DOC_MARK, `var DOC_URL = '${DOC_ARTIFACT}';`);
+
 /* 器の前提: 運ばれるのは <style> 1つと本文マークアップ1つだけ。
    2つ目の <style> を head に足すと、それは style にも markup にも入らず、
    artifact.html のどこにも現れない。画面は出るのでアーティファクトだけ

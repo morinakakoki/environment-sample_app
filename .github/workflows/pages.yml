@@ -1,0 +1,50 @@
+# quiz/ を GitHub Pages に出す。
+#
+# 公開 URL: https://morinakakoki.github.io/environment-sample_app/
+#
+# 【最初の1回だけ手作業】リポジトリの Settings → Pages → Build and deployment の
+# Source を「GitHub Actions」にしてください。ここが「Deploy from a branch」のままだと
+# このワークフローは deploy で失敗します。
+#
+# 配るものは build-pages.mjs が組み立てます（index.html / quiz-data.json /
+# design-doc.html / manifest / アイコン）。ビルドは節の id の数や行き先の無いリンクを
+# 検査するので、壊れていればここで落ちて公開されません。
+name: Pages
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'quiz/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 走っているデプロイは止めない（途中で切ると公開版が中途半端になる）
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 配る一式を組み立てる
+        run: node quiz/build-pages.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: quiz/_site
+      - id: deploy
+        uses: actions/deploy-pages@v4

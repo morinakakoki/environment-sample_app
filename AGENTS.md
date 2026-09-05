@@ -14,8 +14,9 @@
 cd quiz/tests && npm install       # 初回のみ（playwright）
 npx playwright install chromium    # 初回のみ。CHROME_PATH で既存の Chrome を指してもよい
 
+cd quiz && node build-pages.mjs    # GitHub Pages に配る一式 → quiz/_site/
 cd quiz && node build-artifact.mjs # index.html + quiz-data.json → artifact.html
-cd quiz/tests && sh runall.sh      # 19スイート・695項目（ビルドも自動で走る）
+cd quiz/tests && sh runall.sh      # 20スイート・733項目（両方のビルドも自動で走る）
 ```
 
 `runall.sh` は静的サーバ（8777 / 8790）を自分で上げます。**1項目でも落ちたまま出さない
@@ -29,7 +30,9 @@ cd quiz/tests && sh runall.sh      # 19スイート・695項目（ビルドも�
 - スマホ **375px 優先**。ライト／ダーク両対応
 - CSS は既存の**1つの `<style>`** に追記する。2つ目を足すと発行時に静かに落ちる
 - Notion 連携は任意。繋がらなくても埋め込みの問題で普通に解けること
-- **`quiz/artifact.html` は生成物。手で編集しない**（`build-artifact.mjs` が上書きする）
+- **`quiz/artifact.html` と `quiz/_site/` は生成物。手で編集しない**（ビルドが上書きする）
+- `index.html` の `var APP_BUILD = 'dev';` と `var DOC_URL = 'design-doc.html';` は
+  **ビルドが差し替える目印**。消すと `build-artifact.mjs` が落ちる
 
 ## 方式設計書の節番号を動かすときは3か所
 
@@ -44,6 +47,19 @@ cd quiz/tests && sh runall.sh      # 19スイート・695項目（ビルドも�
 
 **ずれてもリンクは 404 になりません。**黙って設計書の先頭に着くだけなので、押しても
 気づけません。`quiz/tests/docref.mjs` の【11】がこの3つの整合を見ています。
+
+## 配り先は2つ
+
+| 配り先 | 何が正 | 反映のしかた |
+| --- | --- | --- |
+| **GitHub Pages（本番）** | リポジトリ | `master` に push → `.github/workflows/pages.yml` が自動で配る |
+| アーティファクト（旧） | 公開版が先に進むことがある | Claude に再発行を頼む（下記） |
+
+公開 URL: **https://morinakakoki.github.io/environment-sample_app/**
+
+Pages 側は **Codex だけで更新まで完結します。**ふだんはこちらだけ考えれば足ります。
+Notion 連携（問題の自動取り込み・学習記録の端末間同期）が要るときだけアーティファクト版
+を使います。**学習記録は2つの版で別々**です（移すならアプリのバックアップ／復元）。
 
 ## できないこと：アーティファクトへの発行
 

@@ -7,6 +7,14 @@
 <meta name="description" content="GCPデータ基盤ポートフォリオ学習クイズ">
 <title>データ基盤 復習クイズ</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a66d6'/%3E%3Ctext x='32' y='45' font-size='38' font-family='system-ui,sans-serif' font-weight='700' text-anchor='middle' fill='%23fff'%3E%3F%3C/text%3E%3C/svg%3E">
+<!-- ホーム画面に追加したときにアドレスバー無しで開くための宣言。隣に置いたファイルを
+     読むので、GitHub Pages とローカルサーバでだけ効く（アーティファクト版は head を
+     運ばないので、そちらでは単に無視される）。 -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="復習クイズ">
 <style>
 /* ============================================================
    デザイントークン（ライト）
@@ -1584,9 +1592,12 @@ function docRef(q){
   return d ? (d.sec + ' ' + q.method) : '';
 }
 
-/* 方式設計書（アーティファクト）の URL。空にすると節のチップはただの文字に戻る。
-   設計書を作り直して URL が変わったら、ここだけ差し替えれば全画面が追随する。 */
-var DOC_URL = 'https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff';
+/* 方式設計書の置き場。空にすると節のチップはただの文字に戻る。
+
+   既定は隣の design-doc.html（GitHub Pages とローカルサーバ）。同じオリジンなので
+   #s4 がそのまま効く。アーティファクト版だけは隣を読めないので、build-artifact.mjs が
+   ここを設計書アーティファクトの絶対 URL に差し替える。 */
+var DOC_URL = 'design-doc.html';
 
 /* 「§4 データ方式」「§10 #6 スキーマの所有者」「§1・2・9 構成・前提」から
    最初の節番号だけを取り出して #s4 の形にする。設計書側の <h2 id> がこれ。
@@ -1597,15 +1608,25 @@ function docAnchor(ref){
   return m ? ('#s' + m[1]) : '';
 }
 
+/* 指し先の絶対 URL。DOC_URL は相対（design-doc.html）なので、そのまま
+   面接前チェックリストのコピーに載せると、Notion に貼った先で行き先を失う。
+   絶対に直してから配る。 */
+function docHref(ref){
+  if(!DOC_URL) return '';
+  var rel = DOC_URL + docAnchor(ref);
+  try{ return new URL(rel, location.href).href; }
+  catch(e){ return rel; }   /* about:blank 等で解決できない場合はそのまま */
+}
+
 /* 「方式設計書 §4 データ方式」のチップ。DOC_URL があればリンクにする。
-   アーティファクトは claude.ai の枠の中で開くので、外側の URL に付けた #s4 が
-   中の文書まで届くとは限らない。届かなければ設計書の先頭に着くが、そこに
-   節の一覧を置いてあるので1タップで目的の節へ行ける。届けばそのまま節に着く。
-   どちらでも「設計書のどこを読めばいいか分からない」状態にはならない。 */
+   Pages・ローカル版は同じオリジンの design-doc.html を開くので #s4 がそのまま効く。
+   アーティファクト版は claude.ai の枠の中なので、外側の URL に付けた #s4 が中の
+   文書まで届くとは限らない。届かなければ設計書の先頭に着くが、そこに節の一覧を
+   置いてあるので1タップで目的の節へ行ける。どちらでも迷子にはならない。 */
 function docChip(ref){
   if(!DOC_URL) return el('span', 'chip method', '方式設計書 ' + ref);
   var a = el('a', 'chip method chip-link', '方式設計書 ' + ref);
-  a.href = DOC_URL + docAnchor(ref);
+  a.href = docHref(ref);
   a.target = '_blank';
   a.rel = 'noopener noreferrer';
   a.title = '方式設計書の ' + ref + ' を開く';
@@ -2268,9 +2289,9 @@ function prepText(){
     if(q.tag) head.push('理解度表 ' + q.tag);
     var dr = docRef(q);
     /* コピー先（Notion）でも節へ飛べるように、URL があれば Markdown リンクにする。
-       画面のチップと同じ行き先。DOC_URL が空なら今までどおりただの文字。 */
+       画面のチップと同じ行き先を、絶対 URL にして載せる。 */
     if(dr) head.push(DOC_URL
-      ? '[方式設計書 ' + dr + '](' + DOC_URL + docAnchor(dr) + ')'
+      ? '[方式設計書 ' + dr + '](' + docHref(dr) + ')'
       : '方式設計書 ' + dr);
     out.push('## ' + (i + 1) + '. ' + q.q);
     out.push('- 区分: ' + head.join(' / ') + '（' + (r.why === 'wrong' ? '直近で間違えた' : '説明できなかった') + '）');

@@ -29,3 +29,6 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# GitHub Pages に出す一式（build-pages.mjs の生成物）
+quiz/_site/
