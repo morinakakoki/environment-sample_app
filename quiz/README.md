@@ -120,7 +120,7 @@ quiz/
 ├── note.html           … 基礎知識ノートのソース（章のチップの行き先。下記）
 ├── manifest.webmanifest… ホーム画面に追加したときの名前・アイコン・表示方法
 ├── icon-192.png        … 同上（512 も）
-├── tests/              … Playwright のテスト（21 スイート・782 項目）
+├── tests/              … Playwright のテスト（21 スイート・785 項目）
 │   └── runall.sh       … cd quiz/tests && sh runall.sh で全部走る
 └── README.md           … これ
 ```

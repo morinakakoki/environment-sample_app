@@ -16,7 +16,7 @@ npx playwright install chromium    # 初回のみ。CHROME_PATH で既存の Chr
 
 cd quiz && node build-pages.mjs    # GitHub Pages に配る一式 → quiz/_site/
 cd quiz && node build-artifact.mjs # index.html + quiz-data.json → artifact.html
-cd quiz/tests && sh runall.sh      # 21スイート・782項目（両方のビルドも自動で走る）
+cd quiz/tests && sh runall.sh      # 21スイート・785項目（両方のビルドも自動で走る）
 ```
 
 `runall.sh` は静的サーバ（8777 / 8790）を自分で上げます。**1項目でも落ちたまま出さない
