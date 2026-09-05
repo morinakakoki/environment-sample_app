@@ -55,6 +55,25 @@ console.log('\n【選択肢の作り】答えが透ける書き方をしてい�
   ok(blank.length === 0, `空の選択肢は無い: ${blank.length}問`);
 }
 
+console.log('\n【前提】問題文の上に置く前提が、答えを先に言っていないか');
+{
+  // 前提は答える前に読む欄なので、ここに正解が入っていると当てものになる。
+  // 空白を落として比べる（「課金 バイト」のような表記ゆれで抜けないように）。
+  const flat = s => String(s || '').replace(/\s+/g, '');
+  const leak = d.filter(q => q.premise && flat(q.premise).includes(flat(q.options[q.answer])));
+  ok(leak.length === 0, `前提に正解の選択肢がそのまま入っていない: ${leak.length}問`
+     + (leak.length ? ' → ' + leak.map(q => 'id' + q.id).join(' ') : ''));
+
+  // 誤答が丸ごと入っているのも、消去法の材料を配ることになる。
+  const hint = d.filter(q => q.premise &&
+    q.options.some((o, i) => i !== q.answer && flat(q.premise).includes(flat(o))));
+  ok(hint.length === 0, `前提に誤答の選択肢がそのまま入っていない: ${hint.length}問`
+     + (hint.length ? ' → ' + hint.map(q => 'id' + q.id).join(' ') : ''));
+
+  const long = d.filter(q => (q.premise || '').length > 140);
+  ok(long.length === 0, `前提は140字以内: 超過 ${long.length}問`);
+}
+
 console.log('\n【解説】出題時にシャッフルされても壊れない書き方か');
 {
   // 位置での参照は、選択肢が並び替わると意味が変わってしまう

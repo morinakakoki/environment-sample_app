@@ -1201,7 +1201,7 @@
       "ログを監視して条件に合ったら通知を送る"
     ],
     "answer": 1,
-    "explanation": "Cloud Scheduler はマネージドの cron。「毎日 6:00 にこの URL に POST する」だけをやり、それ以上のこと（順序制御、失敗時の再試行の判断）はしない。Cloud Run Job の起動 URL を叩かせて日次バッチを動かす。AWS の EventBridge Scheduler に相当。依存関係の管理は Workflows や Composer の仕事。",
+    "explanation": "Cloud Scheduler はマネージドの cron。決めた時刻に HTTP リクエストを1本投げるところまでをやる。再試行の回数やバックオフは設定できるが、ジョブどうしの順序（raw のあとに staging）は持てない。そこは Workflows や Composer の仕事。Cloud Run Job の起動 URL を叩かせて日次バッチを動かす。AWS の EventBridge Scheduler に相当。",
     "source": "https://cloud.google.com/scheduler/docs/overview",
     "addedAt": "2026-09-05"
   },
