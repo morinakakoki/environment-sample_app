@@ -184,6 +184,107 @@ console.log('\n【8】実データの紐付け');
      'アーティファクトにも節の対応と section が入っている');
 }
 
+console.log('\n【9】節のチップから方式設計書の該当節へ飛べる');
+{
+  const { c, p, errs } = await open([
+    Q(1, { method: 'データ方式' }),
+    Q(2, { method: '構成・前提' }),                              // §1・2・9（複数節）
+    Q(3, { method: 'IaC方式', section: '§10 #6 スキーマの所有者' }), // section が優先
+    Q(4, { method: '新しい方式' }),                              // METHOD_DOC に無い
+  ]);
+  await p.locator('#modeAll').click();
+  await p.locator('#screenQuiz:not(.hidden)').waitFor();
+
+  /* 同じ章の中はシャッフルされるので、出題順は決め打ちにしない。
+     画面に出ている指し先の文字から、その行き先を引く。 */
+  const want = {
+    '方式設計書 §4 データ方式'            : '#s4',
+    '方式設計書 §1・2・9 構成・前提'      : '#s1',   // 複数節にまたがる方式は先頭へ
+    '方式設計書 §10 #6 スキーマの所有者'  : '#s10',  // section が優先される
+  };
+  const seen = [];
+  for (let i = 0; i < 4; i++) {
+    await answerOne(p);
+    const link = p.locator('#qVerdict .backto a.chip-link');
+    if (await link.count() === 0) {
+      seen.push('（リンクなし）');
+      ok(!/方式設計書/.test(await p.locator('#qVerdict .backto').innerText()),
+         '節が分からない方式にはチップごと出さない');
+    } else {
+      const label = (await link.innerText()).trim();
+      const href = await link.getAttribute('href');
+      seen.push(label);
+      ok(want[label] && href.endsWith(want[label]),
+         label + ' → ' + want[label] + '（実際 ' + String(href).slice(-5) + '）');
+      ok(/^https:\/\/claude\.ai\//.test(href), label + ': 設計書の URL に向いている');
+      ok(await link.getAttribute('target') === '_blank' &&
+         /noopener/.test(await link.getAttribute('rel') || ''),
+         label + ': 別タブで開く（noopener 付き）');
+    }
+    if (i < 3) await p.locator('#nextBtn').click();
+  }
+  ok(Object.keys(want).every(k => seen.includes(k)) && seen.includes('（リンクなし）'),
+     '4通りすべてを通った: ' + seen.join(' / '));
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
+console.log('\n【10】面接前チェックリストからも飛べる（画面とコピーの両方）');
+{
+  const ago = (d) => new Date(Date.now() - d * 86400000).toISOString();
+  const ls = JSON.stringify({ version: 1, sessions: [], stats: {
+    1: { seen: 1, correct: 0, wrong: 1, last: 'wrong', lastAt: ago(1) } } });
+  const c = await b.newContext({ viewport: { width: 375, height: 812 },
+    permissions: ['clipboard-read', 'clipboard-write'] });
+  const p = await c.newPage();
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.route('**/quiz-data.json', r => r.fulfill({ contentType: 'application/json',
+    body: JSON.stringify([Q(1, { method: 'コスト方式' })]) }));
+  await p.addInitScript(v => localStorage.setItem('gcpQuiz.v1', v), ls);
+  await p.goto('http://localhost:8777/index.html', { waitUntil: 'networkidle' });
+  await p.locator('#screenHome:not(.hidden)').waitFor();
+  await p.locator('#prepBtn').click();
+  await p.locator('#screenPrep:not(.hidden)').waitFor();
+  const href = await p.locator('#prepList a.chip-link').first().getAttribute('href');
+  ok(href && href.endsWith('#s7'), '一覧のチップが §7 を指す: ' + String(href).slice(-24));
+
+  await p.locator('#prepCopyBtn').click();
+  await p.waitForFunction(() => /コピーしました/.test(
+    document.getElementById('prepCopyBtn').textContent), null, { timeout: 3000 }).catch(() => {});
+  const text = await p.evaluate(() => navigator.clipboard.readText());
+  ok(/\[方式設計書 §7 コスト方式\]\(https:\/\/claude\.ai\/[^)]*#s7\)/.test(text),
+     'コピーしたテキストは Markdown リンクになる（Notion に貼っても飛べる）');
+  ok(errs.length === 0, '例外なし' + (errs.length ? ': ' + errs[0] : ''));
+  await c.close();
+}
+
+console.log('\n【11】設計書側に行き先の id が実在する');
+{
+  /* 節番号を振り直したのに設計書の id を直し忘れると、リンクは 404 にならず
+     黙って先頭に着く。押しても何も起きないように見えるので、ここで止める。 */
+  const doc = fs.readFileSync(path.join(QUIZ, 'design-doc.html'), 'utf8');
+  const ids = [...doc.matchAll(/<h2 id="(s\d+)"/g)].map(m => m[1]);
+  ok(ids.length === 11, '設計書の見出しに id が11個ある: ' + ids.length);
+
+  const src = fs.readFileSync(path.join(QUIZ, 'index.html'), 'utf8');
+  const url = (src.match(/var DOC_URL = '([^']*)'/) || [])[1];
+  ok(/^https:\/\/claude\.ai\/code\/artifact\//.test(url || ''), 'DOC_URL が設計書を指す');
+
+  /* METHOD_DOC の節番号と、実データの section が指す先が全部あるか */
+  const secs = [...src.matchAll(/sec:'(§[^']+)'/g)].map(m => m[1]);
+  const raw = JSON.parse(fs.readFileSync(path.join(QUIZ, 'quiz-data.json'), 'utf8'));
+  const qs = Array.isArray(raw) ? raw : raw.questions;
+  const refs = secs.concat(qs.map(q => q.section).filter(Boolean));
+  const dead = [...new Set(refs)].filter(r => {
+    const m = /^§(\d+)/.exec(r);
+    return !m || !ids.includes('s' + m[1]);
+  });
+  ok(dead.length === 0, '指し先の節がすべて設計書にある: 行き先なし ' + (dead.join(' / ') || 'なし'));
+
+  const art = fs.readFileSync(path.join(QUIZ, 'artifact.html'), 'utf8');
+  ok(art.includes(url), 'アーティファクトにも DOC_URL が入っている');
+}
+
 await b.close();
 console.log('\n' + (f.length ? `FAILURES (${f.length}):\n - ` + f.join('\n - ') : 'ALL PASS'));
 process.exit(f.length ? 1 : 0);

@@ -1,0 +1,354 @@
+<title>マーケットデータ基盤 方式設計書</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F5F6F8; --panel:#FFFFFF; --ink:#1D2333; --muted:#5D6678; --line:#D3D8E2;
+  --acc:#2C6E72; --acc-bg:#E1EFEF; --plan:#8A6D2E; --plan-bg:#F6EFDD; --ext:#6B7280;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#14181F;--panel:#1D222C;--ink:#E8EBF1;--muted:#A3ABBB;--line:#333A48;--acc:#7CC4C7;--acc-bg:#1C3234;--plan:#D9B86A;--plan-bg:#37301C;--ext:#9AA3B2}
+}
+:root[data-theme="dark"]{--bg:#14181F;--panel:#1D222C;--ink:#E8EBF1;--muted:#A3ABBB;--line:#333A48;--acc:#7CC4C7;--acc-bg:#1C3234;--plan:#D9B86A;--plan-bg:#37301C;--ext:#9AA3B2}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7;margin:0}
+main{max-width:1000px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:26px;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+h2{font-size:17px;margin:40px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+h2 .no{font-family:var(--mono);color:var(--muted);font-size:13px;margin-right:10px}
+code{font-family:var(--mono);font-size:13px}
+figure{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+figure svg{max-width:100%;height:auto;display:block;color:var(--ink)}
+figcaption{font-size:13px;color:var(--muted);margin-top:8px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:10px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg{width:26px;height:14px;border:2px solid var(--ink);border-radius:3px;display:inline-block}
+.lg.dash{border-style:dashed;border-color:var(--plan)}
+.lg.ext{border-color:var(--ext);border-radius:10px}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--panel)}
+th,td{text-align:left;padding:7px 10px;border:1px solid var(--line);vertical-align:top}
+th{font-weight:700;color:var(--muted);font-size:12px;letter-spacing:.04em;background:var(--bg)}
+td code{white-space:nowrap}
+.st{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid var(--line);white-space:nowrap}
+.st.ok{border-color:var(--acc);color:var(--acc);background:var(--acc-bg)}
+.st.pl{border-color:var(--plan);color:var(--plan);background:var(--plan-bg)}
+.st.ch{border-color:var(--muted);color:var(--muted)}
+p{max-width:72ch}
+.note{font-size:13px;color:var(--muted)}
+ol{padding-left:1.4em}
+a{color:var(--acc)}
+
+/* 節の一覧（見出しへのジャンプ）。
+   復習クイズが「方式設計書 §4」のように節を名指しするので、開いた側でその節へ
+   1タップで行けるようにする。各 <h2> の id="s1"〜"s11" がその行き先。
+   クイズからの URL に #s4 を付けてあるが、アーティファクトは claude.ai の枠の中に
+   あり、外側の URL のフラグメントが中まで届くとは限らない。届かなければ先頭に
+   着くので、そこから押せる一覧をここに置いてある（届けばこの一覧は素通りする）。 */
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.toc a{display:inline-flex;align-items:baseline;gap:6px;
+  font-size:12.5px;line-height:1.5;padding:4px 10px;
+  border:1px solid var(--line);border-radius:999px;
+  background:var(--panel);color:var(--ink);text-decoration:none}
+.toc a .no{font-family:var(--mono);font-size:11px;color:var(--muted);margin:0}
+@media (hover:hover){
+  .toc a:hover{border-color:var(--acc);color:var(--acc)}
+  .toc a:hover .no{color:var(--acc)}
+}
+h2{scroll-margin-top:14px}
+</style>
+
+<main>
+<h1>マーケットデータ基盤 方式設計書</h1>
+<p class="sub">AI半導体・電力インフラ30銘柄／GCP <code>market-data-platform-4821</code>／asia-northeast1／版 2026-08-29（S-2-1 完了時点）。設計は確定済み。<span class="st ok">構築済</span> <span class="st pl">予定</span> <span class="st ch">選択待ち</span> は手順書の S-番号に対応。</p>
+
+<nav class="toc" aria-label="節の一覧">
+<a href="#s1"><span class="no">1</span>システム構成図</a>
+<a href="#s2"><span class="no">2</span>構成一覧</a>
+<a href="#s3"><span class="no">3</span>処理方式</a>
+<a href="#s4"><span class="no">4</span>データ方式</a>
+<a href="#s5"><span class="no">5</span>認証・権限方式</a>
+<a href="#s6"><span class="no">6</span>運用・監視方式</a>
+<a href="#s7"><span class="no">7</span>コスト方式</a>
+<a href="#s8"><span class="no">8</span>IaC 方式</a>
+<a href="#s9"><span class="no">9</span>制約・前提</a>
+<a href="#s10"><span class="no">10</span>設計判断</a>
+<a href="#s11"><span class="no">11</span>Well-Architected 自己評価</a>
+</nav>
+
+<h2 id="s1"><span class="no">1</span>システム構成図</h2>
+<figure>
+<svg viewBox="0 0 1000 640" role="img" aria-label="外部データソース3つから Cloud Run Jobs が取得し BigQuery の raw→staging→mart に流し、Looker Studio が読む。Scheduler が起動し、Terraform が GCP 内リソースを宣言する構成図">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+  </defs>
+  <g font-family="Zen Kaku Gothic New, sans-serif" font-size="12" fill="currentColor" stroke="currentColor">
+
+  <!-- external sources -->
+  <g stroke="var(--ext)" fill="none" stroke-width="1.5">
+    <rect x="20" y="70" width="130" height="46" rx="12"/>
+    <rect x="20" y="150" width="130" height="46" rx="12"/>
+    <rect x="20" y="230" width="130" height="46" rx="12"/>
+  </g>
+  <g stroke="none" text-anchor="middle">
+    <text x="85" y="89">Yahoo Finance</text><text x="85" y="106" font-size="10" fill="var(--muted)">yfinance（非公式）</text>
+    <text x="85" y="169">SEC EDGAR</text><text x="85" y="186" font-size="10" fill="var(--muted)">companyfacts API</text>
+    <text x="85" y="249">FRED</text><text x="85" y="266" font-size="10" fill="var(--muted)">series/observations</text>
+    <text x="85" y="52" font-size="11" fill="var(--muted)">外部データソース</text>
+  </g>
+
+  <!-- GCP project boundary -->
+  <rect x="190" y="30" width="600" height="590" rx="6" fill="none" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="200" y="50" font-size="11" stroke="none" fill="var(--muted)">GCP プロジェクト market-data-platform-4821 ／ asia-northeast1</text>
+
+  <!-- Scheduler -->
+  <rect x="215" y="80" width="150" height="60" rx="4" fill="var(--panel)" stroke-width="2"/>
+  <text x="290" y="103" text-anchor="middle" stroke="none" font-weight="700">Cloud Scheduler</text>
+  <text x="290" y="121" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">火〜土 07:00 JST（予定 S-2-3）</text>
+
+  <!-- Cloud Run Jobs group -->
+  <rect x="400" y="65" width="220" height="230" rx="4" fill="none" stroke-width="1.5"/>
+  <text x="410" y="83" stroke="none" font-size="11" fill="var(--muted)">Cloud Run Jobs（起動→終了）</text>
+  <rect x="412" y="95" width="196" height="40" rx="3" fill="var(--panel)" stroke-width="2"/>
+  <text x="510" y="112" text-anchor="middle" stroke="none" font-weight="700">fetch-daily-prices</text>
+  <text x="510" y="127" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">Python／日足・WRITE_TRUNCATE</text>
+  <rect x="412" y="145" width="196" height="40" rx="3" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="510" y="162" text-anchor="middle" stroke="none" font-weight="700">fetch-fundamentals</text>
+  <text x="510" y="177" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">Python／週次（W2–W3）</text>
+  <rect x="412" y="195" width="196" height="40" rx="3" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="510" y="212" text-anchor="middle" stroke="none" font-weight="700">fetch-macro</text>
+  <text x="510" y="227" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">Python／日次（W3）</text>
+  <rect x="412" y="245" width="196" height="40" rx="3" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="510" y="262" text-anchor="middle" stroke="none" font-weight="700">run_staging ／ run_mart</text>
+  <text x="510" y="277" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">SQL 実行／raw の後（W4–W5）</text>
+
+  <!-- Artifact Registry -->
+  <rect x="215" y="200" width="150" height="60" rx="4" fill="var(--panel)" stroke-width="2"/>
+  <text x="290" y="223" text-anchor="middle" stroke="none" font-weight="700">Artifact Registry</text>
+  <text x="290" y="241" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">market-data／イメージ置き場</text>
+
+  <!-- Secret Manager -->
+  <rect x="215" y="280" width="150" height="46" rx="4" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="290" y="299" text-anchor="middle" stroke="none" font-weight="700">Secret Manager</text>
+  <text x="290" y="315" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">FRED API キー（W3）</text>
+
+  <!-- BigQuery -->
+  <rect x="400" y="340" width="370" height="150" rx="4" fill="none" stroke-width="1.5"/>
+  <text x="410" y="358" stroke="none" font-size="11" fill="var(--muted)">BigQuery（データセット3つ）</text>
+  <rect x="412" y="372" width="108" height="100" rx="3" fill="var(--panel)" stroke-width="2"/>
+  <text x="466" y="392" text-anchor="middle" stroke="none" font-weight="700">raw</text>
+  <text x="466" y="410" text-anchor="middle" stroke="none" font-size="10">securities_master</text>
+  <text x="466" y="424" text-anchor="middle" stroke="none" font-size="10">daily_prices</text>
+  <text x="466" y="438" text-anchor="middle" stroke="none" font-size="10" fill="var(--plan)">fundamentals</text>
+  <text x="466" y="452" text-anchor="middle" stroke="none" font-size="10" fill="var(--plan)">macro／intraday</text>
+  <rect x="536" y="372" width="108" height="100" rx="3" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="590" y="392" text-anchor="middle" stroke="none" font-weight="700">staging</text>
+  <text x="590" y="410" text-anchor="middle" stroke="none" font-size="10">stg_daily_prices</text>
+  <text x="590" y="424" text-anchor="middle" stroke="none" font-size="10">stg_fundamentals</text>
+  <text x="590" y="438" text-anchor="middle" stroke="none" font-size="10">stg_macro</text>
+  <rect x="660" y="372" width="100" height="100" rx="3" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="710" y="392" text-anchor="middle" stroke="none" font-weight="700">mart</text>
+  <text x="710" y="410" text-anchor="middle" stroke="none" font-size="10">fct_daily_prices</text>
+  <text x="710" y="424" text-anchor="middle" stroke="none" font-size="10">dim_securities</text>
+  <text x="710" y="438" text-anchor="middle" stroke="none" font-size="10">fct_fundamentals</text>
+  <text x="710" y="452" text-anchor="middle" stroke="none" font-size="10">fct_macro／intraday</text>
+
+  <!-- Monitoring -->
+  <rect x="215" y="520" width="150" height="60" rx="4" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="290" y="543" text-anchor="middle" stroke="none" font-weight="700">Cloud Monitoring</text>
+  <text x="290" y="561" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">失敗アラート→メール（W7）</text>
+
+  <!-- Billing -->
+  <rect x="620" y="520" width="150" height="60" rx="4" fill="var(--panel)" stroke-width="2"/>
+  <text x="695" y="543" text-anchor="middle" stroke="none" font-weight="700">請求先／予算</text>
+  <text x="695" y="561" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">無料トライアル／月3,000円通知</text>
+
+  <!-- Looker Studio (outside) -->
+  <rect x="830" y="380" width="150" height="60" rx="12" fill="var(--panel)" stroke="var(--plan)" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="905" y="403" text-anchor="middle" stroke="none" font-weight="700">Looker Studio</text>
+  <text x="905" y="421" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">1枚公開（W7）</text>
+
+  <!-- Terraform (outside, local PC) -->
+  <rect x="830" y="70" width="150" height="70" rx="12" fill="var(--panel)" stroke-width="2"/>
+  <text x="905" y="93" text-anchor="middle" stroke="none" font-weight="700">Terraform</text>
+  <text x="905" y="110" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">ローカル PC／state ローカル</text>
+  <text x="905" y="126" text-anchor="middle" stroke="none" font-size="10" fill="var(--muted)">gcloud ADC で認証</text>
+
+  <!-- arrows -->
+  <g fill="none" stroke-width="1.5" marker-end="url(#ar)">
+    <!-- sources -> jobs -->
+    <line x1="150" y1="93" x2="412" y2="112"/>
+    <line x1="150" y1="173" x2="412" y2="165"/>
+    <line x1="150" y1="253" x2="412" y2="215"/>
+    <!-- scheduler -> jobs -->
+    <line x1="365" y1="110" x2="398" y2="110"/>
+    <!-- AR -> jobs -->
+    <line x1="365" y1="230" x2="412" y2="180" stroke-dasharray="3 3"/>
+    <!-- secret -> macro -->
+    <line x1="365" y1="303" x2="412" y2="225" stroke-dasharray="3 3"/>
+    <!-- jobs -> raw -->
+    <line x1="466" y1="295" x2="466" y2="370"/>
+    <!-- raw -> staging -> mart -->
+    <line x1="520" y1="422" x2="534" y2="422"/>
+    <line x1="644" y1="422" x2="658" y2="422"/>
+    <!-- run_staging/mart -> staging/mart -->
+    <line x1="590" y1="285" x2="590" y2="370"/>
+    <line x1="608" y1="270" x2="710" y2="370"/>
+    <!-- mart -> looker -->
+    <line x1="760" y1="410" x2="828" y2="410"/>
+    <!-- jobs -> monitoring -->
+    <line x1="400" y1="280" x2="290" y2="518"/>
+    <!-- terraform -> project -->
+    <line x1="830" y1="105" x2="792" y2="105"/>
+    <!-- bigquery -> billing -->
+    <line x1="700" y1="490" x2="700" y2="518"/>
+  </g>
+  <g stroke="none" font-size="10" fill="var(--muted)">
+    <text x="240" y="82">HTTPS GET</text>
+    <text x="368" y="102">:run</text>
+    <text x="372" y="222">pull</text>
+    <text x="372" y="292">env</text>
+    <text x="470" y="335">load（WRITE_TRUNCATE）</text>
+    <text x="596" y="335">SQL</text>
+    <text x="764" y="402">query</text>
+    <text x="320" y="420">log／metric</text>
+    <text x="797" y="98">apply</text>
+    <text x="704" y="508">課金バイト</text>
+  </g>
+  </g>
+</svg>
+<figcaption>実線＝構築済（8/29）、破線＝予定。角丸＝プロジェクト外。矢印のラベルが「何が動くか」。</figcaption>
+</figure>
+<div class="legend"><span><i class="lg"></i>構築済</span><span><i class="lg dash"></i>予定（W2〜W7）</span><span><i class="lg ext"></i>GCP プロジェクトの外</span></div>
+
+<h2 id="s2"><span class="no">2</span>構成一覧</h2>
+<div class="wrap"><table>
+<tr><th>分類</th><th>リソース</th><th>名称</th><th>作成手段</th><th>状態</th></tr>
+<tr><td>基盤</td><td>GCP プロジェクト</td><td><code>market-data-platform-4821</code></td><td>コンソール（手動）</td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>基盤</td><td>API 有効化</td><td>run / scheduler / artifactregistry（BigQuery は自動）</td><td>Terraform <code>google_project_service</code></td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>実行</td><td>Cloud Run Job</td><td><code>fetch-daily-prices</code></td><td>Terraform <code>google_cloud_run_v2_job</code></td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>実行</td><td>Cloud Run Job</td><td><code>fetch-fundamentals</code> / <code>fetch-macro</code> / <code>run_staging</code> / <code>run_mart</code></td><td>同上</td><td><span class="st pl">W2–W5</span></td></tr>
+<tr><td>実行</td><td>Cloud Scheduler</td><td><code>fetch-daily-prices-daily</code>（＋各 Job 分）</td><td>Terraform <code>google_cloud_scheduler_job</code></td><td><span class="st pl">S-2-3</span></td></tr>
+<tr><td>実行</td><td>Artifact Registry</td><td><code>market-data</code>（DOCKER）／イメージ <code>fetch-daily-prices:v1</code></td><td>Terraform／<code>docker push</code></td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>認証</td><td>サービスアカウント</td><td><code>fetch-daily-prices@…</code>：bigquery.dataEditor＋jobUser</td><td>Terraform</td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>認証</td><td>サービスアカウント</td><td><code>scheduler-invoker@…</code>：run.invoker（Job 単位）</td><td>Terraform</td><td><span class="st pl">S-2-2</span></td></tr>
+<tr><td>秘匿</td><td>Secret Manager</td><td>FRED API キー</td><td>Terraform（値は手動登録）</td><td><span class="st pl">S-3-1</span></td></tr>
+<tr><td>データ</td><td>BigQuery データセット</td><td><code>raw</code></td><td>Terraform <code>google_bigquery_dataset</code></td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>データ</td><td>BigQuery データセット</td><td><code>staging</code> / <code>mart</code></td><td>Terraform</td><td><span class="st pl">W4 / W5</span></td></tr>
+<tr><td>データ</td><td>テーブル（raw）</td><td><code>securities_master</code>（30行）／<code>daily_prices</code>（7,531行）</td><td>Terraform <code>google_bigquery_table</code>（スキーマの正）</td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>データ</td><td>テーブル（raw）</td><td><code>fundamentals</code> / <code>macro_indicators</code> / <code>intraday_bars</code></td><td>Terraform</td><td><span class="st pl">W2–W3</span></td></tr>
+<tr><td>データ</td><td>テーブル（staging／mart）</td><td><a href="#s4">§4</a> 参照</td><td>SQL <code>CREATE OR REPLACE</code>（W8 で dbt へ）</td><td><span class="st pl">W4–W6</span></td></tr>
+<tr><td>可視化</td><td>Looker Studio</td><td>1枚・一般公開</td><td>手動</td><td><span class="st pl">W7</span></td></tr>
+<tr><td>運用</td><td>Cloud Monitoring</td><td>失敗アラート＋通知チャネル（メール）</td><td>コンソール or Terraform</td><td><span class="st ch">S-7-1</span></td></tr>
+<tr><td>運用</td><td>予算アラート</td><td>月 3,000円（通知のみ）</td><td>コンソール（手動）</td><td><span class="st ok">構築済</span></td></tr>
+<tr><td>運用</td><td>BigQuery カスタム割り当て</td><td>Query usage per day（有料化後のみ設定可）</td><td>コンソール</td><td><span class="st pl">11/1</span></td></tr>
+</table></div>
+
+<h2 id="s3"><span class="no">3</span>処理方式</h2>
+<div class="wrap"><table>
+<tr><th>項目</th><th>方式</th><th>備考</th></tr>
+<tr><td>実行形態</td><td>バッチ。Cloud Scheduler → Cloud Run Jobs（起動→処理→終了）。常駐プロセス無し</td><td>Airflow／Composer は不採用（コスト）</td></tr>
+<tr><td>スケジュール</td><td>日足・マクロ：火〜土 07:00 JST（米国市場の翌朝）／ファンダ：週1／staging・mart：raw の 30 分後に順次</td><td>順序制御は時刻ずらし。<span class="st ch">S-5-1</span> で mart 実行方式を選ぶ</td></tr>
+<tr><td>取得</td><td>Python（yfinance / requests）→ pandas DataFrame → BigQuery Load Job</td><td>SEC は User-Agent 必須・10 req/s、FRED は API キー</td></tr>
+<tr><td>ロード（日足）</td><td><code>WRITE_TRUNCATE</code>：直近1年を毎回全量取り直す</td><td>冪等。全量取り直せる設計だから成立（条件付き判断）</td></tr>
+<tr><td>ロード（分足）</td><td>日付パーティション単位の置換（<code>table$YYYYMMDD</code>）</td><td>60日しか遡れないため全量 TRUNCATE 不可 <span class="st pl">S-3-2</span></td></tr>
+<tr><td>変換</td><td>素の SQL（staging／mart）。W8 で mart のみ dbt に置換</td><td>調整後終値の再計算＝ウィンドウ関数（LAG／累積）</td></tr>
+<tr><td>スキーマ</td><td>正は Terraform。ロードジョブは <code>LoadJobConfig(schema=…)</code> で明示し autodetect を使わない</td><td>8/25 スキーマドリフト事故の恒久対策</td></tr>
+<tr><td>再実行</td><td>手動 <code>gcloud run jobs execute</code>。冪等なので何度でも可</td><td>再実行判断の根拠を W7 で記録</td></tr>
+</table></div>
+
+<h2 id="s4"><span class="no">4</span>データ方式</h2>
+<div class="wrap"><table>
+<tr><th>層</th><th>役割</th><th>テーブル</th><th>パーティション／クラスタ</th><th>更新</th></tr>
+<tr><td><code>raw</code></td><td>取得元のまま。加工しない。パイプラインの入力境界</td><td>securities_master／daily_prices／fundamentals／macro_indicators／intraday_bars</td><td>daily_prices：date／ticker <span class="st pl">S-3-3</span>、intraday：ts／ticker</td><td>Python ロード</td></tr>
+<tr><td><code>staging</code></td><td>型変換・重複排除・不正値フラグ（落とさない）</td><td>stg_daily_prices／stg_fundamentals／stg_macro_indicators</td><td>date／ticker</td><td>SQL（VIEW か TABLE <span class="st ch">S-4-2</span>）</td></tr>
+<tr><td><code>mart</code></td><td>見せる形。スタースキーマ（fact 4＋dim 1）</td><td>fct_daily_prices（adj_close 再計算）／dim_securities（Type1）／fct_fundamentals（as-of）／fct_macro_indicators（前方補完）／fct_intraday_bars（VWAP）</td><td>date／ticker</td><td>SQL → dbt（W8）</td></tr>
+</table></div>
+<p class="note">データ量：日足 30銘柄×1年＝7,531行。分足は 60日制約により 1MB/日程度。パーティション効果の実測は自テーブル＋<code>bigquery-public-data</code> で行う（S-3-4）。</p>
+
+<h2 id="s5"><span class="no">5</span>認証・権限方式</h2>
+<div class="wrap"><table>
+<tr><th>主体</th><th>認証</th><th>権限</th><th>用途</th></tr>
+<tr><td>Terraform（ローカル PC）</td><td><code>gcloud auth application-default login</code>（ADC）</td><td>本人アカウント（オーナー）</td><td>リソース作成。<code>gcloud init</code> のログインとは別物</td></tr>
+<tr><td>Cloud Run Job</td><td>専用 SA <code>fetch-daily-prices</code></td><td>bigquery.dataEditor＋bigquery.jobUser</td><td>テーブルへ書く／ジョブを投げる。最小権限</td></tr>
+<tr><td>Cloud Scheduler</td><td>専用 SA <code>scheduler-invoker</code>＋OAuth トークン</td><td>run.invoker（Job 単位）</td><td>Google API（run.googleapis.com）を呼ぶので OIDC でなく OAuth</td></tr>
+<tr><td>Looker Studio</td><td>本人アカウント（オーナー認証情報で公開）</td><td>mart の読み取り</td><td>閲覧者はクエリを本人権限で実行</td></tr>
+<tr><td>FRED API キー</td><td>Secret Manager → Job の env</td><td>Job SA に secretAccessor</td><td>イメージ・tfstate・Git に平文を置かない</td></tr>
+</table></div>
+
+<h2 id="s6"><span class="no">6</span>運用・監視方式（W7）</h2>
+<div class="wrap"><table>
+<tr><th>監視項目</th><th>検知方法</th><th>通知</th><th>対処</th></tr>
+<tr><td>ジョブ失敗</td><td>Cloud Logging（severity≥ERROR）または Cloud Run メトリクス <span class="st ch">S-7-1</span></td><td>メール</td><td>ログ確認→冪等なので手動再実行</td></tr>
+<tr><td>鮮度</td><td><code>run_mart</code> 末尾の <code>ASSERT MAX(date) ≥ …</code></td><td>ジョブ失敗として上と同じ経路</td><td>取得元の障害か自分の障害かを切り分け</td></tr>
+<tr><td>品質</td><td>行数急減（−20%）／adj_close 一致率 &lt; 95%／ファンダ欠損銘柄の増加を <code>ASSERT</code></td><td>同上</td><td>閾値と根拠を設計判断メモへ</td></tr>
+<tr><td>コスト</td><td>予算アラート（通知のみ）＋<code>INFORMATION_SCHEMA.JOBS</code> の日次課金バイトを mart に保存</td><td>メール</td><td>有料化後はカスタム割り当てでハードリミット</td></tr>
+</table></div>
+<p class="note">「意図的に失敗させる→検知→再実行判断→通知」を1件記録する（S-7-6）。DATUM Ops 職の業務そのもの。</p>
+
+<h2 id="s7"><span class="no">7</span>コスト方式（3層）</h2>
+<ol>
+<li>予算アラート 月 3,000円：通知のみ。課金は止まらない <span class="st ok">構築済</span></li>
+<li>1クエリあたり <code>maximum_bytes_billed</code>：実行前の見積もりで止まる唯一の確実な層。mart の SQL ジョブと dbt profile に設定 <span class="st pl">S-5-8 / S-8-1</span></li>
+<li>カスタム割り当て（プロジェクト／ユーザー 1日）：無料トライアル中は変更不可。11/1 有料化後に設定 <span class="st pl">S-10-10</span></li>
+</ol>
+<p class="note">前提：BigQuery 無料枠 10 GiB ストレージ／1 TiB クエリ・月。無料トライアルは 2026-11-16 終了（$300 使い切りでもリソース停止＝課金されない）。</p>
+
+<h2 id="s8"><span class="no">8</span>IaC 方式</h2>
+<div class="wrap"><table>
+<tr><th>項目</th><th>方式</th></tr>
+<tr><td>ツール</td><td>Terraform 1.15.8／google provider。作業フォルダ <code>C:\work\ポートフォリオ作成\terraform\</code></td></tr>
+<tr><td>管理範囲</td><td>API 有効化・データセット・テーブル定義（スキーマ／パーティション）・Artifact Registry・SA と IAM・Cloud Run Job 定義・Scheduler・Secret（枠のみ）</td></tr>
+<tr><td>管理外</td><td>プロジェクト作成・請求先・予算アラート・イメージの中身・テーブルの中身・staging／mart の SQL 本体・Looker Studio</td></tr>
+<tr><td>state</td><td>ローカル <code>terraform.tfstate</code>（Git 管理外）。GCS バックエンドは不採用（個人・単一端末）</td></tr>
+<tr><td>変更ルール</td><td><code>plan</code> に <code>forces replacement</code>／<code>destroy</code> が出たら apply しない。許可は「バックフィルで再現できるテーブル」のみ、本人が明言してから</td></tr>
+<tr><td>CloudFormation との差</td><td>state をローカルファイルで持つ／plan で差分を先に見る／複数クラウド同一言語</td></tr>
+</table></div>
+
+<h2 id="s9"><span class="no">9</span>制約・前提</h2>
+<div class="wrap"><table>
+<tr><th>項目</th><th>内容</th></tr>
+<tr><td>リージョン</td><td>asia-northeast1 に統一（BigQuery データセットは作成後に変更不可）</td></tr>
+<tr><td>データ利用条件</td><td>yfinance：personal use only（README に非営利明記）／SEC：User-Agent に氏名＋連絡先、10 req/s／FRED：帰属表示必須</td></tr>
+<tr><td>外国籍銘柄</td><td>TSM・ASML・ARM・BEPC 等は IFRS（20-F）で us-gaap 項目が欠ける → 品質テストの素材として扱う</td></tr>
+<tr><td>期限</td><td>無料トライアル 11/16 終了。11/1 に有料化。応募開始 11/9 以降もパイプライン稼働が条件</td></tr>
+<tr><td>完成条件</td><td>Looker Studio が7日連続失敗ゼロで自動更新／README で第三者が再現可能／設計判断メモ5件</td></tr>
+</table></div>
+
+<h2 id="s10"><span class="no">10</span>採用しなかった選択肢とトレードオフ（設計判断）</h2>
+<p class="note">面接で聞かれるのは「A と B があって、なぜ B にしたか」。確定済みは進捗ログ「判断メモ」を起こしたもの。<span class="st ch">選択待ち</span> は本人が決めたら埋める。W10 の設計判断メモは、この表を自分の言葉で書き直す作業になる。</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>論点</th><th>採用</th><th>採用しなかった案</th><th>トレードオフ（採用案の弱点も）</th><th>状態</th></tr>
+<tr><td>1</td><td>クラウド／DWH</td><td>GCP BigQuery</td><td>AWS Redshift Serverless</td><td>BigQuery は月 1 TiB／10 GiB が恒久無料、求人票でも BigQuery 必須が多い。Redshift は $300・90 日のみ。弱点：AWS 実務との接続が薄く見える → 経歴書側で CloudFormation を語る</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>2</td><td>データ</td><td>実データ（yfinance / EDGAR / FRED）</td><td>合成データ（コールセンター KPI）</td><td>合成だと品質テストが自作自演。実データは本物の欠損がある。弱点：yfinance は非公式・personal use → 実務では公式有料 API に置換すると明言</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>3</td><td>実行基盤</td><td>Cloud Scheduler → Cloud Run Jobs</td><td>Cloud Composer（Airflow）／Workflows／Cloud Functions</td><td>Composer は常駐課金で無料枠外。Jobs は起動→終了で課金最小。弱点：依存関係を時刻ずらしで持つので、ジョブが増えると破綻 → その時は Workflows</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>4</td><td>日足のロード</td><td>WRITE_TRUNCATE（全量置換）</td><td>WRITE_APPEND／MERGE</td><td>1年分を毎回取り直す設計なので TRUNCATE が最も単純で冪等。APPEND は再実行で重複。弱点：データ量が増えると全量が無駄 → 増分設計なら MERGE</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>5</td><td>分足のロード</td><td>パーティション単位の置換</td><td>全量 TRUNCATE／APPEND</td><td>60 日しか遡れず全量不可。パーティション置換なら日単位で冪等。弱点：`$YYYYMMDD` と行の日付の不一致でエラー</td><td><span class="st pl">S-3-2</span></td></tr>
+<tr><td>6</td><td>スキーマの所有者</td><td>Terraform が正、Python は明示指定</td><td>Python の autodetect に任せる／Terraform でテーブルを管理しない</td><td>autodetect は毎回定義を上書きしドリフト → replace 事故（8/25）。弱点：列を足す時に .tf と Python の両方を直す</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>7</td><td>SA</td><td>ワークロードごとに専用 SA、キー無し</td><td>default compute SA（公式例）／SA キー JSON</td><td>専用 SA で最小権限（起動役は invoker だけ）。弱点：SA と binding が増えて Terraform が長くなる</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>8</td><td>Terraform state</td><td>ローカル</td><td>GCS リモートバックエンド＋ロック</td><td>個人・単一端末なのでローカルで足りる。弱点：端末紛失で state 消失、複数人不可 → 本番は GCS</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>9</td><td>コスト上限</td><td>3層（予算アラート／bytes_billed／割り当て）</td><td>予算アラートのみ</td><td>予算は通知のみで止まらない。弱点：割り当ては「おおよそ」、bytes_billed はクエリ単位で設定漏れが起きる</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>10</td><td>layer</td><td>raw / staging / mart（素の SQL）、mart のみ dbt</td><td>全層 dbt／dbt 無し</td><td>dbt の価値は ref とテスト。価値が出る mart に絞る。弱点：staging のテストが手書き ASSERT になる</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>11</td><td>Snowflake</td><td>縮小版（1テーブル＋スクショ）</td><td>全再現</td><td>トライアル 30 日で面接時にライブで見せられない。差分を語れれば足りる。弱点：Snowflake 実務相当とは言えない</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>12</td><td>CI/CD</td><td>やらない</td><td>GitHub Actions で terraform plan</td><td>6社中、要件は電通総研（歓迎）・APC のみ。3h を実装バッファへ。弱点：「PR で plan を見る運用」を語れない</td><td><span class="st ok">確定</span></td></tr>
+<tr><td>13</td><td>EDGAR の粒度</td><td>—</td><td>A：5項目固定 ／ B：JSON 丸ごと raw</td><td>A は軽いが外国籍で欠損。B は raw 原則に忠実だが staging の SQL が重い</td><td><span class="st ch">S-2-6</span></td></tr>
+<tr><td>14</td><td>staging の実体</td><td>—</td><td>A：VIEW ／ B：TABLE</td><td>VIEW は保存 0 だが毎回 raw を読む。TABLE は冪等・mart が軽いが二重保存</td><td><span class="st ch">S-4-2</span></td></tr>
+<tr><td>15</td><td>mart の実行</td><td>—</td><td>A：Cloud Run Job で SQL ／ B：スケジュールクエリ ／ C：最初から dbt</td><td>A は bytes_billed を持てる。B は最短だが順序・上限が弱い。C は学習前倒し</td><td><span class="st ch">S-5-1</span></td></tr>
+<tr><td>16</td><td>失敗検知</td><td>—</td><td>A：ログベース ／ B：メトリクス ／ C：両方</td><td>A は最短だが起動失敗を拾えない。B は拾えるがメトリクス名の確認要。C は2重</td><td><span class="st ch">S-7-1</span></td></tr>
+<tr><td>17</td><td>dim_securities の履歴</td><td>Type1（上書き）</td><td>SCD Type2（履歴保持）</td><td>銘柄マスタの変更履歴は本ポートフォリオの分析に不要。弱点：カテゴリ変更の追跡ができない → 面接で「Type2 にするなら有効期間列を持つ」と言える</td><td><span class="st pl">S-5-2</span></td></tr>
+</table></div>
+
+<h2 id="s11"><span class="no">11</span>Well-Architected 観点での自己評価</h2>
+<p class="note">本書の §1〜§10 は SIer の方式設計書の型（何をどう作るか）。これを AWS Well-Architected の6本柱（GCP では Google Cloud Architecture Framework が同等）で**評価**し直した表。実務では「方式設計で書き、フレームワークでレビューする」の関係。面接で「W-A で言うと…」と接続するための対応表。</p>
+<div class="wrap"><table>
+<tr><th>柱（AWS W-A）</th><th>本書の該当</th><th>この設計での実装</th><th>やっていないこと（聞かれたら言う）</th></tr>
+<tr><td>運用上の優秀性<br>Operational Excellence</td><td>§3 処理方式・§6 運用・§8 IaC</td><td>IaC（Terraform）・冪等な再実行・失敗→検知→再実行判断の記録・実行履歴とログの証跡</td><td>CI/CD（plan の自動化）・Runbook の整備。個人運用のため手動再実行</td></tr>
+<tr><td>セキュリティ<br>Security</td><td>§5 認証・権限方式</td><td>ワークロード別 SA・最小権限・SA キー無し・Secret Manager・MFA</td><td>VPC-SC・CMEK・組織ポリシー。公開データのみで機密データが無いため</td></tr>
+<tr><td>信頼性<br>Reliability</td><td>§3 冪等性・§6 監視（鮮度・品質）</td><td>冪等ロード（全量置換／パーティション置換）・鮮度 ASSERT・7日連続運転の実測</td><td>マルチリージョン・リトライの自動化・DR。日次バッチ1本で RPO=1日が許容のため</td></tr>
+<tr><td>パフォーマンス効率<br>Performance Efficiency</td><td>§4 データ方式（パーティション／クラスタ）</td><td>日付パーティション＋ticker クラスタ、プルーニングの課金バイト実測</td><td>スロット予約・マテビュー。データ量が小さく効果が測れないため</td></tr>
+<tr><td>コスト最適化<br>Cost Optimization</td><td>§7 コスト方式（3層）</td><td>予算アラート／maximum_bytes_billed／カスタム割り当て・`INFORMATION_SCHEMA` での日次実測・無料枠内の設計</td><td>コミットメント割引。オンデマンド前提のため</td></tr>
+<tr><td>持続可能性<br>Sustainability</td><td>—</td><td>該当薄。強いて言えば「読むバイトを減らす」設計はエネルギー効率と同方向</td><td>本ポートフォリオの評価対象外とする</td></tr>
+</table></div>
+<p class="note">「やっていないこと」に理由が付いているのがレビューの答え方。W-A は「全部やる」ではなく「やらない選択に理由がある」を見る枠組み。</p>
+</main>

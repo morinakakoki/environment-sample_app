@@ -221,6 +221,18 @@ h1,h2,h3{line-height:1.4;margin:0}
 .chip.method{background:transparent;color:var(--warn);border-color:var(--warn-line)}
 .chip.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
 .chip.ng{background:var(--ng-bg);color:var(--ng);border-color:var(--ng-line)}
+/* 方式のチップは設計書の該当節へのリンクになる。ただし見た目はチップのまま
+   （下線を引くと、隣の章・理解度表のチップと形が揃わず、方式だけが浮く）。
+   リンクだと分かるのは末尾の ↗ と、押せる高さ（最低 var(--tap) の半分）。 */
+a.chip-link{
+  display:inline-flex;align-items:center;gap:4px;
+  text-decoration:none;-webkit-tap-highlight-color:transparent;
+}
+a.chip-link::after{content:"↗";font-size:10px;opacity:.75}
+@media (hover:hover){
+  a.chip-link:hover{background:var(--warn-bg);border-color:var(--warn)}
+}
+a.chip-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .qtext{font-size:17.5px;font-weight:700;line-height:1.65;margin:2px 0 14px;letter-spacing:.005em}
 
@@ -850,7 +862,7 @@ python3 -m http.server 8000
    端末が読み直すまで反映されない。「直したはずなのに直っていない」ときに、
    どの版を見ているのかを画面で確かめられるようにしておく。
    この行は build-artifact.mjs がビルド時刻に差し替える（ローカル版は 'dev' のまま）。 */
-var APP_BUILD  = '2026-09-04 14:16 UTC';
+var APP_BUILD  = '2026-09-05 00:11 UTC';
 
 var DATA_URL   = 'quiz-data.json';
 var LS_KEY     = 'gcpQuiz.v1';
@@ -1535,7 +1547,10 @@ var METHOD_ORDER = ['構成・前提','処理方式','データ方式','認証�
    名前だけでは中身が想像できないので、節番号と一行の説明を添える。
 
    【設計書を並べ替えたらここも直すこと】節番号は
-   「マーケットデータ基盤 方式設計書」の見出し番号に合わせてある。 */
+   「マーケットデータ基盤 方式設計書」の見出し番号に合わせてある。
+   設計書側の <h2> には id="s1"〜"s11" が振ってあり、下の DOC_URL と合わせて
+   節へのリンクになる。並べ替えるときは設計書の id も一緒に直すこと。
+   リンク先が消えても押せてしまい、404 にならず黙って先頭に着くだけなので気づけない。 */
 var METHOD_DOC = {
   '構成・前提'    : { sec:'§1・2・9', desc:'何をどこに置くか。構成図・リソース一覧・リージョンや期限などの前提' },
   '処理方式'      : { sec:'§3',      desc:'いつ・どう動かすか。バッチの起動、取得、ロード方式、再実行の判断' },
@@ -1557,6 +1572,34 @@ function docRef(q){
   if(q.section) return q.section;
   var d = methodDoc(q.method);
   return d ? (d.sec + ' ' + q.method) : '';
+}
+
+/* 方式設計書（アーティファクト）の URL。空にすると節のチップはただの文字に戻る。
+   設計書を作り直して URL が変わったら、ここだけ差し替えれば全画面が追随する。 */
+var DOC_URL = 'https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff';
+
+/* 「§4 データ方式」「§10 #6 スキーマの所有者」「§1・2・9 構成・前提」から
+   最初の節番号だけを取り出して #s4 の形にする。設計書側の <h2 id> がこれ。
+   §1・2・9 のように複数にまたがる方式は、先頭の §1 に着けば十分（節の一覧が
+   設計書の先頭にあるので、そこから隣の節へ移れる）。 */
+function docAnchor(ref){
+  var m = /^§(\d+)/.exec(ref || '');
+  return m ? ('#s' + m[1]) : '';
+}
+
+/* 「方式設計書 §4 データ方式」のチップ。DOC_URL があればリンクにする。
+   アーティファクトは claude.ai の枠の中で開くので、外側の URL に付けた #s4 が
+   中の文書まで届くとは限らない。届かなければ設計書の先頭に着くが、そこに
+   節の一覧を置いてあるので1タップで目的の節へ行ける。届けばそのまま節に着く。
+   どちらでも「設計書のどこを読めばいいか分からない」状態にはならない。 */
+function docChip(ref){
+  if(!DOC_URL) return el('span', 'chip method', '方式設計書 ' + ref);
+  var a = el('a', 'chip method chip-link', '方式設計書 ' + ref);
+  a.href = DOC_URL + docAnchor(ref);
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.title = '方式設計書の ' + ref + ' を開く';
+  return a;
 }
 function methodList(){
   var seen = bare(), out = [];
@@ -2188,7 +2231,7 @@ function renderPrep(){
     chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
     if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
     var dr = docRef(q);
-    if(dr) chips.appendChild(el('span', 'chip method', '方式設計書 ' + dr));
+    if(dr) chips.appendChild(docChip(dr));
     card.appendChild(chips);
     card.appendChild(el('div', 'pq', q.q));
     card.appendChild(el('div', 'pa', '答え：' + q.options[q.answer]));
@@ -2214,7 +2257,11 @@ function prepText(){
     var head = [chapterFull(q.chapter)];
     if(q.tag) head.push('理解度表 ' + q.tag);
     var dr = docRef(q);
-    if(dr) head.push('方式設計書 ' + dr);
+    /* コピー先（Notion）でも節へ飛べるように、URL があれば Markdown リンクにする。
+       画面のチップと同じ行き先。DOC_URL が空なら今までどおりただの文字。 */
+    if(dr) head.push(DOC_URL
+      ? '[方式設計書 ' + dr + '](' + DOC_URL + docAnchor(dr) + ')'
+      : '方式設計書 ' + dr);
     out.push('## ' + (i + 1) + '. ' + q.q);
     out.push('- 区分: ' + head.join(' / ') + '（' + (r.why === 'wrong' ? '直近で間違えた' : '説明できなかった') + '）');
     out.push('- 答え: ' + q.options[q.answer]);
@@ -2482,7 +2529,7 @@ function reveal(){
   if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
   /* 方式設計書の側の戻る先。章（基礎知識ノート）とは別の軸なので両方出す。 */
   var dr = docRef(q);
-  if(dr) back.appendChild(el('span', 'chip method', '方式設計書 ' + dr));
+  if(dr) back.appendChild(docChip(dr));
   v.appendChild(back);
   show(v);
   show($('qSelfWrap'));
@@ -2561,7 +2608,7 @@ function answer(i){
   if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
   /* 方式設計書の側の戻る先。章（基礎知識ノート）とは別の軸なので両方出す。 */
   var dr = docRef(q);
-  if(dr) back.appendChild(el('span', 'chip method', '方式設計書 ' + dr));
+  if(dr) back.appendChild(docChip(dr));
   v.appendChild(back);
 
   show(v);
