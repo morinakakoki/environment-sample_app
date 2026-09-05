@@ -1,0 +1,230 @@
+<meta charset="utf-8">
+<title>基礎知識ノート</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#F7F6F3;--panel:#FFFFFF;--ink:#22252B;--muted:#6B6F78;--line:#DCDAD3;--acc:#2C6E72;--acc-bg:#E4F0EF;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--sans:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic UI",sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#16181D;--panel:#1F222A;--ink:#EAECEF;--muted:#A1A6B0;--line:#353A45;--acc:#7CC4C7;--acc-bg:#1E3335}}
+:root[data-theme="dark"]{--bg:#16181D;--panel:#1F222A;--ink:#EAECEF;--muted:#A1A6B0;--line:#353A45;--acc:#7CC4C7;--acc-bg:#1E3335}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.85;margin:0}
+main{max-width:720px;margin:0 auto;padding:24px 18px 72px}
+h1{font-size:22px;line-height:1.4;margin:0 0 6px;text-wrap:balance}
+.lead{color:var(--muted);font-size:14px;margin:0 0 18px}
+.lead p{margin:0 0 6px}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 22px}
+nav a{font-size:13px;padding:4px 10px;border:1px solid var(--line);border-radius:14px;color:var(--ink);text-decoration:none;background:var(--panel)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:0 0 12px;padding:0 16px}
+summary{cursor:pointer;padding:14px 0;font-weight:700;font-size:17px;list-style:none;display:flex;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary .n{font-family:var(--mono);font-size:12px;color:var(--acc);background:var(--acc-bg);padding:2px 8px;border-radius:6px}
+summary::after{content:"＋";margin-left:auto;color:var(--muted);font-weight:400}
+details[open] summary::after{content:"－"}
+details>*:not(summary){margin-top:0}
+details h2{display:none}
+details p{margin:0 0 14px}
+details>div{padding:0 0 10px}
+strong{font-weight:700}
+code{font-family:var(--mono);font-size:13.5px;background:var(--acc-bg);padding:1px 5px;border-radius:4px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;font-size:13.5px;min-width:560px}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-size:12px;background:var(--bg)}
+ol{padding-left:1.4em}
+.foot{color:var(--muted);font-size:13px;margin-top:20px}
+
+/* 用語カード。章の本文より先に、その章で出てくる語の1行定義を置く。
+   本文は「AWS を知っている前提で、違うところだけ」書いてあるので、DWH と GCP が
+   初めてだと本文の比喩（Athena、ECS）から先に躓く。躓く場所を本文の手前に出す。
+   クイズの「戻る先」から note.html#c2 で飛んでくるのもここ。 */
+.terms{margin:2px 0 14px;padding:10px 12px;border-radius:8px;background:var(--acc-bg);border:1px solid var(--line);font-size:13.5px;line-height:1.7}
+.terms b{display:block;font-size:11.5px;letter-spacing:.06em;color:var(--acc);margin-bottom:4px}
+.terms dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:2px 10px}
+.terms dt{font-weight:700;white-space:nowrap}
+.terms dd{margin:0}
+@media (max-width:480px){.terms dl{grid-template-columns:1fr}.terms dt{margin-top:4px}}
+</style>
+
+<main>
+<h1>基礎知識ノート</h1><p class="lead">マーケットデータ基盤を作るために要るぶんだけ</p>
+<div class="lead"><p>作成：2026-08-30。読み物。網羅ではなく、このポートフォリオに出てくる部品と考え方だけ。
+順番に読めば積み上がるように並べた。1章 10〜15分。
+前提は「SQL・Docker・cron・AWS の IAM の概念は知っている。DWH と GCP は初めて」。
+各章の先頭に<strong>用語カード</strong>を置いたので、本文の比喩（Athena、ECS など）を知らなくても読める。
+実装時に毎回読むものではない。一度通して読み、あとは詰まった時に該当章へ戻る。</p></div>
+<nav><a href="#c1">1. GCP の骨格</a><a href="#c2">2. BigQuery</a><a href="#c3">3. 動かす側</a><a href="#c4">4. Terraform</a><a href="#c5">5. データ基盤の考え方</a><a href="#c6">6. コストの3層</a><a href="#c7">7. このポートフォリオに当てはめると</a></nav>
+<details id="c1" open><summary><span class="n">1</span>GCP の骨格</summary>
+<div class="terms"><b>この章の用語</b><dl>
+<dt>プロジェクト</dt><dd>GCP の基本の入れ物。リソース・課金・権限・API 有効化はこの単位で決まる</dd>
+<dt>請求先アカウント</dt><dd>支払い方法を登録した「財布」。複数のプロジェクトを紐づけられる</dd>
+<dt>API 有効化</dt><dd>「このプロジェクトでこのサービスを使う」と宣言する操作。しないと呼べない</dd>
+<dt>IAM</dt><dd>権限管理。「誰に・どのロールを・どこで」の3つ組で表す</dd>
+<dt>ロール</dt><dd>細かい権限を用途ごとに束ねたもの（例 <code>bigquery.dataEditor</code>＝テーブルの読み書き）</dd>
+<dt>サービスアカウント（SA）</dt><dd>プログラム用のアカウント。メール形式の ID を持ち、リソースにアタッチして使う</dd>
+<dt>無料トライアル／無料枠</dt><dd>トライアル＝期限付き $300。無料枠＝期限の無い毎月の無料分。別物</dd>
+</dl></div>
+<div><h2>1. GCP の骨格：プロジェクト・請求・API・IAM</h2>
+<p><strong>プロジェクト</strong>は GCP の基本単位で、AWS アカウントに近い。ただし1人がいくつでも作れて、削除しても ID は再利用できない。API の有効化、課金、IAM、リソースの置き場、この4つがプロジェクト単位で決まる。本ポートフォリオは <code>market-data-platform-4821</code> の1つだけ。実務では dev / prod を別プロジェクトにするのが定石で、「本番なら分ける」と言えれば足りる。</p>
+<p><strong>請求先アカウント</strong>はプロジェクトの親ではない。財布であって、1つの財布に何個ものプロジェクトを付けられる。IAM も継承しない。だから「プロジェクトを作る」と「請求先に紐づける」は別の操作になる。無料トライアルは請求先アカウントに付いた状態で、$300 か 90 日（今回は 11/16）で終わる。終わるとワークロードが止まる。有料化すると自動停止という安全装置が外れるので、代わりに自分で上限を置く（第2章の課金バイト、第6章のコスト3層）。</p>
+<p><strong>API 有効化</strong>は AWS に無い概念。GCP は各サービスを「このプロジェクトで使う」と宣言しないと呼べない。BigQuery 系は新規プロジェクトで最初から有効だが、Cloud Run / Scheduler / Artifact Registry は明示的にオンにする。Terraform では <code>google_project_service</code> がこれで、8/25 に apply したのはまさにこの3つ。</p>
+<p><strong>IAM</strong>は「誰に（プリンシパル）・どの権限の束を（ロール）・どこで（リソース）」の3つ組を並べたもの。AWS と違い、ポリシー文書を書かず、事前定義ロールをプリンシパルに直接付ける。プリンシパルには人のアカウントのほかに<strong>サービスアカウント（SA）</strong>がある。SA はメールアドレスを持つ「機械用のアカウント」で、Cloud Run Job などのリソースに<strong>アタッチ</strong>して使う。AWS で EC2 に IAM ロールを付けるのと同じ絵だが、GCP では「ロール」ではなく「アカウント」なので、SA そのものにもロールを付ける、という二段構えになる。</p>
+<p>このポートフォリオの SA は2つ。<code>fetch-daily-prices</code> は BigQuery に書くので <code>bigquery.dataEditor</code>（テーブルに書く）と <code>bigquery.jobUser</code>（ロードジョブを投げる）の2つ。<code>scheduler-invoker</code> は Job を起動するだけなので <code>run.invoker</code> を、しかも Job 単位で付ける。<strong>起動する側にデータを書く権限は要らない</strong>、これが最小権限の実例で、面接で「なぜ SA を分けたか」と聞かれた時の答えになる。SA のキー（JSON）は作らない。アタッチすれば要らないし、漏れるのはだいたいキーだから。</p></div></details>
+<details id="c2"><summary><span class="n">2</span>BigQuery</summary>
+<div class="terms"><b>この章の用語</b><dl>
+<dt>BigQuery</dt><dd>SQL で大量データを分析するデータウェアハウス（DWH）。保存と計算が分かれている</dd>
+<dt>課金バイト</dt><dd>クエリが読んだデータ量。BigQuery はここに課金する（保存料とは別）</dd>
+<dt>データセット</dt><dd>テーブルの入れ物。リージョン（置く地域）を持つ</dd>
+<dt>ジョブ</dt><dd>BigQuery への依頼1回。ロード（入れる）・クエリ（読む）・エクスポート・コピーの4種</dd>
+<dt><code>maximum_bytes_billed</code></dt><dd>クエリ1本が読んでよいバイト数の上限。超えるなら実行しない</dd>
+<dt>dry run</dt><dd>実行せずに「何バイト読むか」だけ見積もる。無料</dd>
+<dt>パーティション</dt><dd>テーブルを日付などで内部的に区切る仕組み。絞れば読む量が減る</dd>
+<dt>WRITE_TRUNCATE／APPEND</dt><dd>ロード時の書き方。全部消して入れる／後ろに足す</dd>
+<dt>スキーマ／autodetect</dt><dd>列名と型の定義／ロード時にデータから型を推定する機能</dd>
+</dl></div>
+<div><h2>2. BigQuery：置き場・ジョブ・課金の考え方</h2>
+<p>BigQuery はストレージとコンピュートが分かれている。データは列指向で保存され、クエリのたびに必要な列だけ読む。AWS でいえば Redshift より Athena に近く、<strong>課金は「読んだバイト数」</strong>で決まる（オンデマンド）。クエリは必要な列を丸ごと読む（行を1件ずつ引くためのインデックスは持たない）。読んだ量がそのまま仕事量なので、そこに課金する。無料枠は月 1 TiB のクエリと 10 GiB のストレージ。</p>
+<p><strong>データセット</strong>はテーブルの入れ物で、Glue のデータベースに相当する。1つ違うのは<strong>リージョンを持つ</strong>こと。<code>asia-northeast1</code> で作ったデータセットは後から動かせないし、別リージョンのテーブルと JOIN できない。だから全部を東京に揃えている。テーブルは <code>プロジェクト.データセット.テーブル</code> の3階層で指定し、他プロジェクトの公開データ（<code>bigquery-public-data.…</code>）も同じ書き方で読める。</p>
+<p><strong>ジョブ</strong>は BigQuery への1回の依頼の単位。ロード（ファイルや DataFrame を入れる）、クエリ、エクスポート、コピーの4種類があり、全部がジョブとして「ジョブ履歴」に6か月残る。Python の <code>load_table_from_dataframe</code> はロードジョブを、<code>client.query()</code> はクエリジョブを作る。ここで大事なのは、<strong>課金バイトが付くのはクエリジョブだけ</strong>ということ。ロードは無料。だから <code>maximum_bytes_billed</code> という上限は、日次の取得ジョブ（ロード）には効かず、staging / mart を作るクエリにだけ効く。</p>
+<p><strong>処理バイトと課金バイト</strong>は普通一致するが、ズレる場面が3つある。キャッシュに当たった時（課金 0）、パーティションで読まなかった時（見積もりより減る）、最低課金単位（10 MB 未満は切り上げ）。<code>maximum_bytes_billed</code> は<strong>実行前の見積もり</strong>と比較され、超えていれば走らずに拒否される。見積もりは <code>--dry_run</code> で見られる。この「実行前に止まる」性質があるから、課金の安全装置として唯一確実な層になる。</p>
+<p><strong>パーティション</strong>は日付などでテーブルを内部的に分割する仕組みで、<code>WHERE date &gt;= …</code> のようにパーティション列で絞ると該当分だけ読む（プルーニング）。<strong>クラスタ</strong>は各パーティション内を指定列（ticker）で並べ替えておく仕組みで、絞り込みと集計がさらに軽くなる。どちらもテーブル作成時にしか付けられない。既存テーブルに後から付けるには作り直すしかなく、Terraform ではそれが <code>replace</code> として現れる（第4章）。</p>
+<p><strong>ロードの流儀</strong>。<code>WRITE_TRUNCATE</code> は「全部消して入れ直す」、<code>WRITE_APPEND</code> は「後ろに足す」。日足は「直近1年をまるごと毎回取り直す」設計なので TRUNCATE が正しい。同じジョブを何回流しても結果が同じ、これが<strong>冪等性</strong>で、失敗した時に安心して再実行できる理由になる。ただし TRUNCATE が正解なのは「全量を取り直せる」時だけで、分足のように 60 日しか遡れないデータでは全体を消せない。その場合は <code>テーブル$20260901</code> のようにパーティション1つを指定して、その日だけを置き換える。ロード方式は取得設計とセットで決まる。</p>
+<p><strong>スキーマの所有者</strong>。ロードジョブにスキーマを渡さないと、BigQuery は DataFrame の型から毎回スキーマを推定し、テーブル定義を上書きする（autodetect）。pandas 由来の推定は <code>NULLABLE</code> や旧式の <code>FLOAT</code> になり、Terraform が宣言した <code>REQUIRED</code> / <code>FLOAT64</code> とズレる。8/25 の事故はこれで、<code>terraform plan</code> が「宣言と違うから作り直す」と replace を提案した。対策は <code>LoadJobConfig(schema=[…])</code> で明示すること。<strong>テーブルの構造は Terraform、中身は Python</strong>、定義の持ち主を1つに決める。</p></div></details>
+<details id="c3"><summary><span class="n">3</span>動かす側</summary>
+<div class="terms"><b>この章の用語</b><dl>
+<dt>Cloud Run Job</dt><dd>コンテナを起動して処理し、終わったら止まる実行サービス（Service は常駐型）</dd>
+<dt>イメージ</dt><dd>コード＋ライブラリ＋OS 最小構成を1つにまとめた、コンテナの元</dd>
+<dt>Artifact Registry</dt><dd>イメージの置き場。<code>push</code> で置き、Job が <code>pull</code> する</dd>
+<dt>Cloud Scheduler</dt><dd>決めた時刻に HTTP リクエストを1本送るだけの cron</dd>
+<dt>トークン（OAuth／OIDC）</dt><dd>「呼び出し側が誰か」の証明。Google API なら OAuth、自前エンドポイントなら OIDC</dd>
+<dt>Secret Manager</dt><dd>API キー等の秘密情報の保管庫。Job の環境変数に展開できる</dd>
+</dl></div>
+<div><h2>3. 動かす側：Cloud Run Jobs・Artifact Registry・Scheduler・Secret</h2>
+<p><strong>Cloud Run</strong> には Service と Job がある。Service は常駐して HTTP を受ける（ECS Service や Lambda + API Gateway）。<strong>Job</strong> は起動して処理して終了する（ECS Fargate の RunTask）。バッチはこちら。Job は「定義」（どのイメージを、どの SA で、どの環境変数で）と「実行（execution）」が分かれていて、<code>gcloud run jobs execute</code> は定義から実行を1つ作る。実行履歴とログはコンソールの Job ページに残る。イメージを更新しても Job 定義は古いタグを指したままなので、タグを <code>v2</code> にして定義側を更新する必要がある。</p>
+<p><strong>Artifact Registry</strong> は ECR。<code>docker build</code> → <code>docker push</code> で置き、Job がそこから pull する。Dockerfile で requirements.txt を先に COPY するのはレイヤーキャッシュを効かせるためで、コードだけ変えた時に pip install をやり直さない。</p>
+<p><strong>Cloud Scheduler</strong> は EventBridge Scheduler。cron の時刻に HTTP リクエストを1本投げるだけの部品で、それ以上のことはしない。Job を起動するには <code>https://run.googleapis.com/v2/projects/…/jobs/JOB:run</code> に POST する。ここで認証が要る。宛先が Google の API なので <strong>OAuth トークン</strong>を使う（SA のメールを指定すると Scheduler がトークンを取って付けてくれる）。自分で立てた Cloud Run Service を叩く時は <strong>OIDC トークン</strong>。「Google API を呼ぶなら OAuth、自前エンドポイントなら OIDC」と覚えれば足りる。そして Scheduler の SA には対象 Job の <code>run.invoker</code> が要る。403 が出たらほぼこれ。</p>
+<p>複数の Job の順序（raw → staging → mart）は、今回は時刻をずらして制御する。実務なら Workflows か Airflow（Cloud Composer）で依存関係を書くのが定石だが、Composer は個人で回すには課金が重い。「なぜ Composer を使わなかったか」は設計判断メモの1本になる。</p>
+<p><strong>Secret Manager</strong> は API キーの置き場（AWS の Secrets Manager / SSM SecureString）。Job 定義で「この環境変数はこのシークレットの最新版」と指定すると、起動時に展開される。Job の SA に <code>secretmanager.secretAccessor</code> が要る。キーをイメージや tfstate や Git に書かないための部品。</p></div></details>
+<details id="c4"><summary><span class="n">4</span>Terraform</summary>
+<div class="terms"><b>この章の用語</b><dl>
+<dt>IaC</dt><dd>インフラの構成をコードで書き、ツールに作らせる方式</dd>
+<dt>Terraform</dt><dd>宣言型の IaC。手順ではなく「あるべき状態」を書く</dd>
+<dt>state（tfstate）</dt><dd>宣言と実際のリソースの対応表。Terraform が自分で持つ</dd>
+<dt>plan／apply</dt><dd>変更内容を表示するだけ／実際に変更する</dd>
+<dt>replace（<code>-/+</code>）</dt><dd>作り直し。テーブルなら中身が消える</dd>
+<dt>ドリフト</dt><dd>Terraform の外から実体が変わり、宣言とズレること</dd>
+</dl></div>
+<div><h2>4. Terraform：宣言・state・plan・replace</h2>
+<p>CloudFormation と同じ宣言型だが、決定的に違うのが <strong>state</strong>。CloudFormation はスタックの状態を AWS が持つ。Terraform は <code>terraform.tfstate</code> というファイルを自分で持ち、そこに「この宣言はこの実リソースに対応する」という対応表を書く。<code>plan</code> は<strong>宣言・state・実体の3つ</strong>を突き合わせて差分を出す。だから state が壊れたり消えたりすると、Terraform はリソースを見失う。チームでは GCS バケットに置いてロックを効かせるのが定石で、個人・単一端末の今回はローカルに置く（README に明記する）。</p>
+<p><code>plan</code> の読み方は3種類だけ覚える。<code>+</code> 作成、<code>~</code> その場で変更、<strong><code>-/+</code> 作り直し（replace）</strong>。replace はテーブルなら中身が消える。replace になるのは「作成後に変えられない属性」を変えた時で、BigQuery ならパーティション設定やデータセットのリージョン、スキーマの <code>REQUIRED</code> ↔ <code>NULLABLE</code> がそれ。CloudFormation の「置換が必要な更新」と同じ。</p>
+<p><strong>ドリフト</strong>は、Terraform の外から実体が変わって宣言とズレること。8/25 は Python がスキーマを書き換え、8/30 にも同型が起きた。Terraform は「宣言が正」なので、ズレを見つけると実体を宣言に戻そうとし、それが replace になる。日次で自動実行されるパイプラインでドリフトが常態化すると、うっかり apply した日にデータが消える。対策は第2章の「定義の持ち主を1つに」。</p>
+<p>apply 前の約束事は1つ。<strong>plan に <code>-/+</code> か <code>destroy</code> があったら止まる。</strong> 許すのは「バックフィルで戻せる」と自分で言える時だけ。</p></div></details>
+<details id="c5"><summary><span class="n">5</span>データ基盤の考え方</summary>
+<div class="terms"><b>この章の用語</b><dl>
+<dt>raw／staging／mart</dt><dd>加工前のまま／型を揃え整形／見せる形に集計、の3層</dd>
+<dt>冪等（べきとう）</dt><dd>同じ処理を何回やっても結果が同じ性質。再実行してよい根拠になる</dd>
+<dt>as-of ジョイン</dt><dd>「その日時点で知り得た最新の値」を付ける結合</dd>
+<dt>ルックアヘッド</dt><dd>まだ公開されていない情報を過去の日に付けてしまう誤り</dd>
+<dt>dbt</dt><dd>SQL の変換をモデルとして管理し、依存（<code>ref</code>）とテストを付けるツール</dd>
+<dt>ASSERT</dt><dd>SQL で条件を検査し、偽ならジョブを失敗させる文</dd>
+</dl></div>
+<div><h2>5. データ基盤の考え方：層・冪等・as-of・品質・監視</h2>
+<p><strong>raw / staging / mart</strong> は dbt でいう staging / intermediate / marts と同じ発想。raw は取得元のまま置く層で、「パイプラインでこれ以上遡れない入力の境界」。ここを加工すると、後で計算を直したくなった時に元に戻れない。yfinance で <code>auto_adjust=False</code> にしたのはそのためで、調整済みの値を raw に入れると「調整後終値を自分で再計算する」見せ場が成立しなくなる。staging は型を揃え、重複を消し、変な値に<strong>フラグを付ける</strong>（落とさない）。mart は見せる形。ファクト（日々の価格、四半期のファンダ、マクロ指標）とディメンション（銘柄マスタ）に分ける<strong>スタースキーマ</strong>で、BI ツールが読みやすい。</p>
+<p><strong>冪等性</strong>は「同じ処理を2回やっても結果が同じ」。バッチが失敗した時に「もう一回流していいか」を判断する根拠になる。全量置き換え（TRUNCATE）、パーティション置換、<code>CREATE OR REPLACE TABLE</code>、どれも冪等。APPEND は冪等でない。DATUM の Ops 職の業務にある「再実行判断」は、この性質を知っているかを聞いている。</p>
+<p><strong>as-of ジョイン</strong>は「その日時点で知り得た最新の値を付ける」結合。四半期決算は提出日（filed_date）以降にしか分からないので、<code>filed_date &lt;= date</code> で絞ってから最新1件を取る。期末日で結ぶと未来の情報を過去に付けてしまう（ルックアヘッド）。金融データの基本作法で、見せ場の2つ目。</p>
+<p><strong>データ品質テスト</strong>は、合成データだと自作自演になる。実データには本物の欠損がある。外国籍の銘柄（TSM、ASML など）は IFRS で報告するので us-gaap の項目が無い。FRED は欠損を <code>"."</code> で返す。Yahoo の調整後終値は自分の再計算と 100% は一致しない。これらを「検知して、落とさず、記録する」のがテストで、閾値（一致率 95% など）は自分で決めて理由を書く。</p>
+<p><strong>監視</strong>は4種類に分ける。失敗（ジョブが落ちた）、鮮度（今日のデータが来ていない）、品質（行数が急減した、一致率が下がった）、コスト（課金バイトが跳ねた）。鮮度と品質は SQL の <code>ASSERT</code> でジョブ自体を失敗させると、失敗の通知経路に乗る。W7 では、わざと壊して、検知して、再実行してよいか判断して、直す、を1回記録する。</p></div></details>
+<details id="c6"><summary><span class="n">6</span>コストの3層（有料化後に効く）</summary>
+<div class="terms"><b>この章の用語</b><dl>
+<dt>予算アラート</dt><dd>月額がいくらを超えたら通知するかの設定。止めはしない</dd>
+<dt><code>maximum_bytes_billed</code></dt><dd>クエリ1本の読み取り上限。実行前の見積もりで拒否する</dd>
+<dt>カスタム割り当て</dt><dd>プロジェクト（またはユーザー）の1日の読み取り上限。おおよその値</dd>
+</dl></div>
+<div><h2>6. コストの3層（有料化後に効く）</h2>
+<ol>
+<li>予算アラート：金額を超えたらメール。<strong>通知だけで課金は止まらない</strong></li>
+<li><code>maximum_bytes_billed</code>：クエリ1本ごとに実行前で止める。唯一確実</li>
+<li>カスタム割り当て（1日あたり）：プロジェクト全体の上限。無料トライアル中は変更不可、11/1 の有料化後に設定。公式に「おおよその値」と明記されている</li>
+</ol>
+<p>無料トライアル中は $300 を使い切ると止まるので、実質のハードリミットが既にある。有料化するとそれが外れる、だから 11/1 に 2 と 3 を揃える。</p></div></details>
+<details id="c7"><summary><span class="n">7</span>このポートフォリオに当てはめると</summary><div><h2>7. このポートフォリオに当てはめると</h2>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>章</th>
+<th>部品</th>
+<th>本ポートフォリオでの選択</th>
+<th>面接で聞かれそうな「なぜ」</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>SA</td>
+<td>Job 用と Scheduler 用を分離、キー無し</td>
+<td>なぜ分けたか／default compute SA を使わない理由</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ロード</td>
+<td>日足 TRUNCATE、分足パーティション置換</td>
+<td>なぜ APPEND でないか／TRUNCATE が使えない条件</td>
+</tr>
+<tr>
+<td>2</td>
+<td>スキーマ</td>
+<td>Terraform が正、Python は明示指定</td>
+<td>ドリフト事故と恒久対策</td>
+</tr>
+<tr>
+<td>2</td>
+<td>パーティション</td>
+<td>date パーティション＋ticker クラスタ</td>
+<td>課金バイトの実測値</td>
+</tr>
+<tr>
+<td>3</td>
+<td>実行</td>
+<td>Scheduler → Cloud Run Jobs、時刻ずらし</td>
+<td>なぜ Composer / Workflows でないか</td>
+</tr>
+<tr>
+<td>4</td>
+<td>state</td>
+<td>ローカル</td>
+<td>なぜ GCS バックエンドにしなかったか</td>
+</tr>
+<tr>
+<td>5</td>
+<td>層</td>
+<td>raw / staging / mart、mart のみ dbt</td>
+<td>なぜ dbt を mart だけに入れたか</td>
+</tr>
+<tr>
+<td>5</td>
+<td>見せ場</td>
+<td>調整後終値の再計算、as-of、実データ品質テスト</td>
+<td>一致率と不一致の原因</td>
+</tr>
+<tr>
+<td>6</td>
+<td>コスト</td>
+<td>3層</td>
+<td>予算アラートだけでは止まらない理由</td>
+</tr>
+</tbody>
+</table></div>
+<p>読み終えたら、この表の「なぜ」を1つずつ口で答えてみる。答えられない行が、次に戻る章。</p></div></details>
+<p class="foot">章を閉じたまま、見出しだけ眺めても「何が要るか」は分かるように作った。1章 10〜15分。</p></main>
+<script>
+/* クイズの「戻る先」から note.html#c2 のように飛んでくる。
+   <details> は既定で閉じているので、開いてからそこへ寄せる。
+   これが無いと、飛んだ先が「閉じた見出しの列」になり、どの章に来たのか分からない。 */
+(function(){
+  function openHash(){
+    var id = (location.hash || '').slice(1);
+    if(!id) return;
+    var d = document.getElementById(id);
+    if(d && d.tagName === 'DETAILS'){ d.open = true; d.scrollIntoView(); }
+  }
+  window.addEventListener('hashchange', openHash);
+  openHash();
+})();
+</script>

@@ -85,9 +85,6 @@ console.log('\n【データ】採番と必須項目');
   ok(date.length === 0, `addedAt が YYYY-MM-DD 形式: 例外 ${date.length}問`);
 }
 
-console.log('\n' + (f.length ? `FAILURES (${f.length}):\n - ` + f.join('\n - ') : 'ALL PASS'));
-process.exit(f.length ? 1 : 0);
-
 console.log('\n【埋め込みエスケープ】危険な文字列を含む問題でもアーティファクトが壊れないか');
 {
   // "<!--" のあとに "<script" があると、HTML のトークナイザは

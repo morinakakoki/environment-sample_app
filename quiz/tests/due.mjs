@@ -262,8 +262,10 @@ console.log('\n【8】間隔の定義（実装の見張り）');
     ok(days.every((d, i) => i === 0 || d > days[i - 1]), '間隔が単調に伸びる: ' + days.join(' → '));
     ok(days[0] >= 1, '最短でも1日は空ける: ' + days[0]);
   }
-  ok(/byChapterThenShuffle\(fresh\)\.concat\(shuffle\(wrong\), due, done\)/.test(src),
+  ok(/eligibleFresh\(list\)\.concat\(shuffle\(wrong\), due, done\)/.test(src),
      'prioritize が未挑戦→間違い→期限切れ→済み の順に並べている');
+  ok(/function eligibleFresh/.test(src) && /byChapterThenShuffle\(list\.filter/.test(src),
+     '未挑戦は eligibleFresh が章順・段階順に並べる');
   ok(/var FRESH_MAX = 4;/.test(src),
      '全範囲の未挑戦は上限つき（無制限だと復習が飛ぶ）');
 }

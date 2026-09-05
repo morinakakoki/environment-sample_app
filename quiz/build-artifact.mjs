@@ -67,6 +67,14 @@ if (!DOC_MARK.test(script)) throw new Error(
   "アプリ本体に DOC_URL の目印が見つかりません（index.html の var DOC_URL = 'design-doc.html'; を消さないでください）");
 script = script.replace(DOC_MARK, `var DOC_URL = '${DOC_ARTIFACT}';`);
 
+/* 基礎知識ノートも同じ理由で絶対 URL に差し替える。アーティファクト版は隣の
+   note.html を読めないので、そのままだと章のチップが 404 へのリンクになる。 */
+const NOTE_ARTIFACT = 'https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638';
+const NOTE_MARK = /var NOTE_URL = 'note\.html';/;
+if (!NOTE_MARK.test(script)) throw new Error(
+  "アプリ本体に NOTE_URL の目印が見つかりません（index.html の var NOTE_URL = 'note.html'; を消さないでください）");
+script = script.replace(NOTE_MARK, `var NOTE_URL = '${NOTE_ARTIFACT}';`);
+
 /* 器の前提: 運ばれるのは <style> 1つと本文マークアップ1つだけ。
    2つ目の <style> を head に足すと、それは style にも markup にも入らず、
    artifact.html のどこにも現れない。画面は出るのでアーティファクトだけ

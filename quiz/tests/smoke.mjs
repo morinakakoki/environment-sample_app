@@ -23,8 +23,8 @@ await page.goto('http://localhost:8777/index.html', { waitUntil: 'networkidle' }
 console.log('\n== load ==');
 await page.waitForSelector('#screenHome:not(.hidden)', { timeout: 5000 });
 ok(true, 'home screen rendered');
-ok(await page.locator('#stTotal').textContent() === '48', 'all 48 questions loaded — got ' + await page.locator('#stTotal').textContent());
-ok(await page.locator('#dataWarn').isHidden(), 'no data warnings — all 38 questions valid');
+ok(await page.locator('#stTotal').textContent() === N, `all ${N} questions loaded — got ` + await page.locator('#stTotal').textContent());
+ok(await page.locator('#dataWarn').isHidden(), `no data warnings — all ${N} questions valid`);
 const chapBtns = await page.locator('#chapBtns .btn').count();
 ok(chapBtns === 7, 'chapter buttons built dynamically: ' + chapBtns);
 

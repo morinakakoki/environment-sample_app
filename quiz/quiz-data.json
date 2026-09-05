@@ -14,7 +14,9 @@
     "explanation": "プロジェクトは API を有効化する単位、課金の単位、IAM の単位。AWS アカウントに近いが1人で何個でも作れる。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/resource-manager/docs/cloud-platform-resource-hierarchy",
-    "method": "構成・前提"
+    "method": "構成・前提",
+    "level": 1,
+    "premise": "GCP のリソース（BigQuery のテーブルや Cloud Run の Job など）は必ずどれかの「プロジェクト」の中に作る。AWS のアカウントに近い入れ物。"
   },
   {
     "id": 2,
@@ -31,7 +33,9 @@
     "explanation": "請求先は「財布」。プロジェクトの親ではなく IAM は継承しない。1財布に多数プロジェクトが定石。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/billing/docs/how-to/billing-access",
-    "method": "構成・前提"
+    "method": "構成・前提",
+    "level": 1,
+    "premise": "請求先アカウント＝支払い方法（クレジットカード等）を登録した単位。プロジェクトはこれに紐づけないと有料サービスを使えない。"
   },
   {
     "id": 3,
@@ -48,7 +52,9 @@
     "explanation": "GCP は使うサービスをプロジェクトごとに有効化する。Terraform では google_project_service。BigQuery 系は新規で自動有効。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/service-usage/docs/enable-disable",
-    "method": "構成・前提"
+    "method": "構成・前提",
+    "level": 1,
+    "premise": "Cloud Run Job＝コンテナを起動して処理し、終わったら止まる GCP のバッチ実行サービス。"
   },
   {
     "id": 4,
@@ -66,7 +72,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/batch-loading-data",
     "method": "認証・権限方式",
-    "section": "§10 #7 サービスアカウントの分け方"
+    "section": "§10 #7 サービスアカウントの分け方",
+    "level": 2,
+    "premise": "サービスアカウント（SA）＝人ではなくプログラム用のアカウント。ロール＝権限の束（bigquery.dataEditor はテーブルへの書き込み等）。最小権限＝必要な権限だけ付けること。"
   },
   {
     "id": 5,
@@ -84,7 +92,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/blog/products/identity-security/securing-cloud-run-deployments-with-least-privilege-access/",
     "method": "認証・権限方式",
-    "section": "§10 #7 サービスアカウントの分け方"
+    "section": "§10 #7 サービスアカウントの分け方",
+    "level": 3,
+    "premise": "Cloud Scheduler＝決めた時刻に HTTP リクエストを1本送る部品。ここでは Job を起動する役。SA は用途ごとに別々に作れる。"
   },
   {
     "id": 6,
@@ -101,7 +111,9 @@
     "explanation": "トライアル終了でワークロード停止（公式FAQ）。有料アカウント化で復旧し、BigQuery の無料枠は残る。だから 11/1 に有料化する。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/signup-faqs",
-    "method": "コスト方式"
+    "method": "コスト方式",
+    "level": 2,
+    "premise": "無料トライアル＝新規アカウントに付く $300 分・90日間のクレジット。無料枠（月 1 TiB のクエリ等）とは別物で、無料枠には期限が無い。"
   },
   {
     "id": 7,
@@ -119,7 +131,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/datasets",
     "method": "データ方式",
-    "section": "§9 制約・前提（リージョン統一）"
+    "section": "§9 制約・前提（リージョン統一）",
+    "level": 1,
+    "premise": "データセット＝BigQuery でテーブルをまとめる入れ物（プロジェクト > データセット > テーブル）。リージョン＝データを置く地域（東京は asia-northeast1）。"
   },
   {
     "id": 8,
@@ -136,7 +150,9 @@
     "explanation": "ジョブは load / query / extract / copy の4種。履歴は「ジョブ履歴」に6か月残る。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/managing-jobs",
-    "method": "データ方式"
+    "method": "データ方式",
+    "level": 1,
+    "premise": "BigQuery への依頼は「ジョブ」という単位で受け付けられ、履歴に残る。"
   },
   {
     "id": 9,
@@ -153,7 +169,9 @@
     "explanation": "課金バイトが付くのはクエリジョブだけ。上限は staging / mart を作るクエリと dbt profile に置く。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/pricing",
-    "method": "コスト方式"
+    "method": "コスト方式",
+    "level": 2,
+    "premise": "ロードジョブ＝ファイルや DataFrame をテーブルに入れる依頼。クエリジョブ＝SQL で読む依頼。maximum_bytes_billed＝クエリ1本が読んでよいバイト数の上限。"
   },
   {
     "id": 10,
@@ -170,7 +188,9 @@
     "explanation": "実行前の見積もりで拒否する。だからコスト防御として唯一「確実」な層。キャッシュヒットは0バイト。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/best-practices-costs",
-    "method": "コスト方式"
+    "method": "コスト方式",
+    "level": 2,
+    "premise": "maximum_bytes_billed＝クエリ1本に付ける「読んでよいバイト数」の上限。dry run＝実行せずに読む量だけ見積もる機能。課金バイト＝実際に料金がかかった読み取り量。"
   },
   {
     "id": 11,
@@ -187,7 +207,9 @@
     "explanation": "結果キャッシュヒットは課金 0。上限のテストをする時は --nouse_cache を付ける。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/cached-results",
-    "method": "コスト方式"
+    "method": "コスト方式",
+    "level": 2,
+    "premise": "BigQuery はクエリが読んだバイト数に課金する。同じ SQL の結果を一定時間保持しておく「クエリ結果キャッシュ」がある。"
   },
   {
     "id": 12,
@@ -204,7 +226,9 @@
     "explanation": "パーティション列を関数で包んで文字列比較するとプルーニングが効かない。列そのものに条件を付ける。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/querying-partitioned-tables",
-    "method": "データ方式"
+    "method": "データ方式",
+    "level": 2,
+    "premise": "パーティション＝テーブルを日付などで内部的に分割したもの。WHERE で分割キーを絞ると該当部分だけ読み、課金バイトが減る。"
   },
   {
     "id": 13,
@@ -221,7 +245,9 @@
     "explanation": "パーティション設定は作成時にしか付けられない属性。だから replace。データは消えるので、バックフィルで戻せる時だけ許可する。",
     "addedAt": "2026-08-30",
     "source": "https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/bigquery_table",
-    "method": "IaC方式"
+    "method": "IaC方式",
+    "level": 2,
+    "premise": "terraform plan＝適用前に「何をどう変えるか」を表示するコマンド。パーティション設定はテーブル作成時にしか付けられない。"
   },
   {
     "id": 14,
@@ -239,7 +265,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/load-data-partitioned-tables",
     "method": "データ方式",
-    "section": "§10 #4 日足のロード方式"
+    "section": "§10 #4 日足のロード方式",
+    "level": 3,
+    "premise": "WRITE_TRUNCATE＝テーブルの中身を全部消してから入れる。WRITE_APPEND＝後ろに足す。冪等＝同じ処理を何回やっても結果が同じ。"
   },
   {
     "id": 15,
@@ -257,7 +285,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/bigquery/docs/load-data-partitioned-tables",
     "method": "データ方式",
-    "section": "§10 #5 分足のロード方式"
+    "section": "§10 #5 分足のロード方式",
+    "level": 2,
+    "premise": "分足＝1分ごとの価格データ。yfinance は取得元の制約で直近60日分しか返さない。パーティション＝日付単位の内部分割。"
   },
   {
     "id": 16,
@@ -275,7 +305,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/python/docs/reference/bigquery/latest/google.cloud.bigquery.client.Client",
     "method": "IaC方式",
-    "section": "§10 #6 スキーマの所有者"
+    "section": "§10 #6 スキーマの所有者",
+    "level": 2,
+    "premise": "replace＝Terraform が「作り直し」を提案している状態（テーブルなら中身が消える）。autodetect＝ロード時にデータから列の型を自動推定する機能。"
   },
   {
     "id": 17,
@@ -292,7 +324,9 @@
     "explanation": "バッチは Job。AWS でいえば ECS Fargate の RunTask。定義（イメージ・SA）と実行（execution）が分かれる。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/run/docs/create-jobs",
-    "method": "処理方式"
+    "method": "処理方式",
+    "level": 1,
+    "premise": "Cloud Run＝コンテナを GCP 上で動かすサービス。Service と Job の2種類がある。"
   },
   {
     "id": 18,
@@ -309,7 +343,9 @@
     "explanation": "Job 定義はイメージのタグを固定で持つ。v2 に上げて Terraform で定義を更新する。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/run/docs/create-jobs",
-    "method": "処理方式"
+    "method": "処理方式",
+    "level": 2,
+    "premise": "イメージ＝コンテナの元になるファイル一式。push＝イメージを Artifact Registry（置き場）に登録すること。Job 定義＝どのイメージをどう動かすかの設定。"
   },
   {
     "id": 19,
@@ -326,7 +362,9 @@
     "explanation": "Google API を呼ぶ＝OAuth、自前エンドポイント＝OIDC。SA に対象 Job の run.invoker が要る。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/scheduler/docs/http-target-auth",
-    "method": "認証・権限方式"
+    "method": "認証・権限方式",
+    "level": 2,
+    "premise": "Scheduler が Job を起動するとき、HTTP リクエストに「自分が誰か」を示すトークンを付ける。OAuth トークンと OIDC トークンの2種類から選ぶ。"
   },
   {
     "id": 20,
@@ -343,7 +381,9 @@
     "explanation": "403＝権限。gcloud run jobs get-iam-policy で binding を確認。404 なら URI（プロジェクト・リージョン・Job 名）。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/scheduler/docs/troubleshooting",
-    "method": "認証・権限方式"
+    "method": "認証・権限方式",
+    "level": 2,
+    "premise": "HTTP の 403＝「相手は分かったが権限が無い」、404＝「その宛先が無い」。run.invoker＝Cloud Run の Job/Service を起動できるロール。"
   },
   {
     "id": 21,
@@ -360,7 +400,9 @@
     "explanation": "レイヤーは上から順にキャッシュされる。変更頻度の低いものを先に置く。",
     "addedAt": "2026-08-30",
     "source": "https://docs.docker.com/build/cache/optimize/",
-    "method": "処理方式"
+    "method": "処理方式",
+    "level": 2,
+    "premise": "Docker はイメージを命令（COPY・RUN 等）ごとの「レイヤー」として積み上げ、変わっていないレイヤーは再利用（キャッシュ）する。"
   },
   {
     "id": 22,
@@ -377,7 +419,9 @@
     "explanation": "イメージ・tfstate・Git に平文を置かない。Job の SA に secretmanager.secretAccessor が要る。",
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/run/docs/configuring/jobs/secrets",
-    "method": "認証・権限方式"
+    "method": "認証・権限方式",
+    "level": 2,
+    "premise": "FRED＝米国の経済指標を配る API（キーが要る）。Secret Manager＝パスワードや API キーを保管する GCP のサービス。tfstate＝Terraform の状態ファイル。"
   },
   {
     "id": 23,
@@ -395,7 +439,9 @@
     "addedAt": "2026-08-30",
     "source": "https://docs.cloud.google.com/composer/docs/composer-3/write-dags",
     "method": "処理方式",
-    "section": "§10 #3 実行基盤（Composer を採らない）"
+    "section": "§10 #3 実行基盤（Composer を採らない）",
+    "level": 3,
+    "premise": "raw → staging → mart＝取り込み→整形→集計の3段階。今回は3つの Job の起動時刻をずらして順番を作っている。"
   },
   {
     "id": 24,
@@ -413,7 +459,9 @@
     "addedAt": "2026-08-30",
     "source": "https://developer.hashicorp.com/terraform/language/state/backends",
     "method": "IaC方式",
-    "section": "§8 IaC 方式（state と plan）"
+    "section": "§8 IaC 方式（state と plan）",
+    "level": 2,
+    "premise": "CloudFormation＝AWS の IaC。IaC＝インフラの構成をコードで書き、ツールに作らせる方式。state＝Terraform が持つ「宣言と実物の対応表」。"
   },
   {
     "id": 25,
@@ -430,7 +478,9 @@
     "explanation": "+ 作成、~ その場で変更、-/+ replace。-/+ か destroy が出たら apply しない、が約束。",
     "addedAt": "2026-08-30",
     "source": "https://developer.hashicorp.com/terraform/tutorials/cli/plan",
-    "method": "IaC方式"
+    "method": "IaC方式",
+    "level": 1,
+    "premise": "terraform plan は変更内容を記号付きで一覧する。replace＝リソースを一度消して作り直すこと。"
   },
   {
     "id": 26,
@@ -448,7 +498,9 @@
     "addedAt": "2026-08-30",
     "source": "https://developer.hashicorp.com/terraform/tutorials/state/resource-drift",
     "method": "IaC方式",
-    "section": "§10 #6 スキーマの所有者"
+    "section": "§10 #6 スキーマの所有者",
+    "level": 1,
+    "premise": "Terraform は「.tf に書いた宣言」と「実際のリソース」を突き合わせて差分を出す。"
   },
   {
     "id": 27,
@@ -466,7 +518,9 @@
     "addedAt": "2026-08-30",
     "source": "https://developer.hashicorp.com/terraform/language/state/locking",
     "method": "IaC方式",
-    "section": "§10 #8 Terraform state の置き場"
+    "section": "§10 #8 Terraform state の置き場",
+    "level": 3,
+    "premise": "tfstate＝Terraform が持つ状態ファイル。バックエンド＝その置き場（ローカル、または GCS などのリモート）。"
   },
   {
     "id": 28,
@@ -483,7 +537,9 @@
     "explanation": "手動投入の銘柄マスタも raw。「取得元が何か」ではなく「これ以上遡れないか」で決まる。",
     "addedAt": "2026-08-30",
     "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
-    "method": "データ方式"
+    "method": "データ方式",
+    "level": 1,
+    "premise": "データ基盤では、データを raw → staging → mart の3層に分けて置くのが定石。"
   },
   {
     "id": 29,
@@ -501,7 +557,9 @@
     "addedAt": "2026-08-30",
     "source": "https://ranaroussi.github.io/yfinance/reference/api/yfinance.download.html",
     "method": "データ方式",
-    "section": "§9 制約・前提（データ利用条件）"
+    "section": "§9 制約・前提（データ利用条件）",
+    "level": 3,
+    "premise": "yfinance＝Yahoo Finance の株価を取る Python ライブラリ。調整後終値＝株式分割や配当の影響を補正した終値。raw＝加工前のまま置く層。"
   },
   {
     "id": 30,
@@ -518,7 +576,9 @@
     "explanation": "TRUNCATE・パーティション置換・CREATE OR REPLACE は冪等。APPEND は重複するので不可。DATUM Ops の『再実行判断』の中身。",
     "addedAt": "2026-08-30",
     "source": "https://docs.cloud.google.com/bigquery/docs/batch-loading-data",
-    "method": "運用・監視方式"
+    "method": "運用・監視方式",
+    "level": 2,
+    "premise": "再実行＝失敗したバッチをもう一度流すこと。WRITE_APPEND＝後ろに足す書き込み。"
   },
   {
     "id": 31,
@@ -536,7 +596,9 @@
     "addedAt": "2026-08-30",
     "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
     "method": "データ方式",
-    "section": "§4 データ方式（mart の as-of ジョイン）"
+    "section": "§4 データ方式（mart の as-of ジョイン）",
+    "level": 2,
+    "premise": "四半期決算は「期末日」より後の「提出日」に公開される。JOIN＝2つのテーブルをキーで結合すること。"
   },
   {
     "id": 32,
@@ -554,7 +616,9 @@
     "addedAt": "2026-08-30",
     "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
     "method": "データ方式",
-    "section": "§10 #2 実データか合成データか"
+    "section": "§10 #2 実データか合成データか",
+    "level": 3,
+    "premise": "合成データ＝プログラムで作った架空のデータ。品質テスト＝欠損や矛盾を検知する自動チェック。"
   },
   {
     "id": 33,
@@ -572,7 +636,9 @@
     "addedAt": "2026-08-30",
     "source": "https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/debugging-statements",
     "method": "運用・監視方式",
-    "section": "§6 運用・監視方式（鮮度の ASSERT）"
+    "section": "§6 運用・監視方式（鮮度の ASSERT）",
+    "level": 2,
+    "premise": "ASSERT＝SQL で条件を検査し、偽ならクエリ（ジョブ）をエラーで止める文。鮮度＝データが最新かどうか。"
   },
   {
     "id": 34,
@@ -590,7 +656,9 @@
     "addedAt": "2026-08-30",
     "source": "https://docs.cloud.google.com/billing/docs/how-to/budgets",
     "method": "コスト方式",
-    "section": "§7 コスト方式（3層）"
+    "section": "§7 コスト方式（3層）",
+    "level": 1,
+    "premise": "予算アラート＝Cloud Billing で「月いくらを超えたら」通知する設定。"
   },
   {
     "id": 35,
@@ -607,7 +675,9 @@
     "explanation": "トライアル中は「$300 で停止」が実質ハードリミット。有料化でそれが外れるので、カスタム割り当てで代替する（トライアル中は Adjustable=No）。",
     "addedAt": "2026-08-30",
     "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas",
-    "method": "コスト方式"
+    "method": "コスト方式",
+    "level": 3,
+    "premise": "有料化＝無料トライアルを有料アカウントに切り替えること。カスタム割り当て＝プロジェクト全体で1日に読んでよいバイト数の上限。"
   },
   {
     "id": 36,
@@ -625,7 +695,9 @@
     "addedAt": "2026-08-30",
     "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas",
     "method": "コスト方式",
-    "section": "§10 #9 コスト上限の3層"
+    "section": "§10 #9 コスト上限の3層",
+    "level": 2,
+    "premise": "コスト防御の3層＝予算アラート・maximum_bytes_billed・カスタム割り当て。それぞれ「いつ」「何を」止めるかが違う。"
   },
   {
     "id": 37,
@@ -643,7 +715,9 @@
     "addedAt": "2026-08-30",
     "source": "https://cloud.google.com/composer/pricing",
     "method": "設計判断",
-    "section": "§10 #3 実行基盤（Composer を採らない）"
+    "section": "§10 #3 実行基盤（Composer を採らない）",
+    "level": 3,
+    "premise": "Airflow／Cloud Composer＝ジョブの依存関係（A をやってから B）を管理するツール。Composer は常駐するので動かしていない時間も課金される。"
   },
   {
     "id": 38,
@@ -661,7 +735,9 @@
     "addedAt": "2026-08-30",
     "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
     "method": "設計判断",
-    "section": "§10 #10 dbt をどの層に入れるか"
+    "section": "§10 #10 dbt をどの層に入れるか",
+    "level": 3,
+    "premise": "dbt＝SQL の変換処理をモデルとして管理し、依存（ref）とテストを付けられるツール。"
   },
   {
     "id": 39,
@@ -679,7 +755,9 @@
     "answer": 1,
     "explanation": "ログベースのアラートポリシーには「1ポリシーあたり1日20インシデント」の上限があり、超えると通知が止まります。ジョブが壊れて大量にエラーを吐いたときに、まさに知りたい場面で通知が来なくなり得るということです。通知先はメール以外の複数チャネルを設定でき、Cloud Run のログも対象にできるので、他の記述は誤りです。",
     "source": "https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 2,
+    "premise": "ログベースのアラート＝特定の条件に合うログが出たら通知する Cloud Monitoring の仕組み。"
   },
   {
     "id": 40,
@@ -697,7 +775,9 @@
     "answer": 3,
     "explanation": "アラートは「設定した」ことと「届く」ことが別物です。フィルタ条件のズレ、通知チャネルの未確認、権限不足のいずれかで黙ることがあり、鳴らない監視は無いのと同じです。ログベースのアラートは、条件に合うログエントリを手で書き込んでテストできます。冪等性の確認は再実行して結果が変わらないかを見る別の作業です。",
     "source": "https://docs.cloud.google.com/logging/docs/alerting/log-based-alerts",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 2,
+    "premise": "検知＝失敗が起きたことに気づく仕組み。冪等＝同じ処理を2回流しても結果が同じ性質。"
   },
   {
     "id": 41,
@@ -715,7 +795,9 @@
     "answer": 0,
     "explanation": "予算アラートはプロジェクト全体の金額しか教えず、どのクエリが原因かは分かりません。INFORMATION_SCHEMA.JOBS には total_bytes_billed がジョブ単位で入るので犯人を特定できます。ただしこのビューの履歴は180日で消えるため、長期の推移を見たいなら自分のテーブルに残す必要があります。保存しても課金は止まらず、通知が早くなるわけでもありません（このビューへのクエリにはリージョン修飾子が要る点にも注意）。",
     "source": "https://docs.cloud.google.com/bigquery/docs/information-schema-jobs",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 2,
+    "premise": "INFORMATION_SCHEMA.JOBS＝BigQuery が持つジョブ履歴のビュー。ジョブごとの課金バイト（total_bytes_billed）が入っている。"
   },
   {
     "id": 42,
@@ -733,7 +815,9 @@
     "answer": 2,
     "explanation": "autodetect はロードのたびにスキーマを推定して書き換えるため、Terraform の宣言と実体がズレます。ズレたまま apply すると差分が replace（テーブル作り直し）として出て、実際に事故になりました。弱点は列を足すとき .tf と Python の両方を直す必要があること。「スキーマの所有者を1つに決める」という判断そのものが説明材料になります。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 3,
+    "premise": "スキーマ＝テーブルの列名と型の定義。autodetect＝ロード時にデータから型を推定する機能。ドリフト＝宣言と実物のズレ。"
   },
   {
     "id": 43,
@@ -751,7 +835,9 @@
     "answer": 1,
     "explanation": "ポートフォリオは作って終わりではなく、面接の場で動かせる必要があります。恒久無料枠のある BigQuery なら数か月後も見せられますが、期限付きトライアルは切れたら止まります。求人で BigQuery 必須が多い点も理由になります。弱点は AWS 実務との接続が薄く見えることで、そこは経歴書側で CloudFormation を語って補う——採用理由と弱点の両方が言えることが大事です。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 3,
+    "premise": "DWH（データウェアハウス）＝分析用のデータベース。Redshift Serverless＝AWS の DWH。恒久無料枠＝期限の無い無料利用枠。"
   },
   {
     "id": 44,
@@ -769,7 +855,9 @@
     "answer": 3,
     "explanation": "見せられなくなるものを作り込んでも面接では機能しません。BigQuery との違い（仮想ウェアハウスやゼロコピークローンなど）を自分の言葉で語れれば目的は果たせる、という割り切りです。弱点は「Snowflake の実務相当とは言えない」ことで、そこは認めた上での判断になります。期限のある無料枠にどこまで投資するかの判断例としても使えます。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 3,
+    "premise": "Snowflake＝BigQuery と並ぶクラウド DWH。無料トライアルは30日で終わる。"
   },
   {
     "id": 45,
@@ -787,7 +875,9 @@
     "answer": 1,
     "explanation": "scheduler-invoker は run.invoker だけを持つ「起動役」で、データには一切触れません。権限が外れると Scheduler から Job を叩けず 403 になり日次の取り込みが止まりますが、BigQuery のテーブルもイメージも state も無事です。役割ごとに SA を分けてあると、壊れたときの影響範囲をここまで狭く言い切れます。これが最小権限の実利です。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 2,
+    "premise": "scheduler-invoker＝Scheduler が Job を起動するときに使う SA。run.invoker＝起動だけできるロール。"
   },
   {
     "id": 46,
@@ -805,7 +895,9 @@
     "answer": 3,
     "explanation": "Terraform は「入れ物」を持ち「中身」は持たない、という線引きです。データセット・テーブル定義・Job・Scheduler・SA と IAM は Terraform 管理下ですが、SQL 本体、テーブルの中身、イメージの中身は管理外。プロジェクト作成・請求先・予算アラートも手動側です。この線が引けていると「なぜこれは .tf に無いのか」に即答できます。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 2,
+    "premise": "Terraform の管理範囲＝.tf に宣言していて plan/apply の対象になるもの。"
   },
   {
     "id": 47,
@@ -823,7 +915,9 @@
     "answer": 0,
     "explanation": "日足は Scheduler → Cloud Run Job → BigQuery raw の一本道なので、起点である Scheduler が止まれば何も始まりません。Looker Studio は下流の閲覧なので落ちても取り込みは続き、mart も raw より下流なので raw への書き込みには関係しません。FRED のキーはマクロ指標用で、yfinance の日足には不要です。どこが単一障害点かを言えるのが構成理解です。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 2,
+    "premise": "日足＝1日1本の価格データ。単一障害点＝そこが止まると全体が止まる箇所。構成は Scheduler → Job → BigQuery raw → staging → mart → Looker Studio。"
   },
   {
     "id": 48,
@@ -841,6 +935,445 @@
     "answer": 2,
     "explanation": "プロジェクトは API 有効化・課金・IAM の単位なので、実務では dev と prod を分けて事故の波及と権限を切るのが定石です。個人の学習用では分ける相手がいないため1つで足ります。「本番なら分ける」と一言添えられれば、知らないのではなく選んだのだと伝わります。複数プロジェクトは個人でも作れますし、他プロジェクトのデータセットも Terraform も問題なく扱えます。",
     "source": "https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff",
-    "addedAt": "2026-08-31"
+    "addedAt": "2026-08-31",
+    "level": 3,
+    "premise": "dev／prod＝検証用と本番用の環境。プロジェクトを分けると課金と IAM が別になる。"
+  },
+  {
+    "id": 49,
+    "chapter": 1,
+    "tag": "#17",
+    "method": "認証・権限方式",
+    "level": 1,
+    "q": "GCP の IAM で権限を付けるとき、必ず指定する3つの組み合わせは？",
+    "premise": "",
+    "options": [
+      "ユーザー・パスワード・有効期限（誰が・何で・いつまで）",
+      "プリンシパル・ロール・リソース（誰に・何を・どこで）",
+      "プロジェクト・リージョン・ゾーン（どこの・どの地域・どの区画）",
+      "API キー・スコープ・トークン（何で・どの範囲・何を持って）"
+    ],
+    "answer": 1,
+    "explanation": "IAM は「誰に（プリンシパル：人のアカウントやサービスアカウント）」「どの権限の束を（ロール）」「どの範囲で（リソース：プロジェクトや個々の Job など）」の3つ組で権限を表す。AWS のようにポリシー文書を書くのではなく、事前定義ロールをプリンシパルに直接付ける。",
+    "source": "https://cloud.google.com/iam/docs/overview",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 50,
+    "chapter": 1,
+    "tag": "#17",
+    "method": "認証・権限方式",
+    "level": 1,
+    "q": "サービスアカウント（SA）とは何か？",
+    "premise": "",
+    "options": [
+      "GCP のサポート窓口に問い合わせるための専用アカウント",
+      "人ではなくプログラムが使う、メール形式の ID を持つアカウント",
+      "請求先アカウントの別名で、支払い情報を持っているアカウント",
+      "組織の管理者だけが使える、全権限を持った特別なアカウント"
+    ],
+    "answer": 1,
+    "explanation": "SA は Cloud Run Job などのプログラムが「自分は誰か」を名乗るためのアカウント。xxx@project.iam.gserviceaccount.com のようなメール形式の ID を持ち、人と同じようにロールを付けられる。リソースに「アタッチ」すると、鍵ファイルを配らずに認証できる。",
+    "source": "https://cloud.google.com/iam/docs/service-account-overview",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 51,
+    "chapter": 1,
+    "tag": "#17",
+    "method": "認証・権限方式",
+    "level": 1,
+    "q": "roles/bigquery.dataEditor のような「ロール」とは何か？",
+    "premise": "",
+    "options": [
+      "ひとりのユーザーを表す ID で、ログインに使うもの",
+      "権限（テーブルを読む・書く等）を用途ごとに束ねたもの",
+      "課金の上限を決める設定で、超えると止まるもの",
+      "リソースを置くリージョンを指定するラベルのようなもの"
+    ],
+    "answer": 1,
+    "explanation": "GCP の権限は bigquery.tables.updateData のような細かい単位で定義され、それを束ねたのがロール。dataEditor はテーブルの読み書き、jobUser はジョブの実行、run.invoker は Job の起動、のように用途別に事前定義されている。ロールをプリンシパルに付ける＝権限を与える。",
+    "source": "https://cloud.google.com/iam/docs/understanding-roles",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 52,
+    "chapter": 1,
+    "tag": "#12",
+    "method": "コスト方式",
+    "level": 1,
+    "q": "「無料トライアル」と「無料枠」の違いとして正しいのは？",
+    "premise": "",
+    "options": [
+      "同じ仕組みの別名で、どちらも90日たつと終わって使えなくなる",
+      "トライアルは期限付きの $300 クレジット。無料枠は期限の無い毎月の無料分",
+      "トライアルは BigQuery 専用の割引、無料枠は Cloud Run 専用の割引",
+      "無料枠は期限付きで、トライアルは有料化した時点で無期限になる"
+    ],
+    "answer": 1,
+    "explanation": "無料トライアルは新規アカウントに付く $300・90日のクレジットで、切れると止まる。無料枠（Free Tier）は BigQuery なら月 1 TiB のクエリと 10 GiB のストレージなど、期限なく毎月使える分。有料化してもこの無料枠は残るので、月 3,000 円以内で回す前提が成り立つ。",
+    "source": "https://cloud.google.com/free/docs/free-cloud-features",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 53,
+    "chapter": 2,
+    "tag": "#3",
+    "method": "構成・前提",
+    "level": 1,
+    "q": "BigQuery を一言で言うと？",
+    "premise": "",
+    "options": [
+      "コンテナを動かすサーバーレスの実行環境",
+      "SQL で大量データを分析するためのデータウェアハウス",
+      "画像やログのファイルを置くオブジェクトストレージ",
+      "Web アプリ用のトランザクション向けデータベース"
+    ],
+    "answer": 1,
+    "explanation": "BigQuery はデータを貯めて SQL で集計・分析するための DWH。データの保存（ストレージ）と計算（クエリ）が分かれていて、サーバーを自分で管理しない。1行ずつ更新する業務 DB（MySQL 等）とは用途が違い、大量の行をまとめて読む処理が得意。",
+    "source": "https://cloud.google.com/bigquery/docs/introduction",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 54,
+    "chapter": 2,
+    "tag": "#7",
+    "method": "コスト方式",
+    "level": 1,
+    "q": "BigQuery でクエリを流すと料金がかかる。何に対して課金されるか？",
+    "premise": "",
+    "options": [
+      "クエリの実行にかかった秒数（長いほど高い）",
+      "クエリが読み取ったデータの量（バイト数）",
+      "クエリが返した結果の行数（多いほど高い）",
+      "クエリを流した回数（1回ごとの固定料金）"
+    ],
+    "answer": 1,
+    "explanation": "オンデマンド課金の BigQuery は、クエリが読んだバイト数に対して課金する（月 1 TiB まで無料）。これが「課金バイト」。テーブルを保存しておく料金（ストレージ）とは別。だからコスト対策は「読む量を減らす」に尽きる。パーティションで絞る、必要な列だけ SELECT する、上限（maximum_bytes_billed）を付ける、が全部ここにつながる。",
+    "source": "https://cloud.google.com/bigquery/pricing",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 55,
+    "chapter": 2,
+    "tag": "#6",
+    "method": "データ方式",
+    "level": 1,
+    "q": "「ロードジョブ」と「クエリジョブ」の違いは？",
+    "premise": "BigQuery への依頼は「ジョブ」という単位で受け付けられ、履歴に残る。ジョブには種類がいくつかある。",
+    "options": [
+      "ロードは SQL で読む依頼、クエリはデータを入れる依頼",
+      "ロードはデータを入れる依頼、クエリは SQL で読む依頼",
+      "ロードは無料トライアル専用、クエリは有料アカウント専用",
+      "ロードはコンソールから、クエリは Python からしか出せない"
+    ],
+    "answer": 1,
+    "explanation": "ロードジョブはファイルや DataFrame をテーブルに入れる依頼（Python の load_table_from_dataframe）。クエリジョブは SQL を実行する依頼（client.query）。どちらも「ジョブ」として履歴に残る。課金バイトが付くのはクエリジョブだけで、ロードは無料。この違いが「日次の取得ジョブに上限設定は効かない」につながる。",
+    "source": "https://cloud.google.com/bigquery/docs/jobs-overview",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 56,
+    "chapter": 2,
+    "tag": "#7",
+    "method": "コスト方式",
+    "level": 1,
+    "q": "maximum_bytes_billed は何を制限する設定か？",
+    "premise": "maximum_bytes_billed は、クエリを投げるときに付けられるオプションの1つ。",
+    "options": [
+      "テーブルに保存できるデータ量の上限",
+      "クエリ1本が読み取ってよいデータ量の上限",
+      "1日に実行できるクエリの本数の上限",
+      "月の請求額の上限（超えたら課金停止）"
+    ],
+    "answer": 1,
+    "explanation": "クエリを投げるときに付けるオプションで、「このクエリが読むバイト数がこれを超えるなら実行しない」という上限。単位はバイト（例：10 GB なら 10000000000）。クエリ1本ごとの設定なので、Python の QueryJobConfig や dbt の profile に書いておく。プロジェクト全体の上限はカスタム割り当て、金額の通知は予算アラートと、役割が違う。",
+    "source": "https://cloud.google.com/bigquery/docs/best-practices-costs",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 57,
+    "chapter": 2,
+    "tag": "#7",
+    "method": "コスト方式",
+    "level": 1,
+    "q": "BigQuery の「dry run」とは何をする機能か？",
+    "premise": "BigQuery はクエリが読み取ったデータ量に対して課金する（課金バイト）。",
+    "options": [
+      "本番の半分のデータだけで試しにクエリを実行する",
+      "クエリを実行せずに、読み取るバイト数の見積もりだけ返す",
+      "クエリを実行して結果を捨て、所要時間だけ計測する",
+      "クエリの構文だけを検査し、テーブルの有無は見ない"
+    ],
+    "answer": 1,
+    "explanation": "dry run はクエリを走らせずに「実行したら何バイト読むか」を返す。課金されない。bq コマンドなら --dry_run、Python なら QueryJobConfig(dry_run=True)。maximum_bytes_billed の判定はこの見積もりと比較して行われるので、上限に引っかかるかは実行前に分かる。",
+    "source": "https://cloud.google.com/bigquery/docs/running-queries",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 58,
+    "chapter": 2,
+    "tag": "#20",
+    "method": "データ方式",
+    "level": 1,
+    "q": "テーブルの「パーティション」とは何か？",
+    "premise": "",
+    "options": [
+      "テーブルを別のリージョンに複製して置いておく仕組み",
+      "テーブルを日付などの列の値で内部的に区切って保存する仕組み",
+      "テーブルの列を暗号化して権限のある人だけ読める仕組み",
+      "テーブルの古い行を自動で別テーブルに退避する仕組み"
+    ],
+    "answer": 1,
+    "explanation": "日付列などを基準にテーブルを内部的に区切っておくと、WHERE date >= '2026-08-01' のように絞ったとき該当する区画だけ読む（プルーニング）。読む量が減る＝課金バイトが減る。作成時にしか設定できないので、後から付けるにはテーブルの作り直しになる。",
+    "source": "https://cloud.google.com/bigquery/docs/partitioned-tables",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 59,
+    "chapter": 2,
+    "tag": "#14",
+    "method": "データ方式",
+    "level": 1,
+    "q": "ロード時の WRITE_TRUNCATE と WRITE_APPEND の違いは？",
+    "premise": "テーブルにデータを入れる依頼（ロードジョブ）には、書き込み方を指定する設定がある。",
+    "options": [
+      "TRUNCATE は既存の行を全部消してから入れる。APPEND は既存の後ろに足す",
+      "TRUNCATE は既存の後ろに足す。APPEND は既存の行を全部消してから入れる",
+      "TRUNCATE は空のテーブルにしか入れられない。APPEND はどこでも入れられる",
+      "TRUNCATE は列を削って入れる。APPEND は列を追加しながら入れる"
+    ],
+    "answer": 0,
+    "explanation": "ロードジョブの writeDisposition という設定。WRITE_TRUNCATE は中身を空にしてから入れる（全量置き換え）、WRITE_APPEND は追記、WRITE_EMPTY は空のときだけ入れる。同じデータを2回ロードすると、TRUNCATE なら結果は同じ、APPEND なら二重になる。この差が「再実行してよいか」の判断につながる。",
+    "source": "https://cloud.google.com/bigquery/docs/reference/rest/v2/Job",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 60,
+    "chapter": 2,
+    "tag": "#15",
+    "method": "データ方式",
+    "level": 1,
+    "q": "テーブルの「スキーマ」と、ロード時の「autodetect」の説明として正しいのは？",
+    "premise": "",
+    "options": [
+      "スキーマは行数の上限、autodetect は上限を自動で広げる機能",
+      "スキーマは列名と型の定義、autodetect はデータから型を推定して決める機能",
+      "スキーマはテーブルの置き場所、autodetect は空いているリージョンを選ぶ機能",
+      "スキーマは課金の設定、autodetect は最安のプランを自動で選ぶ機能"
+    ],
+    "answer": 1,
+    "explanation": "スキーマは「date は DATE 型、close は FLOAT64 型で必須」といった列の定義。ロード時にスキーマを渡さないと、BigQuery はデータの中身から型を推定する（autodetect）。推定なので、pandas 経由だと NULLABLE や FLOAT のように Terraform で宣言した定義とズレることがあり、それがドリフトの原因になる。",
+    "source": "https://cloud.google.com/bigquery/docs/schema-detect",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 61,
+    "chapter": 3,
+    "tag": "#16",
+    "method": "処理方式",
+    "level": 1,
+    "q": "コンテナ「イメージ」と Artifact Registry の関係は？",
+    "premise": "",
+    "options": [
+      "イメージは実行中のプロセス、Artifact Registry はそのログの保存先",
+      "イメージはコード＋依存をまとめた実行の元、Artifact Registry はその置き場",
+      "イメージは Job の設定ファイル、Artifact Registry はそれを編集する画面",
+      "イメージはリージョンの別名、Artifact Registry はリージョンの一覧"
+    ],
+    "answer": 1,
+    "explanation": "Dockerfile から docker build で作るのがイメージで、Python コード・ライブラリ・OS の最小構成を1つにまとめたもの。docker push で Artifact Registry に置き、Cloud Run Job は起動時にそこから pull して動く。AWS の ECR に相当する。イメージにはタグ（v1, v2）を付けて世代を区別する。",
+    "source": "https://cloud.google.com/artifact-registry/docs/overview",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 62,
+    "chapter": 3,
+    "tag": "#18",
+    "method": "処理方式",
+    "level": 1,
+    "q": "Cloud Scheduler は何をする部品か？",
+    "premise": "",
+    "options": [
+      "複数のジョブの依存関係を管理し、順番に実行する",
+      "指定した時刻（cron）に HTTP リクエストを1本送る",
+      "コンテナを常駐させて HTTP リクエストを受け続ける",
+      "ログを監視して条件に合ったら通知を送る"
+    ],
+    "answer": 1,
+    "explanation": "Cloud Scheduler はマネージドの cron。「毎日 6:00 にこの URL に POST する」だけをやり、それ以上のこと（順序制御、失敗時の再試行の判断）はしない。Cloud Run Job の起動 URL を叩かせて日次バッチを動かす。AWS の EventBridge Scheduler に相当。依存関係の管理は Workflows や Composer の仕事。",
+    "source": "https://cloud.google.com/scheduler/docs/overview",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 63,
+    "chapter": 3,
+    "tag": "#19",
+    "method": "認証・権限方式",
+    "level": 1,
+    "q": "Secret Manager は何のためのサービスか？",
+    "premise": "",
+    "options": [
+      "Terraform の state ファイルを暗号化して保存する",
+      "API キーやパスワードを保管し、実行時に安全に渡す",
+      "コンテナイメージに署名して改ざんを検知する",
+      "IAM のロールを一時的に昇格させて監査ログを残す"
+    ],
+    "answer": 1,
+    "explanation": "API キー・パスワード・証明書のような秘密情報を保管する場所。Cloud Run Job の定義で「環境変数 FRED_API_KEY はこのシークレットの最新版」と指定すると起動時に展開される。読むには Job の SA に secretmanager.secretAccessor が要る。イメージ・Git・tfstate に平文を書かないための部品で、AWS の Secrets Manager に相当。",
+    "source": "https://cloud.google.com/secret-manager/docs/overview",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 64,
+    "chapter": 3,
+    "tag": "#18",
+    "method": "認証・権限方式",
+    "level": 1,
+    "q": "Scheduler が Cloud Run Job を起動する HTTP リクエストに「トークン」を付けるのは何のためか？",
+    "premise": "Cloud Scheduler は決めた時刻に HTTP リクエストを送る部品で、そのリクエストで Cloud Run Job を起動する。",
+    "options": [
+      "リクエストの本文を暗号化して、途中での盗聴や改ざんを防ぐため",
+      "呼び出す側（Scheduler の SA）が誰かを相手に証明するため",
+      "リクエストの順番を保証して、同じ Job の二重起動を防ぐため",
+      "課金をどのプロジェクトに付けるかを Google 側に指定するため"
+    ],
+    "answer": 1,
+    "explanation": "Job の起動 URL は誰でも叩ける場所にはなく、呼び出し側の身元を示すトークンが要る。Scheduler に SA を指定しておくと、その SA として OAuth または OIDC のトークンを取って付けてくれる。宛先が Google の API（run.googleapis.com）なら OAuth、自前の Cloud Run Service なら OIDC。トークンが正しくても SA に run.invoker が無ければ 403 になる。",
+    "source": "https://cloud.google.com/scheduler/docs/http-target-auth",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 65,
+    "chapter": 4,
+    "tag": "#9",
+    "method": "IaC方式",
+    "level": 1,
+    "q": "Terraform の基本的な考え方として正しいのは？",
+    "premise": "Terraform はインフラの構成をコードで書き、ツールに作らせる道具（IaC）。",
+    "options": [
+      "作りたい順に手順（コマンド）を並べて書き、上から順に実行する",
+      "「あるべき状態」を宣言して書き、ツールが現状との差分を作る・変える",
+      "クラウドのコンソール操作を録画し、同じ操作を別環境で再生する",
+      "既に作ったリソースをスキャンし、構成図とドキュメントを自動生成する"
+    ],
+    "answer": 1,
+    "explanation": "Terraform は宣言型の IaC。「このテーブルがこのスキーマで存在する」と .tf に書くと、Terraform が今の状態と比べて足りないものを作り、違うものを変える。手順を書くのではなく結果を書く。同じ .tf を何回 apply しても同じ状態に落ち着く。AWS の CloudFormation と同じ考え方で、違いは state を自分で持つこと。",
+    "source": "https://developer.hashicorp.com/terraform/intro",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 66,
+    "chapter": 4,
+    "tag": "#9",
+    "method": "IaC方式",
+    "level": 1,
+    "q": "Terraform の「state（tfstate）」とは何か？",
+    "premise": "Terraform は .tf に書いた宣言のとおりに、実際のリソースを作る・変える。",
+    "options": [
+      ".tf ファイルの文法エラーを記録したログファイル",
+      "宣言した各リソースが実際のどのリソースに対応するかの対応表",
+      "apply の実行時刻と担当者を記録した監査ログ",
+      "クラウド側が持つリソース一覧をローカルに写したキャッシュ"
+    ],
+    "answer": 1,
+    "explanation": "「.tf の google_bigquery_table.daily_prices は、プロジェクト X のこのテーブルである」という対応表。plan はこの state・.tf の宣言・実物の3つを突き合わせて差分を出す。state を失うと Terraform は自分が作ったものを見失う。CloudFormation はこの情報を AWS 側が持つが、Terraform は自分で保管する（ローカルか GCS 等）。",
+    "source": "https://developer.hashicorp.com/terraform/language/state/purpose",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 67,
+    "chapter": 4,
+    "tag": "#9",
+    "method": "IaC方式",
+    "level": 1,
+    "q": "terraform plan と terraform apply の違いは？",
+    "premise": "",
+    "options": [
+      "plan は変更内容を表示するだけ。apply が実際にリソースを変更する",
+      "plan がリソースを変更する。apply はその結果をレポートにまとめる",
+      "plan は本番環境用、apply は検証環境用に使い分けるコマンド",
+      "plan は state を作る。apply は state を削除して初期化する"
+    ],
+    "answer": 0,
+    "explanation": "plan は「今 apply したら何が起きるか」を + / ~ / -/+ の記号付きで一覧するだけで、何も変えない。apply が実際に作成・変更・作り直しを行う。だから plan の出力を読んで危険な変更（-/+ や destroy）が無いか確かめてから apply する、という順番になる。",
+    "source": "https://developer.hashicorp.com/terraform/cli/commands/plan",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 68,
+    "chapter": 5,
+    "tag": "#10",
+    "method": "データ方式",
+    "level": 1,
+    "q": "raw / staging / mart の3層それぞれの役割は？",
+    "premise": "",
+    "options": [
+      "raw＝集計済み、staging＝加工前、mart＝整形済み",
+      "raw＝加工前のまま、staging＝型を揃え整形、mart＝見せる形に集計",
+      "raw＝一時ファイル、staging＝本番データ、mart＝バックアップ",
+      "raw＝手動投入、staging＝自動取得、mart＝外部公開"
+    ],
+    "answer": 1,
+    "explanation": "raw は取得元のデータを加工せずそのまま置く層。staging は型を揃え、重複を消し、変な値にフラグを付ける層。mart は BI で見やすい形（日々の価格・決算・銘柄マスタを結合した表）にした層。raw を残しておくと計算を直したくなったとき元に戻れる。dbt の staging / intermediate / marts と同じ発想。",
+    "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 69,
+    "chapter": 5,
+    "tag": "#11",
+    "method": "運用・監視方式",
+    "level": 1,
+    "q": "処理が「冪等（べきとう）」であるとは？",
+    "premise": "",
+    "options": [
+      "処理が途中で失敗しても、必ず最後まで自動で再開されること",
+      "同じ処理を何回実行しても、結果が1回だけ実行した場合と同じになること",
+      "処理の実行時間が毎回ほぼ同じで、終わる時刻を予測できること",
+      "処理が他の処理と同時に動いても、互いに影響を与えないこと"
+    ],
+    "answer": 1,
+    "explanation": "「2回流しても二重にならない」性質。全量置き換え（WRITE_TRUNCATE）、パーティション単位の置換、CREATE OR REPLACE TABLE は冪等。WRITE_APPEND は流すたびに増えるので冪等ではない。バッチが失敗したとき「もう一回流していいか」を判断する根拠になり、運用の再実行判断はこの性質を見ている。",
+    "source": "https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 70,
+    "chapter": 5,
+    "tag": "設計",
+    "method": "データ方式",
+    "level": 1,
+    "q": "dbt は何をするツールか？",
+    "premise": "raw → staging → mart のように、SQL でデータを段階的に変換していく作りになっている。",
+    "options": [
+      "データを外部 API から取得して BigQuery にロードする",
+      "SQL の変換処理を「モデル」として管理し、依存関係とテストを付ける",
+      "BigQuery のテーブルを Terraform で作るための拡張機能",
+      "ダッシュボードを作ってデータを可視化する BI ツール"
+    ],
+    "answer": 1,
+    "explanation": "dbt は SELECT 文を1つ1ファイル（モデル）として置き、ref() で他のモデルを参照すると依存関係の順に実行してくれる。not_null や unique のようなテストも定義できる。データを取ってくる（ロード）役ではなく、既に BigQuery にあるデータを変換する役。今回は変換ロジックとテストが集中する mart 層だけに入れている。",
+    "source": "https://docs.getdbt.com/docs/build/sql-models",
+    "addedAt": "2026-09-05"
+  },
+  {
+    "id": 71,
+    "chapter": 6,
+    "tag": "#7",
+    "method": "コスト方式",
+    "level": 1,
+    "q": "BigQuery の「カスタム割り当て」とは何か？",
+    "premise": "BigQuery はクエリが読み取ったデータ量に課金する。上限を掛ける方法は何種類かある。",
+    "options": [
+      "クエリ1本ごとに読んでよいバイト数の上限",
+      "プロジェクト全体で1日に読んでよいバイト数の上限",
+      "月の請求額がいくらを超えたら通知するかの設定",
+      "テーブル1つに保存できる最大サイズの設定"
+    ],
+    "answer": 1,
+    "explanation": "プロジェクト全体、またはユーザーごとに「1日の課金バイトはここまで」と決める設定。超えるとその日はクエリが失敗する。公式に「おおよその値」とされ、ぴったりでは止まらないことがある。無料トライアル中は変更できず、有料化後に設定する。クエリ1本の上限は maximum_bytes_billed、通知だけなのが予算アラート。",
+    "source": "https://docs.cloud.google.com/bigquery/docs/custom-quotas",
+    "addedAt": "2026-09-05"
   }
 ]

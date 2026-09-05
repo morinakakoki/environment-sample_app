@@ -16,7 +16,7 @@ npx playwright install chromium    # 初回のみ。CHROME_PATH で既存の Chr
 
 cd quiz && node build-pages.mjs    # GitHub Pages に配る一式 → quiz/_site/
 cd quiz && node build-artifact.mjs # index.html + quiz-data.json → artifact.html
-cd quiz/tests && sh runall.sh      # 20スイート・733項目（両方のビルドも自動で走る）
+cd quiz/tests && sh runall.sh      # 21スイート・782項目（両方のビルドも自動で走る）
 ```
 
 `runall.sh` は静的サーバ（8777 / 8790）を自分で上げます。**1項目でも落ちたまま出さない
@@ -31,8 +31,24 @@ cd quiz/tests && sh runall.sh      # 20スイート・733項目（両方のビ�
 - CSS は既存の**1つの `<style>`** に追記する。2つ目を足すと発行時に静かに落ちる
 - Notion 連携は任意。繋がらなくても埋め込みの問題で普通に解けること
 - **`quiz/artifact.html` と `quiz/_site/` は生成物。手で編集しない**（ビルドが上書きする）
-- `index.html` の `var APP_BUILD = 'dev';` と `var DOC_URL = 'design-doc.html';` は
-  **ビルドが差し替える目印**。消すと `build-artifact.mjs` が落ちる
+- `index.html` の `var APP_BUILD = 'dev';` `var DOC_URL = 'design-doc.html';`
+  `var NOTE_URL = 'note.html';` は**ビルドが差し替える目印**。消すと
+  `build-artifact.mjs` が落ちる
+
+## 章を増やすときは3か所
+
+クイズの解説にある**章のチップ**（`第2章 BigQuery`）は `note.html#c2` を指します。
+章を増やすときは次の3つを一緒に直してください。
+
+| 何 | どこ |
+| --- | --- |
+| 章の番号と名前 | `quiz/index.html` の `DEFAULT_CHAPTER_TITLES` |
+| リンクの行き先 | `quiz/note.html` の `<details id="c1">`〜`"c7"` |
+| 問題の所属 | `quiz/quiz-data.json` の `chapter` |
+
+`build-pages.mjs` が章の id を数えていて、**7個でなければビルドが落ちます**（増やしたら
+その数も一緒に直す）。数が合っていてもリンク先がずれると 404 にはならず、黙って
+ページの先頭に着くだけなので、押しても気づけません。
 
 ## 方式設計書の節番号を動かすときは3か所
 
@@ -63,21 +79,22 @@ Notion 連携（問題の自動取り込み・学習記録の端末間同期）�
 
 ## できないこと：アーティファクトへの発行
 
-`quiz/artifact.html`（復習クイズ）と `quiz/design-doc.html`（方式設計書）は claude.ai の
-アーティファクトとして公開されています。
+`quiz/artifact.html`（復習クイズ）・`quiz/design-doc.html`（方式設計書）・
+`quiz/note.html`（基礎知識ノート）は claude.ai のアーティファクトとしても公開されています。
 
 **発行は Claude 側の機能です。Codex など他のエージェントからは実行できません。**
 編集・ビルド・テスト・コミット・push までは他のエージェントで完結します。公開版に
 反映するときだけ、push したうえで Claude に1行頼んでください。
 
 ```
-quiz/artifact.html と quiz/design-doc.html を、それぞれ元の URL に再発行して
+quiz/artifact.html と quiz/design-doc.html と quiz/note.html を、それぞれ元の URL に再発行して
 ```
 
 | アーティファクト | URL |
 | --- | --- |
 | データ基盤 復習クイズ | https://claude.ai/code/artifact/961a5f90-b530-4a93-8925-de6cdb85e282 |
 | マーケットデータ基盤 方式設計書 | https://claude.ai/code/artifact/68d8ce3d-c753-4c35-9e96-73d1f6553fff |
+| 基礎知識ノート | https://claude.ai/code/artifact/39af473a-7ab5-4f68-9d60-561aa254e638 |
 
 > **発行の前に、公開中の版を読み出して差分を確かめてください。**
 > クイズ側はアプリの「問題を追加」画面からその場で保存できるので、**リポジトリの

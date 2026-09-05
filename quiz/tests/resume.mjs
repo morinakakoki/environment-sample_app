@@ -616,7 +616,7 @@ console.log('\n【20】実装の見張り');
   ok(/function byChapterThenShuffle/.test(src), '未挑戦は章ごとにまとめてシャッフル');
   ok(/Math\.floor\(dueOver\(b\.id, now\)\)/.test(src),
      '復習の並びは日単位に丸めてシャッフルを残している');
-  ok(/byChapterThenShuffle\(fresh\)\.concat\(shuffle\(wrong\)/.test(src),
+  ok(/eligibleFresh\(list\)\.concat\(shuffle\(wrong\)/.test(src),
      '未挑戦が先頭に来る');
   ok(/var FRESH_MAX = 4;/.test(src), '全範囲の未挑戦に上限がある');
   ok(/Math\.max\(FRESH_MAX, n - rest\.length\)/.test(src),

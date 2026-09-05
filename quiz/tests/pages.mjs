@@ -79,7 +79,7 @@ console.log('\n【4】配った形のまま動く（同じオリジンの設計�
   await p.locator('#screenQuiz:not(.hidden)').waitFor();
   await p.locator('#qOpts .opt').nth(0).click();
   await p.locator('#qNextWrap:not(.hidden)').waitFor();
-  const link = p.locator('#qVerdict .backto a.chip-link');
+  const link = p.locator('#qVerdict .backto a.chip-link.method');
   const href = await link.getAttribute('href');
   ok(href && href.startsWith(BASE + 'design-doc.html#s'),
      '節のチップが同じオリジンの設計書を指す: ' + href);

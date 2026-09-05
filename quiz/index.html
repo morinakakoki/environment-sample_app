@@ -250,6 +250,16 @@ a.chip-link::after{content:"↗";font-size:10px;opacity:.75}
 }
 a.chip-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
+/* 前提。問題文で使う用語の定義を、答える前に読める位置に置く。
+   解説側に置くと読むのが「答えを見たあと」になり、用語を知らないまま選ぶことになる。
+   点線の枠にしているのは、問題文そのものと読み違えないため。 */
+.premise{margin:0 0 12px;padding:10px 12px;border-radius:var(--r-sm);
+  background:var(--card-2);border:1px dashed var(--line-strong);
+  font-size:13.5px;line-height:1.7;color:var(--fg-soft)}
+.premise .plbl{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;
+  color:var(--muted);border:1px solid var(--line-strong);border-radius:99px;
+  padding:0 7px;margin-right:6px;vertical-align:1px}
+
 .qtext{font-size:17.5px;font-weight:700;line-height:1.65;margin:2px 0 14px;letter-spacing:.005em}
 
 .opts{display:flex;flex-direction:column;gap:9px}
@@ -581,7 +591,7 @@ python3 -m http.server 8000
       <div style="display:flex;flex-direction:column;gap:9px">
         <button class="btn" id="modeAll" type="button">
           <span class="ico" aria-hidden="true">🎯</span>
-          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">未挑戦（章順）→ 間違い → そろそろ忘れる頃 → 済み。復習が溜まった日は未挑戦4問まで</span><span class="cnt" id="cntAll"></span></span>
+          <span class="bodytxt"><span class="ttl">全範囲 10問</span><span class="sub">未挑戦（章順・用語→仕組み→判断）→ 間違い → そろそろ忘れる頃 → 済み。復習が溜まった日は未挑戦4問まで</span><span class="cnt" id="cntAll"></span></span>
         </button>
         <button class="btn" id="modeWrong" type="button">
           <span class="ico" aria-hidden="true">🔁</span>
@@ -670,8 +680,10 @@ python3 -m http.server 8000
         <span class="chip" id="qChapter"></span>
         <span class="chip tag" id="qTag"></span>
         <span class="chip method" id="qMethod"></span>
+        <span class="chip tag" id="qLevel"></span>
         <span class="chip" id="qWhy"></span>
       </div>
+      <div class="premise hidden" id="qPremise"><span class="plbl">前提</span><span id="qPremiseTxt"></span></div>
       <h1 class="qtext" id="qText"></h1>
       <div class="opts" id="qOpts" role="group" aria-label="選択肢"></div>
       <div id="qExplainWrap" class="hidden">
@@ -743,6 +755,8 @@ python3 -m http.server 8000
         <li><code>method</code> に方式設計書の方式名を入れてください。<b>入れないと「方式別に解く」に出てきません</b>（構成・前提 / 処理方式 / データ方式 / 認証・権限方式 / 運用・監視方式 / コスト方式 / IaC方式 / 設計判断）</li>
         <li>解説で選択肢を指すときは「選択肢2が誤り」ではなく<b>内容で</b>書いてください。出題ごとに選択肢の並びが変わります</li>
         <li>4つの選択肢は<b>長さをそろえて</b>ください。正解だけ長いと、中身を知らなくても当てられます</li>
+        <li><code>level</code> は段階（<code>1</code>=用語 / <code>2</code>=仕組み / <code>3</code>=判断）。<b>省くと 2 になります。</b>用語を聞く問題は必ず <code>1</code> にしてください。同じ章の <code>1</code> が全部正解になるまで、その章の <code>2</code> は未挑戦として出ません</li>
+        <li><code>premise</code> は問題文の上に出す前提（<b>140字以内</b>）。問題文に出てくる用語のうち、基礎知識ノートより手前の語を1〜2文で定義します。<b>答えそのものは書かないでください</b></li>
       </ul>
     </div>
   </section>
@@ -911,6 +925,11 @@ var DEFAULT_CHAPTER_TITLES = {
 
 var LETTERS = ['A','B','C','D','E','F'];
 
+/* 段階。1=用語（それが何か）2=仕組み（どう動くか）3=判断（なぜそれを選んだか）。
+   章ごとに下の段階から出す（clearedLevel）。用語を知らないまま仕組みを聞かれる
+   ことがないように、出題の順序をこの3段で決める。 */
+var LEVEL_NAMES = { 1:'用語', 2:'仕組み', 3:'判断' };
+
 /* Notion の「復習クイズ 問題ストック」から追加分を読む設定。
    ビューモードを使うのは、SQL モードがプランによって使用量制限を受けるため
    （ビューモードは制限なし）。列名を Notion 側で変えるとここが合わなくなる。 */
@@ -919,7 +938,8 @@ var NOTION = {
   tool   : 'notion-query-data-sources',
   view   : 'view://9229e102-0aaf-4b45-99e8-4d256abc8d1d',
   cols   : { q:'問題', chapter:'章', tag:'タグ', answer:'正解', explanation:'解説',
-             source:'出典', method:'方式', options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
+             source:'出典', method:'方式', level:'段階', premise:'前提',
+             options:['選択肢A','選択肢B','選択肢C','選択肢D'], date:'date:追加日:start' },
   maxPages: 5   // 1ページ100件。取り切れないときは画面に出す
 };
 
@@ -1180,6 +1200,14 @@ function hashId(str){
   return 'auto-' + (h >>> 0).toString(36);
 }
 
+/* 段階の正規化。1〜3 以外（未記入・文字列・範囲外）は 2＝仕組みに倒す。
+   1 に倒さないのは、段階を書いていない古い問題が「用語」として先頭に来ると、
+   章の梯子が「用語が全部済むまで先に進めない」で止まってしまうため。 */
+function normLevel(v){
+  var n = parseInt(v, 10);
+  return (n >= 1 && n <= 3) ? n : 2;
+}
+
 /* answer は 0 始まりのインデックスが正。
    移植のしやすさのため、選択肢そのものの文字列 / "A"〜"D" / 数値文字列も受け付ける。 */
 function normAnswer(a, options){
@@ -1284,7 +1312,12 @@ function parseData(raw){
       section   : (typeof r.section === 'string') ? r.section.trim() : '',
       /* 日付の形以外は捨てる。addedAt は「最近追加」で連想配列のキーになるので、
          任意の文字列を通すとそこが壊れる。 */
-      addedAt   : (typeof r.addedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.addedAt)) ? r.addedAt : ''
+      addedAt   : (typeof r.addedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.addedAt)) ? r.addedAt : '',
+      /* 段階（1=用語 2=仕組み 3=判断）。出題順の梯子に使う。 */
+      level     : normLevel(r.level),
+      /* 問題文の上に出す前提。問題文に出てくる用語の定義を1〜2文で書く。
+         答えそのものを書くと問題が成立しないので、そこは書き手側の約束。 */
+      premise   : (typeof r.premise === 'string') ? r.premise.trim() : ''
     });
   }
 
@@ -1368,6 +1401,52 @@ function dueOver(id, nowMs){
 }
 /* 直近は正解だが、間隔を過ぎた問題 */
 function isDue(id, nowMs){ return dueOver(id, nowMs) >= 0; }
+
+/* 一度でも正解したことがあるか。段階の梯子はこれで「その問題は済んだ」と数える。
+
+   直近の正誤（statusOf）ではなく通算にしてある。直近で見ると、あとから1問
+   間違えた瞬間にその章の上の段階の未挑戦がまとめて引っ込み、「昨日は出ていた
+   新しい問題が今日は出ない」になる。間違えた問題は「間違い」の枠で必ず出るので、
+   通算で数えても取りこぼしにはならない。 */
+function everCorrect(id){
+  var s = statOf(id);
+  return !!(s && (s.correct | 0) > 0);
+}
+
+/* その章がどの段階まで済んだか（0〜3）を返す。
+   段階Nの問題が全部 everCorrect なら N まで済み、が定義。
+
+   その段階の問題が1問も無い章は「済んだ」として次へ進める。第7章のように
+   段階1（用語）を持たない章があり、そこで止めると章ごと永久に出なくなるため。
+   出題から外した問題（hidden）は数えない。外した問題のせいで先に進めなくなる。 */
+function clearedLevel(chapter){
+  var qs = activeQ().filter(function(q){ return q.chapter === chapter; });
+  var n = 0;
+  for(var lv = 1; lv <= 3; lv++){
+    var same = qs.filter(function(q){ return q.level === lv; });
+    if(same.some(function(q){ return !everCorrect(q.id); })) break;
+    n = lv;
+  }
+  return n;
+}
+
+/* 未挑戦のうち、いま出してよいものだけを章順・段階順に並べて返す。
+
+   章の中は「済んだ段階の1つ上」までしか出さない。用語を知らないまま仕組みを
+   聞かれる問題（maximum_bytes_billed の判定タイミングを、課金バイトが何かを
+   知らずに解く）を無くすため。梯子は章ごとに独立していて、第1章で止まっても
+   第2章の用語は出る。
+
+   出題（prioritize）とホームの件数表示の両方がこれを使う。別々に数えると
+   「未挑戦 12（次は第2章）」と出たのに第2章が1問も出てこない、が起きる。 */
+function eligibleFresh(list){
+  var cl = bare();
+  return byChapterThenShuffle(list.filter(function(q){
+    if(statusOf(q.id) !== 'new') return false;
+    if(cl[q.chapter] === undefined) cl[q.chapter] = clearedLevel(q.chapter);
+    return q.level <= cl[q.chapter] + 1;
+  }));
+}
 
 /* 説明モードの自己申告を記録する。stats とは別枠。 */
 function recordExplain(q, ok){
@@ -1462,14 +1541,16 @@ function shuffle(a){
    章が未設定（0）の問題は先頭ではなく末尾に送る。戻る先が「章未設定」の問題を
    毎回いちばん最初に配ることになるため。 */
 function byChapterThenShuffle(list){
-  var byCh = bare(), chs = [], out = [];
+  var byKey = bare(), keys = [], out = [];
   list.forEach(function(q){
-    var c = q.chapter || 0;
-    if(!byCh[c]){ byCh[c] = []; chs.push(c); }
-    byCh[c].push(q);
+    var c = q.chapter || 0, lv = q.level || 2, k = c + ':' + lv;
+    if(!byKey[k]){ byKey[k] = []; keys.push({ c:c, lv:lv, k:k }); }
+    byKey[k].push(q);
   });
-  chs.sort(function(a, b){ return (a || 1e9) - (b || 1e9); });
-  chs.forEach(function(c){ out = out.concat(shuffle(byCh[c])); });
+  /* 章の昇順、章の中は段階の昇順（用語 → 仕組み → 判断）。
+     章未設定（0）は最後。シャッフルは同じ章・同じ段階の中だけに掛ける。 */
+  keys.sort(function(a, b){ return ((a.c || 1e9) - (b.c || 1e9)) || (a.lv - b.lv); });
+  keys.forEach(function(x){ out = out.concat(shuffle(byKey[x.k])); });
   return out;
 }
 
@@ -1490,12 +1571,12 @@ function byChapterThenShuffle(list){
    ただし未挑戦を無制限に先へ出すと今度は復習が飢えるので、全範囲だけ枠を切る
    （withFreshQuota）。章別・方式別は全問出るので、順番が変わるだけで飢えは起きない。 */
 function prioritize(list){
-  var wrong = [], due = [], fresh = [], done = [];
+  var wrong = [], due = [], done = [];
   var now = Date.now();
   list.forEach(function(q){
     var st = statusOf(q.id);
     if(st === 'wrong') wrong.push(q);
-    else if(st === 'new') fresh.push(q);
+    else if(st === 'new') return;   /* 未挑戦は eligibleFresh が章順・段階順に並べる */
     else if(isDue(q.id, now)) due.push(q);
     else done.push(q);
   });
@@ -1507,7 +1588,7 @@ function prioritize(list){
   due  = shuffle(due).sort(function(a,b){
     return Math.floor(dueOver(b.id, now)) - Math.floor(dueOver(a.id, now)); });
   done = shuffle(done).sort(function(a,b){ return accuracyOf(a.id) - accuracyOf(b.id); });
-  return byChapterThenShuffle(fresh).concat(shuffle(wrong), due, done);
+  return eligibleFresh(list).concat(shuffle(wrong), due, done);
 }
 
 /* 全範囲モードで、未挑戦が10枠を全部食べないようにする。
@@ -1536,7 +1617,7 @@ function withShuffledOptions(q){
     options: order.map(function(i){ return q.options[i]; }),
     answer: order.indexOf(q.answer),
     explanation:q.explanation, source:q.source, method:q.method,
-    section:q.section, addedAt:q.addedAt
+    section:q.section, addedAt:q.addedAt, level:q.level, premise:q.premise
   };
 }
 
@@ -1599,6 +1680,12 @@ function docRef(q){
    ここを設計書アーティファクトの絶対 URL に差し替える。 */
 var DOC_URL = 'design-doc.html';
 
+/* 基礎知識ノートの置き場。章のチップ（第2章 BigQuery）の行き先になる。
+   DOC_URL と同じ扱いで、Pages とローカルは隣の note.html、アーティファクト版は
+   ビルドが絶対 URL に差し替える。ノート側の <details> には id="c1"〜"c7" が
+   振ってあり、#c2 で第2章が開いた状態で着く。 */
+var NOTE_URL = 'note.html';
+
 /* 「§4 データ方式」「§10 #6 スキーマの所有者」「§1・2・9 構成・前提」から
    最初の節番号だけを取り出して #s4 の形にする。設計書側の <h2 id> がこれ。
    §1・2・9 のように複数にまたがる方式は、先頭の §1 に着けば十分（節の一覧が
@@ -1616,6 +1703,22 @@ function docHref(ref){
   var rel = DOC_URL + docAnchor(ref);
   try{ return new URL(rel, location.href).href; }
   catch(e){ return rel; }   /* about:blank 等で解決できない場合はそのまま */
+}
+
+/* 章のチップ。基礎知識ノートの該当章へのリンクにする。
+   解説を読んで「そもそも分かっていない」と分かったとき、戻る先が名前だけだと
+   自分でノートを開いて章を探すことになる。押せば着くようにしておく。
+   章未設定（0）はリンクにしない（行き先が無い）。 */
+function noteChip(n){
+  if(!n || !NOTE_URL) return el('span', 'chip', chapterFull(n));
+  /* chip-note を付けておく。方式設計書のチップと同じ chip-link だけだと、
+     「戻る先の中のリンク」を指す側（テストや後から足す CSS）が2つに当たる。 */
+  var a = el('a', 'chip chip-link chip-note', chapterFull(n));
+  a.href = NOTE_URL + '#c' + n;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.title = '基礎知識ノートの ' + chapterFull(n) + ' を開く';
+  return a;
 }
 
 /* 「方式設計書 §4 データ方式」のチップ。DOC_URL があればリンクにする。
@@ -1784,11 +1887,18 @@ function renderHome(){
   // モードごとの件数
   var nWrong = poolWrong().length;
   var nDue   = poolDue().length;
-  var freshNext = byChapterThenShuffle(live.filter(function(q){ return statusOf(q.id) === 'new'; }));
+  /* 未挑戦は「いま出せるもの」だけを数える。出題（prioritize）と同じ関数を通すので、
+     ここに出た数と次に出る章が、押したあとの中身とずれない。 */
+  var freshNext = eligibleFresh(live);
   var nNew   = freshNext.length;
+  /* 段階がまだ来ていない未挑戦。0 のときは出さない（ふだんは見えない数）。
+     これを出さないと、章の梯子で止まっている分だけ「未挑戦」が黙って減り、
+     問題が消えたように見える。 */
+  var nWait  = live.filter(function(q){ return statusOf(q.id) === 'new'; }).length - nNew;
   /* 未挑戦が先頭になったので、次に出る章を最初に出す。表示の順も出題の順に合わせる。 */
   $('cntAll').textContent = (nNew ? '未挑戦 ' + nNew + '（次は' + chapterLabel(freshNext[0].chapter) + '）/ ' : '')
-    + '間違い ' + nWrong + ' / 復習 ' + nDue;
+    + '間違い ' + nWrong + ' / 復習 ' + nDue
+    + (nWait ? ' / 段階待ち ' + nWait : '');
   $('cntWrong').textContent  = nWrong + '問';
   $('cntDue').textContent    = nDue ? nDue + '問' : 'いまはありません';
   $('cntRecent').textContent = Math.min(PICK_N, total) + '問';
@@ -2259,7 +2369,7 @@ function renderPrep(){
     var card = el('div', 'card prep' + (r.why === 'wrong' ? ' is-wrong' : ''));
     card.appendChild(el('div', 'why', r.why === 'wrong' ? '直近で間違えた' : '説明できなかった'));
     var chips = el('div', 'chips');
-    chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+    chips.appendChild(noteChip(q.chapter));
     if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
     var dr = docRef(q);
     if(dr) chips.appendChild(docChip(dr));
@@ -2392,10 +2502,18 @@ var locked = false;
 function startSession(mode, chapter, forceExplain){
   var s = buildSession(mode, chapter, forceExplain);
   if(!s.list.length){
+    /* 章別・方式別が0件になる理由はたいてい段階の梯子。理由を書かずに
+       「出題できる問題がありませんでした」とだけ出すと、問題が消えたように見える。 */
+    var pool = (mode === 'chapter') ? poolChapter(chapter)
+             : (mode === 'method')  ? poolMethod(chapter) : [];
+    var waiting = pool.filter(function(q){ return statusOf(q.id) === 'new'; }).length;
     window.alert(mode === 'wrong'
       ? '間違えた問題はまだありません。まずは全範囲から解いてみてください。'
       : mode === 'due'
       ? '復習どきの問題はまだありません。正解してから数日経つとここに出てきます。'
+      : waiting
+      ? 'ここの ' + waiting + '問は、まだ段階が来ていません。\n'
+        + '同じ章の下の段階（用語 → 仕組み → 判断）を先に正解すると出てきます。'
       : '出題できる問題がありませんでした。');
     return;
   }
@@ -2463,6 +2581,14 @@ function renderQuestion(){
   var w = whyLabel(q.id);
   wChip.textContent = w.txt;
   wChip.className = w.cls;
+  /* 段階。中断の再開で来た古い記録には level が無いので 2（仕組み）に倒す。 */
+  var lv = q.level || 2;
+  $('qLevel').textContent = '段階' + lv + ' ' + (LEVEL_NAMES[lv] || '');
+
+  /* 前提は説明モードでも出す。前提は答えではなく、問題文を読むための土台なので、
+     隠すと「用語を知らないまま説明しろ」になる。 */
+  var pBox = $('qPremise');
+  if(q.premise){ $('qPremiseTxt').textContent = q.premise; show(pBox); } else { hide(pBox); }
 
   $('qText').textContent = q.q;
 
@@ -2556,7 +2682,7 @@ function reveal(){
   if(q.source) v.appendChild(sourceLink(q.source));
   var back = el('div', 'backto');
   back.appendChild(el('span', null, '戻る先：'));
-  back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+  back.appendChild(noteChip(q.chapter));
   if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
   /* 方式設計書の側の戻る先。章（基礎知識ノート）とは別の軸なので両方出す。 */
   var dr = docRef(q);
@@ -2635,7 +2761,7 @@ function answer(i){
 
   var back = el('div', 'backto');
   back.appendChild(el('span', null, '戻る先：'));
-  back.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+  back.appendChild(noteChip(q.chapter));
   if(q.tag) back.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
   /* 方式設計書の側の戻る先。章（基礎知識ノート）とは別の軸なので両方出す。 */
   var dr = docRef(q);
@@ -2815,7 +2941,7 @@ function finish(){
       if(!q) return;
       var box = el('div', 'rev');
       var chips = el('div', 'chips');
-      chips.appendChild(el('span', 'chip', chapterFull(q.chapter)));
+      chips.appendChild(noteChip(q.chapter));
       if(q.tag) chips.appendChild(el('span', 'chip tag', '理解度表 ' + q.tag));
       if(q.method) chips.appendChild(el('span', 'chip method', q.method));
       box.appendChild(chips);
@@ -3210,7 +3336,10 @@ function rowToQuestion(row){
     source    : String(row[c.source] == null ? '' : row[c.source]).trim(),
     method    : String(row[c.method] == null ? '' : row[c.method]).trim(),
     section   : String(row[c.section] == null ? '' : row[c.section]).trim(),
-    addedAt   : String(row[c.date] || '').slice(0, 10)
+    addedAt   : String(row[c.date] || '').slice(0, 10),
+    /* Notion 側に「段階」「前提」の列が無くても動く（既定の 2 と空文字になる）。 */
+    level     : normLevel(row[c.level]),
+    premise   : String(row[c.premise] == null ? '' : row[c.premise]).trim()
   };
 }
 
@@ -3434,7 +3563,7 @@ function addCheck(){
      （アーティファクト版はデータが埋め込みで、あとから消す手段が無い） */
   /* 知らないキーは保存データに入れない。ここで入れたものは公開版に永久に焼き込まれ、
      あとから消す手段が無い（アーティファクト版はデータが埋め込みのため）。 */
-  var KEEP = ['id','chapter','tag','method','section','q','options','answer','explanation','source','addedAt'];
+  var KEEP = ['id','chapter','tag','method','section','q','options','answer','explanation','source','addedAt','level','premise'];
   incoming = incoming.map(function(r){
     if(!r || typeof r !== 'object') return r;   // null 等は後段の parseData が「形式エラー」に数える
     var out = {}, i;

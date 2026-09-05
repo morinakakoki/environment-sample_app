@@ -205,7 +205,7 @@ console.log('\n【9】節のチップから方式設計書の該当節へ飛べ�
   const seen = [];
   for (let i = 0; i < 4; i++) {
     await answerOne(p);
-    const link = p.locator('#qVerdict .backto a.chip-link');
+    const link = p.locator('#qVerdict .backto a.chip-link.method');
     if (await link.count() === 0) {
       seen.push('（リンクなし）');
       ok(!/方式設計書/.test(await p.locator('#qVerdict .backto').innerText()),
@@ -247,7 +247,7 @@ console.log('\n【10】面接前チェックリストからも飛べる（画面
   await p.locator('#screenHome:not(.hidden)').waitFor();
   await p.locator('#prepBtn').click();
   await p.locator('#screenPrep:not(.hidden)').waitFor();
-  const href = await p.locator('#prepList a.chip-link').first().getAttribute('href');
+  const href = await p.locator('#prepList a.chip-link.method').first().getAttribute('href');
   ok(href && href.endsWith('#s7'), '一覧のチップが §7 を指す: ' + String(href).slice(-24));
 
   await p.locator('#prepCopyBtn').click();
